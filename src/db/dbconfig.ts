@@ -1,19 +1,13 @@
-import { Client } from 'pg';
+import { Pool } from 'pg';
 
 require('dotenv').config();
 
-const client = new Client({
-  user: `${process.env.PGUSER}`,
-  host: `${process.env.PGHOST}`,
-  database: `${process.env.PGDATABASE}`,
-  password: `${process.env.PGPASSWORD}`,
-  port: parseInt(`${process.env.PGPORT}`, 10),
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
 });
 
-client.connect();
-
-function query(q: any, params: any) {
-  client.query(q, params);
-}
+const query = (q: any, params: any) => {
+  pool.query(q, params);
+};
 
 export default query;
