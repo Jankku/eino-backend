@@ -2,38 +2,43 @@ import { hash, compareSync } from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { sign } from 'jsonwebtoken';
 import { Request, Response } from 'express';
-import getUserByUsername from '../db/users';
-import query from '../db/dbconfig';
+import validator from 'validator';
+import { getUserByUsername } from '../db/users';
+import sendQuery from '../db/config';
 import User from '../db/model/user';
+import { success, error } from '../util/response';
+import { validateCredientials, validationErrors } from '../util/validation';
+import Logger from '../util/logger';
 
 const saltRounds = 10;
 
 const register = async (req: Request, res: Response) => {
   const userId = uuidv4();
-  // TODO: Validate username and password
-  const { username } = req.body;
-  const { password } = req.body;
+  const { username, password } = req.body;
+
+  const isValid = await validateCredientials(username, password);
+  if (!isValid) {
+    return res.status(422).json(error(validationErrors));
+  }
 
   try {
     const hashedPassword = await hash(password, saltRounds);
-
-    const q: any = {
+    const query = {
       text: 'INSERT INTO users (id, username, password) VALUES ($1, $2, $3)',
-      values: [userId, username, hashedPassword],
+      values: [userId, validator.trim(username), hashedPassword],
     };
 
-    console.log(q);
-
-    query(q, (err: any) => {
+    sendQuery(query, (err: any) => {
       if (err) {
         console.error('Error executing query', err.stack);
         res.sendStatus(400);
       } else {
-        res.sendStatus(200);
+        res.status(200).json(success({ code: 'user_registered', message: username }));
       }
     });
-  } catch (error) {
-    console.log(`Error: ${error}`);
+  } catch (err) {
+    Logger.error(err);
+    res.sendStatus(500);
   }
 };
 
@@ -43,11 +48,11 @@ const login = async (req: Request, res: Response) => {
 
   try {
     getUserByUsername(username, (user: User[]) => {
-      if (user.length !== 1) res.sendStatus(400).end();
+      if (user.length === 0) return res.status(400).json(error({ code: 'user_not_found', message: 'User not found' }));
       const userId = user[0].id;
       const hashedPassword = user[0].password;
 
-      if (!compareSync(password, hashedPassword)) { return res.sendStatus(400).end(); }
+      if (!compareSync(password, hashedPassword)) { return res.status(422).json(error({ code: 'password_incorrect', message: 'Wrong password' })); }
 
       sign(
         { userId, username },
@@ -55,12 +60,12 @@ const login = async (req: Request, res: Response) => {
         { expiresIn: '7d' },
         (err, result) => {
           if (err) res.sendStatus(400).end();
-          else res.send({ result });
+          else res.status(200).json({ token: result });
         },
       );
     });
-  } catch (error) {
-    console.log(`Error: ${error}`);
+  } catch (err) {
+    Logger.error(err);
   }
 };
 

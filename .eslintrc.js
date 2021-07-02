@@ -3,11 +3,11 @@ module.exports = {
     extends: ["airbnb-typescript/base"],
     parser: "@typescript-eslint/parser",
     parserOptions: {
-      project: "./tsconfig.json"
+      project: "./tsconfig.eslint.json",
     },
     rules: {
       "linebreak-style": 0,
       "no-console": "off",
       "consistent-return": 0
-    }
+    },
 }
