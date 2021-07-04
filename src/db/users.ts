@@ -19,7 +19,7 @@ const getUserByUsername = (username: string, next: Function) => {
 
 const isUserUnique = async (username: string): Promise<boolean> => {
   const query = {
-    text: 'SELECT id, username FROM users WHERE username = $1',
+    text: 'SELECT user_id, username FROM users WHERE username = $1',
     values: [username],
   };
 

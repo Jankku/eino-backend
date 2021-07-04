@@ -12,10 +12,10 @@ const success = (result: Array<ResponseItem> | ResponseItem) => ({
 });
 
 /**
- * @description Returns error response object
- * @param message {string} Error message
+ * @description Returns error response array
+ * @param err {ResponseItem} Error object
  */
-const error = (errors: Array<ResponseItem> | ResponseItem) => ({
+const error = (errors: Array<ResponseItem>) => ({
   errors,
 });
 

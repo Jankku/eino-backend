@@ -5,6 +5,10 @@ import Logger from './logger';
 
 const validationErrors: Array<ResponseItem> = [];
 
+const clearErrors = () => {
+  validationErrors.length = 0;
+};
+
 const isValidUsername = async (username: string): Promise<boolean> => {
   try {
     // Is username unique
@@ -16,7 +20,7 @@ const isValidUsername = async (username: string): Promise<boolean> => {
 
     // Is username length between 3-255
     if (!(validator.isLength(username, { min: 3, max: 255 }))) {
-      validationErrors.push({ code: 'username_length_invalid', message: 'Username length should be between 3-255' });
+      validationErrors.push({ code: 'username_length_invalid', message: 'Username length should be between 3-255 characters' });
       return false;
     }
   } catch (err) {
@@ -30,7 +34,7 @@ const isValidPassword = (password: string): boolean => {
   try {
     // Is password length between 8-255 characters
     if (!(validator.isLength(password, { min: 8, max: 255 }))) {
-      validationErrors.push({ code: 'password_length_invalid', message: 'Password length should be between 8-255' });
+      validationErrors.push({ code: 'password_length_invalid', message: 'Password length should be between 8-255 characters' });
       return false;
     }
 
@@ -59,9 +63,8 @@ const isValidPassword = (password: string): boolean => {
  */
 const validateCredientials = async (username: string, password: string): Promise<boolean> => {
   if (!(await isValidUsername(username))) return false;
-
   if (!isValidPassword(password)) return false;
-
+  clearErrors();
   return true;
 };
 
@@ -69,5 +72,6 @@ export {
   isValidUsername,
   isValidPassword,
   validateCredientials,
+  clearErrors,
   validationErrors,
 };

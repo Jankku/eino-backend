@@ -1,14 +1,23 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { error } from '../util/response';
+import { clearErrors, validationErrors } from '../util/validation';
 
 const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(400).json(error({ code: 'no_authorization_header', message: 'No Authorization header' }));
+  if (!token) {
+    validationErrors.push({ code: 'no_authorization_header', message: 'No Authorization header' });
+    res.status(400).json(error(validationErrors));
+    clearErrors();
+    return;
+  }
 
   try {
-    if (jwt.verify(token, `${process.env.JWT_SECRET}`)) next();
-    else return res.sendStatus(401);
+    jwt.verify(token, `${process.env.JWT_SECRET}`, (err: any, decoded: any) => {
+      res.locals.userId = decoded.userId;
+      res.locals.username = decoded.username;
+      next(err);
+    });
   } catch (err) {
     res.status(400).json(err);
   }

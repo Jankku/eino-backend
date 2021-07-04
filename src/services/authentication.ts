@@ -7,7 +7,7 @@ import { getUserByUsername } from '../db/users';
 import sendQuery from '../db/config';
 import User from '../db/model/user';
 import { success, error } from '../util/response';
-import { validateCredientials, validationErrors } from '../util/validation';
+import { clearErrors, validateCredientials, validationErrors } from '../util/validation';
 import Logger from '../util/logger';
 
 const saltRounds = 10;
@@ -18,13 +18,15 @@ const register = async (req: Request, res: Response) => {
 
   const isValid = await validateCredientials(username, password);
   if (!isValid) {
-    return res.status(422).json(error(validationErrors));
+    res.status(422).json(error(validationErrors));
+    clearErrors();
+    return;
   }
 
   try {
     const hashedPassword = await hash(password, saltRounds);
     const query = {
-      text: 'INSERT INTO users (id, username, password) VALUES ($1, $2, $3)',
+      text: 'INSERT INTO users (user_id, username, password) VALUES ($1, $2, $3)',
       values: [userId, validator.trim(username), hashedPassword],
     };
 
@@ -48,11 +50,19 @@ const login = async (req: Request, res: Response) => {
 
   try {
     getUserByUsername(username, (user: User[]) => {
-      if (user.length === 0) return res.status(400).json(error({ code: 'user_not_found', message: 'User not found' }));
+      if (user.length === 0) {
+        validationErrors.push({ code: 'user_not_found', message: 'User not found' });
+        return res.status(422).json(error(validationErrors));
+      }
       const userId = user[0].id;
       const hashedPassword = user[0].password;
 
-      if (!compareSync(password, hashedPassword)) { return res.status(422).json(error({ code: 'password_incorrect', message: 'Wrong password' })); }
+      if (!compareSync(password, hashedPassword)) {
+        validationErrors.push({ code: 'password_incorrect', message: 'Wrong password' });
+        res.status(422).json(error(validationErrors));
+        clearErrors();
+        return;
+      }
 
       sign(
         { userId, username },
