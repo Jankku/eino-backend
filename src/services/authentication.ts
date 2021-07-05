@@ -52,8 +52,11 @@ const login = async (req: Request, res: Response) => {
     getUserByUsername(username, (user: User[]) => {
       if (user.length === 0) {
         validationErrors.push({ code: 'user_not_found', message: 'User not found' });
-        return res.status(422).json(error(validationErrors));
+        res.status(422).json(error(validationErrors));
+        clearErrors();
+        return;
       }
+
       const userId = user[0].id;
       const hashedPassword = user[0].password;
 
@@ -70,12 +73,13 @@ const login = async (req: Request, res: Response) => {
         { expiresIn: '7d' },
         (err, result) => {
           if (err) res.sendStatus(400).end();
-          else res.status(200).json({ token: result });
+          return res.status(200).json({ token: result });
         },
       );
     });
   } catch (err) {
     Logger.error(err);
+    res.sendStatus(500);
   }
 };
 

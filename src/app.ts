@@ -16,11 +16,14 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(compression());
 app.use(helmet());
 app.use(cors({ allowedHeaders: ['Content-Type', 'Authorization'] }));
 
 app.use('/auth', authRoutes);
+
+// These routes need authorization token
 app.use('/books', verifyToken, bookRoutes);
 app.use('/movies', verifyToken, movieRoutes);
 

@@ -7,7 +7,7 @@ interface ResponseItem {
  * @description Returns success response object
  * @param result {array|ResponseItem} response items
  */
-const success = (result: Array<ResponseItem> | ResponseItem) => ({
+const success = (result: Array<any> | ResponseItem) => ({
   result,
 });
 

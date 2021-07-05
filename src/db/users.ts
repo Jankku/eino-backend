@@ -9,7 +9,7 @@ const getUserByUsername = (username: string, next: Function) => {
 
   try {
     sendQuery(query, (err: any, result: any) => {
-      if (err) return console.error('Error executing query', err.stack);
+      if (err) return Logger.error('Error executing query', err.stack);
       next(result.rows);
     });
   } catch (err) {
@@ -45,4 +45,8 @@ const deleteAllUsers = async () => {
   }
 };
 
-export { getUserByUsername, isUserUnique, deleteAllUsers };
+export {
+  getUserByUsername,
+  isUserUnique,
+  deleteAllUsers,
+};

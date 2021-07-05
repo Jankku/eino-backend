@@ -1,11 +1,10 @@
 {
   "extends": "./node_modules/@tsconfig/node16/tsconfig.json",
-  "types": ["node"],
   "include": ["src/**/*"],
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist",
-    "typeRoots": ["node_modules/@types"],
+    "typeRoots": ["./node_modules/@types"],
     "removeComments": true
   }
 }
