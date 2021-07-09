@@ -6,6 +6,9 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-const sendQuery = (query: QueryConfig, params: any) => pool.query(query, params);
+const query = (q: QueryConfig, params?: any) => pool.query(q, params);
 
-export default sendQuery;
+export {
+  query,
+  pool,
+};

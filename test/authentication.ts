@@ -23,7 +23,7 @@ describe('Register', () => {
     };
 
     chai.request(app)
-      .post('/auth/register')
+      .post('/api/auth/register')
       .send(user)
       .end((err, res) => {
         res.should.have.status(422);
@@ -42,7 +42,7 @@ describe('Register', () => {
     };
 
     chai.request(app)
-      .post('/auth/register')
+      .post('/api/auth/register')
       .send(user)
       .end((err, res) => {
         res.should.have.status(422);
@@ -61,7 +61,7 @@ describe('Register', () => {
     };
 
     chai.request(app)
-      .post('/auth/register')
+      .post('/api/auth/register')
       .send(user)
       .end((err, res) => {
         res.should.have.status(422);
@@ -80,7 +80,7 @@ describe('Register', () => {
     };
 
     chai.request(app)
-      .post('/auth/register')
+      .post('/api/auth/register')
       .send(user)
       .end((err, res) => {
         res.should.have.status(422);
@@ -99,7 +99,7 @@ describe('Register', () => {
     };
 
     chai.request(app)
-      .post('/auth/register')
+      .post('/api/auth/register')
       .send(user)
       .end((err, res) => {
         res.should.have.status(422);
@@ -118,7 +118,7 @@ describe('Register', () => {
     };
 
     chai.request(app)
-      .post('/auth/register')
+      .post('/api/auth/register')
       .send(user)
       .end((err, res) => {
         res.should.have.status(422);
@@ -137,7 +137,7 @@ describe('Register', () => {
     };
 
     chai.request(app)
-      .post('/auth/register')
+      .post('/api/auth/register')
       .send(user)
       .end((err, res) => {
         res.should.have.status(200);
@@ -157,7 +157,7 @@ describe('Register', () => {
     };
 
     chai.request(app)
-      .post('/auth/register')
+      .post('/api/auth/register')
       .send(user)
       .end((err, res) => {
         res.should.have.status(200);
@@ -177,7 +177,7 @@ describe('Register', () => {
     };
 
     chai.request(app)
-      .post('/auth/register')
+      .post('/api/auth/register')
       .send(user)
       .end((err, res) => {
         res.should.have.status(200);
@@ -200,7 +200,7 @@ describe('Login', () => {
     };
 
     chai.request(app)
-      .post('/auth/login')
+      .post('/api/auth/login')
       .send(user)
       .end((err, res) => {
         res.should.have.status(422);
@@ -219,7 +219,7 @@ describe('Login', () => {
     };
 
     chai.request(app)
-      .post('/auth/login')
+      .post('/api/auth/login')
       .send(user)
       .end((err, res) => {
         res.should.have.status(422);
@@ -238,7 +238,7 @@ describe('Login', () => {
     };
 
     chai.request(app)
-      .post('/auth/login')
+      .post('/api/auth/login')
       .send(user)
       .end((err, res) => {
         res.should.have.status(422);
@@ -257,7 +257,7 @@ describe('Login', () => {
     };
 
     chai.request(app)
-      .post('/auth/login')
+      .post('/api/auth/login')
       .send(user)
       .end((err, res) => {
         res.should.have.status(422);
@@ -276,7 +276,7 @@ describe('Login', () => {
     };
 
     chai.request(app)
-      .post('/auth/login')
+      .post('/api/auth/login')
       .send(user)
       .end((err, res) => {
         res.should.have.status(200);

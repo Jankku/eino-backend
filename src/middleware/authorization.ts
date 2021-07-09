@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import Logger from '../util/logger';
 import { error } from '../util/response';
 import { clearErrors, validationErrors } from '../util/validation';
 
@@ -13,11 +14,12 @@ const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   }
 
   try {
-    jwt.verify(token, `${process.env.JWT_SECRET}`, (err: any, decoded: any) => {
-      res.locals.username = decoded.username;
+    jwt.verify(token, `${process.env.JWT_SECRET}`, (err, decoded) => {
+      res.locals.username = decoded?.username;
       next(err);
     });
   } catch (err) {
+    Logger.error(err);
     res.status(400).json(err);
   }
 };

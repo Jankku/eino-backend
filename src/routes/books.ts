@@ -9,4 +9,6 @@ router.get('/on-hold', books.getOnHoldList);
 router.get('/dropped', books.getDroppedList);
 router.get('/planned', books.getPlannedList);
 
+router.post('/', books.addBookToList);
+
 export default router;

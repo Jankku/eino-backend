@@ -21,11 +21,12 @@ app.use(compression());
 app.use(helmet());
 app.use(cors({ allowedHeaders: ['Content-Type', 'Authorization'] }));
 
-app.use('/auth', authRoutes);
+// Routes
+app.use('/api/auth', authRoutes);
 
-// These routes need authorization token
-app.use('/books', verifyToken, bookRoutes);
-app.use('/movies', verifyToken, movieRoutes);
+// These routes need JWT authorization token
+app.use('/api/books', verifyToken, bookRoutes);
+app.use('/api/movies', verifyToken, movieRoutes);
 
 app.listen(port, () => {
   Logger.info(`Server Listening to port ${port}`);

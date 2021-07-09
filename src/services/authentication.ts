@@ -4,7 +4,7 @@ import { sign } from 'jsonwebtoken';
 import { Request, Response } from 'express';
 import validator from 'validator';
 import { getUserByUsername } from '../db/users';
-import sendQuery from '../db/config';
+import { query } from '../db/config';
 import User from '../db/model/user';
 import { success, error } from '../util/response';
 import { clearErrors, validateCredientials, validationErrors } from '../util/validation';
@@ -25,14 +25,14 @@ const register = async (req: Request, res: Response) => {
 
   try {
     const hashedPassword = await hash(password, saltRounds);
-    const query = {
+    const q = {
       text: 'INSERT INTO users (user_id, username, password) VALUES ($1, $2, $3)',
       values: [userId, validator.trim(username), hashedPassword],
     };
 
-    sendQuery(query, (err: any) => {
+    query(q, (err: Error) => {
       if (err) {
-        console.error('Error executing query', err.stack);
+        Logger.error(err);
         res.sendStatus(400);
       } else {
         res.status(200).json(success({ code: 'user_registered', message: username }));
