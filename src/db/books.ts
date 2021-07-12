@@ -1,16 +1,16 @@
 import Logger from '../util/logger';
 import { query } from './config';
 import Book from './model/book';
-import Status from './model/status';
+import BookStatus from './model/bookstatus';
 
-const getBooksByStatus = async (username: string, status: Status): Promise<any[]> => {
-  const q = {
+const getBooksByStatus = async (username: string, status: BookStatus): Promise<any[]> => {
+  const getBooksQuery = {
     text: 'SELECT * FROM user_book_list WHERE username = $1 AND status = $2',
     values: [username, status],
   };
 
   try {
-    const result = await query(q, null);
+    const result = await query(getBooksQuery);
     if (result?.rows.length > 0) return result.rows;
   } catch (err) {
     Logger.error(err.stack);
@@ -19,13 +19,14 @@ const getBooksByStatus = async (username: string, status: Status): Promise<any[]
   return [];
 };
 
-const postBook = async (book: Book): Promise<string> => {
+const postBook = async (b: Book): Promise<string> => {
   let bookId = '';
+  const insertBookQuery = {
+    text: 'INSERT INTO books (isbn, title, author, publisher, pages, year, submitter) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING book_id',
+    values: [b.isbn, b.title, b.author, b.publisher, b.pages, b.year, b.submitter],
+  };
+
   try {
-    const insertBookQuery = {
-      text: 'INSERT INTO books (title, author, publisher, isbn, pages, submitter) VALUES ($1, $2, $3, $4, $5, $6) RETURNING book_id',
-      values: [book.title, book.author, book.publisher, book.isbn, book.pages, book.submitter],
-    };
     const result = await query(insertBookQuery);
     bookId = result.rows[0].book_id;
   } catch (err) {

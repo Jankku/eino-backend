@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import Logger from '../util/logger';
 import { postBook, getBooksByStatus } from '../db/books';
 import { error, success } from '../util/response';
-import Status from '../db/model/status';
+import BookStatus from '../db/model/bookstatus';
 import Book from '../db/model/book';
 import { pool, query } from '../db/config';
 
@@ -11,7 +11,7 @@ const getBook = async (req: Request, res: Response) => {
   const submitter = res.locals.username;
 
   const getBookQuery = {
-    text: 'SELECT * FROM books WHERE book_id=$1 AND submitter=$2 LIMIT 1',
+    text: 'SELECT book_id, title, author, publisher, pages, isbn FROM books WHERE book_id=$1 AND submitter=$2 LIMIT 1',
     values: [bookId, submitter],
   };
 
@@ -24,7 +24,7 @@ const getBook = async (req: Request, res: Response) => {
   }
 };
 
-const fetchList = async (req: Request, res: Response, status: Status) => {
+const fetchList = async (req: Request, res: Response, status: BookStatus) => {
   const { username } = res.locals;
 
   try {
@@ -45,15 +45,16 @@ const getPlannedList = (req: Request, res: Response) => fetchList(req, res, 'pla
 const addBookToList = async (req: Request, res: Response) => {
   const client = await pool.connect();
   const {
-    isbn, title, author, publisher, pages, status, score,
+    isbn, title, author, publisher, pages, year, status, score,
   } = req.body;
   const { username } = res.locals;
   const book: Book = {
+    isbn,
     title,
     author,
     publisher,
-    isbn,
     pages,
+    year,
     submitter: username,
   };
 
@@ -68,7 +69,7 @@ const addBookToList = async (req: Request, res: Response) => {
             values: [bookId, username, status, score],
           };
 
-          // Insert book to user list
+          // Insert book to user's booklist
           query(addBookToUserListQuery);
           res.status(201).json(success({ code: 'book_added_to_list', message: 'Book added to list' }));
         });
@@ -77,7 +78,7 @@ const addBookToList = async (req: Request, res: Response) => {
       await client.query('ROLLBACK');
 
       Logger.error(err.stack);
-      res.status(500).json(error([{ code: 'book_list_error', message: 'Couldnt update list' }]));
+      res.status(422).json(error([{ code: 'book_list_error', message: 'Couldnt update list' }]));
     }
   } finally {
     client.release();
@@ -86,14 +87,14 @@ const addBookToList = async (req: Request, res: Response) => {
 
 const updateBook = async (req: Request, res: Response) => {
   const {
-    isbn, title, author, publisher, pages,
+    isbn, title, author, publisher, pages, year,
   } = req.body;
   const { bookId } = req.params;
   const submitter = res.locals.username;
 
   const updateBookQuery = {
-    text: 'UPDATE books SET title=$1, author=$2, publisher=$3, pages=$4, isbn=$5 WHERE book_id=$6 AND submitter=$7 RETURNING *',
-    values: [title, author, publisher, pages, isbn, bookId, submitter],
+    text: 'UPDATE books SET title=$1, author=$2, publisher=$3, pages=$4, isbn=$5, year=$6 WHERE book_id=$7 AND submitter=$8 RETURNING book_id, title, author, publisher, pages, isbn, year',
+    values: [title, author, publisher, pages, isbn, year, bookId, submitter],
   };
 
   try {

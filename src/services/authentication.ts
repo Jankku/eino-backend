@@ -1,5 +1,4 @@
 import * as bcrypt from 'bcrypt';
-import { v4 as uuidv4 } from 'uuid';
 import { Request, Response } from 'express';
 import validator from 'validator';
 import { getUserByUsername } from '../db/users';
@@ -11,7 +10,6 @@ import Logger from '../util/logger';
 import { generateJwtToken, generatePasswordHash } from '../util/auth';
 
 const register = async (req: Request, res: Response) => {
-  const userId = uuidv4();
   const { username, password } = req.body;
 
   const isValid = await validateCredientials(username, password);
@@ -24,8 +22,8 @@ const register = async (req: Request, res: Response) => {
   try {
     const hashedPassword = generatePasswordHash(password);
     const q = {
-      text: 'INSERT INTO users (user_id, username, password) VALUES ($1, $2, $3)',
-      values: [userId, validator.trim(username), hashedPassword],
+      text: 'INSERT INTO users (username, password) VALUES ($1, $2)',
+      values: [validator.trim(username), hashedPassword],
     };
 
     query(q, (err: Error) => {
@@ -38,13 +36,12 @@ const register = async (req: Request, res: Response) => {
     });
   } catch (err) {
     Logger.error(err.stack);
-    res.sendStatus(500);
+    res.status(500).json(error([{ code: 'register_error', message: 'Register error' }]));
   }
 };
 
 const login = async (req: Request, res: Response) => {
-  const { username } = req.body;
-  const { password } = req.body;
+  const { username, password } = req.body;
 
   try {
     getUserByUsername(username, (user: User[]) => {
@@ -70,7 +67,7 @@ const login = async (req: Request, res: Response) => {
     });
   } catch (err) {
     Logger.error(err.stack);
-    res.sendStatus(500);
+    res.status(500).json(error([{ code: 'login_error', message: 'Login error' }]));
   }
 };
 

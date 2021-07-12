@@ -1,9 +1,10 @@
 type Book = {
+  isbn: string,
   title: string,
   author: string,
   publisher: string,
-  isbn: string,
   pages: number,
+  year: number,
   submitter: string
 };
 
