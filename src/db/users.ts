@@ -14,7 +14,7 @@ const getUserByUsername = (username: string, next: Function) => {
       next(result.rows);
     });
   } catch (err) {
-    Logger.error(err);
+    Logger.error(err.stack);
   }
 };
 
@@ -28,7 +28,7 @@ const isUserUnique = async (username: string): Promise<boolean> => {
     const result = await query(q);
     return result.rows.length === 0;
   } catch (err) {
-    Logger.error(err);
+    Logger.error(err.stack);
     return false;
   }
 };
@@ -41,7 +41,7 @@ const deleteAllUsers = async () => {
   try {
     await query(q);
   } catch (err) {
-    Logger.error(err);
+    Logger.error(err.stack);
   }
 };
 

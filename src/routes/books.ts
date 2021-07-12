@@ -11,4 +11,8 @@ router.get('/planned', books.getPlannedList);
 
 router.post('/', books.addBookToList);
 
+router.get('/:bookId', books.getBook);
+router.put('/:bookId', books.updateBook);
+router.delete('/:bookId', books.deleteBook);
+
 export default router;

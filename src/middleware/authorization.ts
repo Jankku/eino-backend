@@ -19,7 +19,7 @@ const verifyToken = (req: Request, res: Response, next: NextFunction) => {
       next(err);
     });
   } catch (err) {
-    Logger.error(err);
+    Logger.error(err.stack);
     res.status(400).json(err);
   }
 };

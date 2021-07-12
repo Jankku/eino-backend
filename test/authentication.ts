@@ -12,11 +12,15 @@ chai.use(chaiHttp);
 
 // Register tests
 describe('Register', () => {
+  before(() => {
+    deleteAllUsers();
+  });
+
   beforeEach(() => {
     deleteAllUsers();
   });
 
-  it('Shouldnt register new user when password is empty', (done) => {
+  it('Should error with empty password', (done) => {
     const user = {
       username: 'testuser',
       password: '',
@@ -35,7 +39,7 @@ describe('Register', () => {
       });
   });
 
-  it('Shouldnt register new user when password is too short', (done) => {
+  it('Should error with too short password', (done) => {
     const user = {
       username: 'testuser',
       password: 'test',
@@ -54,7 +58,7 @@ describe('Register', () => {
       });
   });
 
-  it('Shouldnt register new user when password is too long', (done) => {
+  it('Should error with too long password', (done) => {
     const user = {
       username: 'testuser',
       password: 'hnyf7RrvPBYUqgLp4KCcVG9TRgdCgGubTzShukasduu3i47237riuiuiug3r25CQj9enJMqdtVgHDjfDq8e4eL9n2UvQTKKLgtp2t5Tjbkth7pFQ7dBKqY6m99BLePn8Y799zzhFLBdRL9a7PJSpUqCRV3W5FGgkvnmsbwsVEQjvca6XRfPbPD3QEWnjV6y2As9aYccqXMbewSfJ4ALYzx7heCEmJ6CyGFgqyTnKnWMJs3rtksxsYbkUXxPckGA8tzFhGZgsre9vuct62uCR9cwS8ajshjasjd2312312',
@@ -73,7 +77,7 @@ describe('Register', () => {
       });
   });
 
-  it('Shouldnt register new user when username is empty', (done) => {
+  it('Should error with empty username', (done) => {
     const user = {
       username: '',
       password: 'testpassword123',
@@ -92,7 +96,7 @@ describe('Register', () => {
       });
   });
 
-  it('Shouldnt register new user when username is too short', (done) => {
+  it('Should error with too short username', (done) => {
     const user = {
       username: 'te',
       password: 'testpassword123',
@@ -111,7 +115,7 @@ describe('Register', () => {
       });
   });
 
-  it('Shouldnt register new user when username is too long', (done) => {
+  it('Should error with too long username', (done) => {
     const user = {
       username: 'hnyf7RrvPBYUqgLp4KCcVG9TRgdCgGubTzShukasduu3i47237riuiuiug3r25CQj9enJMqdtVgHDjfDq8e4eL9n2UvQTKKLgtp2t5Tjbkth7pFQ7dBKqY6m99BLePn8Y799zzhFLBdRL9a7PJSpUqCRV3W5FGgkvnmsbwsVEQjvca6XRfPbPD3QEWnjV6y2As9aYccqXMbewSfJ4ALYzx7heCEmJ6CyGFgqyTnKnWMJs3rtksxsYbkUXxPckGA8tzFhGZgsre9vuct62uCR9cwS8ajshjasjd2312312',
       password: 'testpassword123',
@@ -130,7 +134,7 @@ describe('Register', () => {
       });
   });
 
-  it('Should register new user when username is minimum length', (done) => {
+  it('Should register with minimum length username', (done) => {
     const user = {
       username: 'tes',
       password: 'testpassword123',
@@ -150,9 +154,9 @@ describe('Register', () => {
       });
   });
 
-  it('Should register new user when password is minimum length', (done) => {
+  it('Should register with minimum length password', (done) => {
     const user = {
-      username: 'testuser',
+      username: 'someusername',
       password: 'testuser',
     };
 
@@ -170,7 +174,7 @@ describe('Register', () => {
       });
   });
 
-  it('Should register new user when both credientials are longer than the minimum length', (done) => {
+  it('Should register with valid credientials', (done) => {
     const user = {
       username: 'testuser',
       password: 'testpassword123',
@@ -193,26 +197,7 @@ describe('Register', () => {
 
 // Login tests
 describe('Login', () => {
-  it('Shouldnt login with empty password', (done) => {
-    const user = {
-      username: 'testuser',
-      password: '',
-    };
-
-    chai.request(app)
-      .post('/api/auth/login')
-      .send(user)
-      .end((err, res) => {
-        res.should.have.status(422);
-        res.body.should.be.a('object');
-        res.body.should.have.property('errors');
-        res.body.errors.should.be.a('array');
-        expect(res.body.errors.map((e: ResponseItem) => e.code)).to.include('password_incorrect');
-        done();
-      });
-  });
-
-  it('Shouldnt login with empty username', (done) => {
+  it('Should error with empty username', (done) => {
     const user = {
       username: '',
       password: 'testpassword123',
@@ -231,7 +216,26 @@ describe('Login', () => {
       });
   });
 
-  it('Shouldnt login with empty credientials', (done) => {
+  it('Should error with empty password', (done) => {
+    const user = {
+      username: 'testuser',
+      password: '',
+    };
+
+    chai.request(app)
+      .post('/api/auth/login')
+      .send(user)
+      .end((err, res) => {
+        res.should.have.status(422);
+        res.body.should.be.a('object');
+        res.body.should.have.property('errors');
+        res.body.errors.should.be.a('array');
+        expect(res.body.errors.map((e: ResponseItem) => e.code)).to.include('password_incorrect');
+        done();
+      });
+  });
+
+  it('Should error with empty credientials', (done) => {
     const user = {
       username: '',
       password: '',
@@ -250,7 +254,7 @@ describe('Login', () => {
       });
   });
 
-  it('Shouldnt login with user that doesnt exist', (done) => {
+  it('Should error with nonexistent username', (done) => {
     const user = {
       username: 'this_user_doesnt_exist',
       password: 'testpassword123',
@@ -282,6 +286,7 @@ describe('Login', () => {
         res.should.have.status(200);
         res.body.should.be.a('object');
         res.body.should.have.property('token');
+        res.body.token.should.be.a('string');
         done();
       });
   });

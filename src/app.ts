@@ -23,7 +23,6 @@ app.use(cors({ allowedHeaders: ['Content-Type', 'Authorization'] }));
 
 // Routes
 app.use('/api/auth', authRoutes);
-
 // These routes need JWT authorization token
 app.use('/api/books', verifyToken, bookRoutes);
 app.use('/api/movies', verifyToken, movieRoutes);
