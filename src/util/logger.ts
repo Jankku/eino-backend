@@ -13,10 +13,6 @@ const Logger = createLogger({
   defaultMeta: { service: 'entertainmentlist' },
 });
 
-//
-// If we're not in production then **ALSO** log to the `console`
-// with the colorized simple format.
-//
 if (process.env.NODE_ENV !== 'production') {
   Logger.add(new transports.Console({
     format: format.combine(

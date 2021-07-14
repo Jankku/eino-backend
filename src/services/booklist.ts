@@ -1,17 +1,18 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import Logger from '../util/logger';
 import { postBook, getBooksByStatus } from '../db/books';
-import { error, success } from '../util/response';
+import { success } from '../util/response';
 import BookStatus from '../db/model/bookstatus';
 import Book from '../db/model/book';
 import { pool, query } from '../db/config';
+import { ErrorHandler } from '../util/errorhandler';
 
-const getBook = async (req: Request, res: Response) => {
+const getBook = async (req: Request, res: Response, next: NextFunction) => {
   const { bookId } = req.params;
   const submitter = res.locals.username;
 
   const getBookQuery = {
-    text: 'SELECT book_id, title, author, publisher, pages, isbn FROM books WHERE book_id=$1 AND submitter=$2 LIMIT 1',
+    text: 'SELECT book_id, isbn, title, author, publisher, pages, year FROM books WHERE book_id=$1 AND submitter=$2 LIMIT 1',
     values: [bookId, submitter],
   };
 
@@ -20,11 +21,11 @@ const getBook = async (req: Request, res: Response) => {
     res.status(200).json(success(result.rows));
   } catch (err) {
     Logger.error(err.stack);
-    res.status(422).json(error([{ code: 'book_list_error', message: 'Couldnt find book' }]));
+    next(new ErrorHandler(422, 'book_list_error', 'Couldnt find book'));
   }
 };
 
-const fetchList = async (req: Request, res: Response, status: BookStatus) => {
+const fetchList = async (req: Request, res: Response, status: BookStatus, next: NextFunction) => {
   const { username } = res.locals;
 
   try {
@@ -32,17 +33,17 @@ const fetchList = async (req: Request, res: Response, status: BookStatus) => {
     res.status(200).json(success(books));
   } catch (err) {
     Logger.error(err.stack);
-    res.status(422).json(error([{ code: 'book_list_error', message: 'Couldnt find books' }]));
+    next(new ErrorHandler(422, 'book_list_error', 'Couldnt find book'));
   }
 };
 
-const getCompletedList = (req: Request, res: Response) => fetchList(req, res, 'completed');
-const getReadingList = (req: Request, res: Response) => fetchList(req, res, 'reading');
-const getOnHoldList = (req: Request, res: Response) => fetchList(req, res, 'on-hold');
-const getDroppedList = (req: Request, res: Response) => fetchList(req, res, 'dropped');
-const getPlannedList = (req: Request, res: Response) => fetchList(req, res, 'planned');
+const getCompletedList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'completed', next);
+const getReadingList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'reading', next);
+const getOnHoldList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'on-hold', next);
+const getDroppedList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'dropped', next);
+const getPlannedList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'planned', next);
 
-const addBookToList = async (req: Request, res: Response) => {
+const addBookToList = async (req: Request, res: Response, next: NextFunction) => {
   const client = await pool.connect();
   const {
     isbn, title, author, publisher, pages, year, status, score,
@@ -71,21 +72,21 @@ const addBookToList = async (req: Request, res: Response) => {
 
           // Insert book to user's booklist
           query(addBookToUserListQuery);
-          res.status(201).json(success({ code: 'book_added_to_list', message: 'Book added to list' }));
+          res.status(201).json(success({ name: 'book_added_to_list', message: 'Book added to list' }));
         });
       await client.query('END');
     } catch (err) {
       await client.query('ROLLBACK');
 
       Logger.error(err.stack);
-      res.status(422).json(error([{ code: 'book_list_error', message: 'Couldnt update list' }]));
+      next(new ErrorHandler(422, 'book_list_error', 'Couldnt update list'));
     }
   } finally {
     client.release();
   }
 };
 
-const updateBook = async (req: Request, res: Response) => {
+const updateBook = async (req: Request, res: Response, next: NextFunction) => {
   const {
     isbn, title, author, publisher, pages, year,
   } = req.body;
@@ -102,11 +103,11 @@ const updateBook = async (req: Request, res: Response) => {
     res.status(200).json(success(result.rows));
   } catch (err) {
     Logger.error(err.stack);
-    res.status(422).json(error([{ code: 'book_list_error', message: 'Couldnt update book' }]));
+    next(new ErrorHandler(422, 'book_list_error', 'Couldnt update book'));
   }
 };
 
-const deleteBook = async (req: Request, res: Response) => {
+const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
   const { bookId } = req.params;
   const submitter = res.locals.username;
 
@@ -117,10 +118,10 @@ const deleteBook = async (req: Request, res: Response) => {
 
   try {
     await query(deleteBookQuery);
-    res.status(200).json(success({ code: 'book_deleted', message: 'Book deleted' }));
+    res.status(200).json(success({ name: 'book_deleted', message: 'Book deleted' }));
   } catch (err) {
     Logger.error(err.stack);
-    res.status(422).json(error([{ code: 'book_list_error', message: 'Couldnt delete book' }]));
+    next(new ErrorHandler(422, 'book_list_error', 'Couldnt delete book'));
   }
 };
 

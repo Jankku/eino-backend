@@ -1,7 +1,7 @@
 import { sign } from 'jsonwebtoken';
 import * as bcrypt from 'bcrypt';
 
-const generateJwtToken = (userId: number, username: string): string => sign(
+const generateJwtToken = (userId: string, username: string): string => sign(
   { userId, username },
   `${process.env.JWT_SECRET}`,
   { expiresIn: '7d' },

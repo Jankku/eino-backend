@@ -4,8 +4,7 @@ import chai from 'chai';
 import chaiHttp from 'chai-http';
 import app from '../src/app';
 
-const should = chai.should();
-
+chai.should();
 chai.use(chaiHttp);
 
 describe('Booklist', () => {
@@ -16,6 +15,7 @@ describe('Booklist', () => {
       author: 'Test Author',
       publisher: 'Publisher',
       pages: 1234,
+      year: 2000,
       status: 'reading',
       score: 0,
     };
@@ -27,10 +27,10 @@ describe('Booklist', () => {
       .end((err, res) => {
         res.should.have.status(201);
         res.body.should.be.a('object');
-        res.body.should.have.property('result');
-        res.body.result.should.be.a('object');
-        res.body.result.should.have.property('code').eql('book_added_to_list');
-        res.body.result.should.have.property('message').eql('Book added to list');
+        res.body.should.have.property('results');
+        res.body.results.should.be.a('object');
+        res.body.results.should.have.property('name').eql('book_added_to_list');
+        res.body.results.should.have.property('message').eql('Book added to list');
         done();
       });
   });
@@ -42,13 +42,14 @@ describe('Booklist', () => {
       .end((err, res) => {
         res.should.have.status(200);
         res.body.should.be.a('object');
-        res.body.should.have.property('result');
-        res.body.result.should.be.a('array');
-        res.body.result[0].should.be.a('object');
-        res.body.result[0].should.have.property('book_id');
-        res.body.result[0].should.have.property('username');
-        res.body.result[0].should.have.property('status');
-        res.body.result[0].should.have.property('score');
+        res.body.should.have.property('results');
+        res.body.results.should.be.a('array');
+        res.body.results[0].should.be.a('object');
+        res.body.results[0].should.have.property('book_id');
+        res.body.results[0].should.have.property('username');
+        res.body.results[0].should.have.property('status');
+        res.body.results[0].should.have.property('score');
+        res.body.results[0].should.have.property('created_on');
         done();
       });
   });

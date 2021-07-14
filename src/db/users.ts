@@ -1,20 +1,19 @@
-import { QueryArrayResult } from 'pg';
 import Logger from '../util/logger';
 import { query } from './config';
+import User from './model/user';
 
-const getUserByUsername = (username: string, next: Function) => {
+const getUserByUsername = async (username: string, next: Function) => {
   const q = {
-    text: 'SELECT * FROM users WHERE username = $1',
+    text: 'SELECT * FROM users WHERE username = $1 LIMIT 1',
     values: [username],
   };
 
   try {
-    query(q, (err: Error, result: QueryArrayResult) => {
-      if (err) return Logger.error('Error executing query', err.stack);
-      next(result.rows);
-    });
+    const result = await query(q);
+    next(result.rows[0] as User);
   } catch (err) {
     Logger.error(err.stack);
+    next(undefined);
   }
 };
 
@@ -33,13 +32,13 @@ const isUserUnique = async (username: string): Promise<boolean> => {
   }
 };
 
-const deleteAllUsers = async () => {
+const deleteAllUsers = () => {
   const q = {
     text: 'DELETE FROM users',
   };
 
   try {
-    await query(q);
+    query(q);
   } catch (err) {
     Logger.error(err.stack);
   }

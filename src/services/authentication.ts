@@ -1,21 +1,21 @@
 import * as bcrypt from 'bcrypt';
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import validator from 'validator';
 import { getUserByUsername } from '../db/users';
 import { query } from '../db/config';
-import User from '../db/model/user';
-import { success, error } from '../util/response';
-import { clearErrors, validateCredientials, validationErrors } from '../util/validation';
+import { success } from '../util/response';
+import { validateCredientials, validationErrors } from '../util/validation';
 import Logger from '../util/logger';
 import { generateJwtToken, generatePasswordHash } from '../util/auth';
+import { ErrorHandler } from '../util/errorhandler';
+import User from '../db/model/user';
 
-const register = async (req: Request, res: Response) => {
+const register = async (req: Request, res: Response, next: NextFunction) => {
   const { username, password } = req.body;
 
   const isValid = await validateCredientials(username, password);
   if (!isValid) {
-    res.status(422).json(error(validationErrors));
-    clearErrors();
+    next(validationErrors);
     return;
   }
 
@@ -29,36 +29,34 @@ const register = async (req: Request, res: Response) => {
     query(q, (err: Error) => {
       if (err) {
         Logger.error(err.stack);
-        res.sendStatus(400);
-      } else {
-        res.status(200).json(success({ code: 'user_registered', message: username }));
-      }
-    });
-  } catch (err) {
-    Logger.error(err.stack);
-    res.status(500).json(error([{ code: 'register_error', message: 'Register error' }]));
-  }
-};
-
-const login = async (req: Request, res: Response) => {
-  const { username, password } = req.body;
-
-  try {
-    getUserByUsername(username, (user: User[]) => {
-      if (user.length === 0) {
-        validationErrors.push({ code: 'user_not_found', message: 'User not found' });
-        res.status(422).json(error(validationErrors));
-        clearErrors();
+        next(new ErrorHandler(500, 'authentication_error', 'Unknown error while trying to register user'));
         return;
       }
 
-      const userId = user[0].id;
-      const hashedPassword = user[0].password;
+      res.status(200).json(success({ name: 'user_registered', message: username }));
+    });
+  } catch (err) {
+    Logger.error(err.stack);
+    next(new ErrorHandler(500, 'authentication_error', 'Unknown error while trying to register user'));
+  }
+};
+
+const login = async (req: Request, res: Response, next: NextFunction) => {
+  const { username, password } = req.body;
+
+  try {
+    getUserByUsername(username, (user: User | undefined) => {
+      // User doesn't exist
+      if (user === undefined) {
+        next(new ErrorHandler(422, 'authentication_error', 'User not found'));
+        return;
+      }
+
+      const userId = user.user_id;
+      const hashedPassword = user.password;
 
       if (!bcrypt.compareSync(password, hashedPassword)) {
-        validationErrors.push({ code: 'password_incorrect', message: 'Wrong password' });
-        res.status(422).json(error(validationErrors));
-        clearErrors();
+        next(new ErrorHandler(422, 'authentication_error', 'Incorrect password'));
         return;
       }
 
@@ -67,7 +65,7 @@ const login = async (req: Request, res: Response) => {
     });
   } catch (err) {
     Logger.error(err.stack);
-    res.status(500).json(error([{ code: 'login_error', message: 'Login error' }]));
+    next(new ErrorHandler(500, 'authentication_error', 'Unknown error while trying to log-in user'));
   }
 };
 

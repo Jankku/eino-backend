@@ -1,12 +1,13 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import Logger from '../util/logger';
 import { postMovie, getMoviesByStatus } from '../db/movies';
-import { error, success } from '../util/response';
+import { success } from '../util/response';
 import Movie from '../db/model/movie';
 import { pool, query } from '../db/config';
 import MovieStatus from '../db/model/moviestatus';
+import { ErrorHandler } from '../util/errorhandler';
 
-const getMovie = async (req: Request, res: Response) => {
+const getMovie = async (req: Request, res: Response, next: NextFunction) => {
   const { movieId } = req.params;
   const submitter = res.locals.username;
 
@@ -20,11 +21,11 @@ const getMovie = async (req: Request, res: Response) => {
     res.status(200).json(success(result.rows));
   } catch (err) {
     Logger.error(err.stack);
-    res.status(422).json(error([{ code: 'movie_list_error', message: 'Couldnt find movie' }]));
+    next(new ErrorHandler(422, 'movie_list_error', 'Couldnt find movie'));
   }
 };
 
-const fetchList = async (req: Request, res: Response, status: MovieStatus) => {
+const fetchList = async (req: Request, res: Response, status: MovieStatus, next: NextFunction) => {
   const { username } = res.locals;
 
   try {
@@ -32,17 +33,17 @@ const fetchList = async (req: Request, res: Response, status: MovieStatus) => {
     res.status(200).json(success(movies));
   } catch (err) {
     Logger.error(err.stack);
-    res.status(422).json(error([{ code: 'movie_list_error', message: 'Couldnt find movies' }]));
+    next(new ErrorHandler(422, 'movie_list_error', 'Couldnt find movies'));
   }
 };
 
-const getCompletedList = (req: Request, res: Response) => fetchList(req, res, 'completed');
-const getWatchingList = (req: Request, res: Response) => fetchList(req, res, 'watching');
-const getOnHoldList = (req: Request, res: Response) => fetchList(req, res, 'on-hold');
-const getDroppedList = (req: Request, res: Response) => fetchList(req, res, 'dropped');
-const getPlannedList = (req: Request, res: Response) => fetchList(req, res, 'planned');
+const getCompletedList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'completed', next);
+const getWatchingList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'watching', next);
+const getOnHoldList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'on-hold', next);
+const getDroppedList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'dropped', next);
+const getPlannedList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'planned', next);
 
-const addMovieToList = async (req: Request, res: Response) => {
+const addMovieToList = async (req: Request, res: Response, next: NextFunction) => {
   const client = await pool.connect();
   const { username } = res.locals;
   const {
@@ -70,21 +71,21 @@ const addMovieToList = async (req: Request, res: Response) => {
             values: [movieId, username, status, score],
           };
           query(addMovieToUserListQuery);
-          res.status(201).json(success({ code: 'movie_added_to_list', message: 'Movie added to list' }));
+          res.status(201).json(success({ name: 'movie_added_to_list', message: 'Movie added to list' }));
         });
       await client.query('END');
     } catch (err) {
       await client.query('ROLLBACK');
 
       Logger.error(err.stack);
-      res.status(422).json(error([{ code: 'movie_list_error', message: 'Couldnt update list' }]));
+      next(new ErrorHandler(422, 'movie_list_error', 'Couldnt insert movie list'));
     }
   } finally {
     client.release();
   }
 };
 
-const updateMovie = async (req: Request, res: Response) => {
+const updateMovie = async (req: Request, res: Response, next: NextFunction) => {
   const {
     title, studio, director, writer, duration, year,
   } = req.body;
@@ -101,11 +102,11 @@ const updateMovie = async (req: Request, res: Response) => {
     res.status(200).json(success(result.rows));
   } catch (err) {
     Logger.error(err.stack);
-    res.status(422).json(error([{ code: 'movie_list_error', message: 'Couldnt update movie' }]));
+    next(new ErrorHandler(422, 'movie_list_error', 'Couldnt update movie'));
   }
 };
 
-const deleteMovie = async (req: Request, res: Response) => {
+const deleteMovie = async (req: Request, res: Response, next: NextFunction) => {
   const { movieId } = req.params;
   const submitter = res.locals.username;
 
@@ -116,10 +117,10 @@ const deleteMovie = async (req: Request, res: Response) => {
 
   try {
     await query(deleteMovieQuery);
-    res.status(200).json(success({ code: 'movie_deleted', message: 'Movie deleted' }));
+    res.status(200).json(success({ name: 'movie_deleted', message: 'Movie deleted' }));
   } catch (err) {
     Logger.error(err.stack);
-    res.status(422).json(error([{ code: 'movie_list_error', message: 'Couldnt delete movie' }]));
+    next(new ErrorHandler(422, 'movie_list_error', 'Couldnt delete movie'));
   }
 };
 

@@ -6,8 +6,7 @@ import app from '../src/app';
 import { deleteAllUsers } from '../src/db/users';
 import { ResponseItem } from '../src/util/response';
 
-const should = chai.should();
-
+chai.should();
 chai.use(chaiHttp);
 
 // Register tests
@@ -15,7 +14,6 @@ describe('Register', () => {
   before(() => {
     deleteAllUsers();
   });
-
   beforeEach(() => {
     deleteAllUsers();
   });
@@ -34,7 +32,7 @@ describe('Register', () => {
         res.body.should.be.a('object');
         res.body.should.have.property('errors');
         res.body.errors.should.be.a('array');
-        expect(res.body.errors.map((e: ResponseItem) => e.code)).to.include('password_length_invalid');
+        expect(res.body.errors.map((e: ResponseItem) => e.name)).to.include('password_length_invalid');
         done();
       });
   });
@@ -53,7 +51,7 @@ describe('Register', () => {
         res.body.should.be.a('object');
         res.body.should.have.property('errors');
         res.body.errors.should.be.a('array');
-        expect(res.body.errors.map((e: ResponseItem) => e.code)).to.include('password_length_invalid');
+        expect(res.body.errors.map((e: ResponseItem) => e.name)).to.include('password_length_invalid');
         done();
       });
   });
@@ -72,7 +70,7 @@ describe('Register', () => {
         res.body.should.be.a('object');
         res.body.should.have.property('errors');
         res.body.errors.should.be.a('array');
-        expect(res.body.errors.map((e: ResponseItem) => e.code)).to.include('password_length_invalid');
+        expect(res.body.errors.map((e: ResponseItem) => e.name)).to.include('password_length_invalid');
         done();
       });
   });
@@ -91,7 +89,7 @@ describe('Register', () => {
         res.body.should.be.a('object');
         res.body.should.have.property('errors');
         res.body.errors.should.be.a('array');
-        expect(res.body.errors.map((e: ResponseItem) => e.code)).to.include('username_length_invalid');
+        expect(res.body.errors.map((e: ResponseItem) => e.name)).to.include('username_length_invalid');
         done();
       });
   });
@@ -110,7 +108,7 @@ describe('Register', () => {
         res.body.should.be.a('object');
         res.body.should.have.property('errors');
         res.body.errors.should.be.a('array');
-        expect(res.body.errors.map((e: ResponseItem) => e.code)).to.include('username_length_invalid');
+        expect(res.body.errors.map((e: ResponseItem) => e.name)).to.include('username_length_invalid');
         done();
       });
   });
@@ -129,7 +127,7 @@ describe('Register', () => {
         res.body.should.be.a('object');
         res.body.should.have.property('errors');
         res.body.errors.should.be.a('array');
-        expect(res.body.errors.map((e: ResponseItem) => e.code)).to.include('username_length_invalid');
+        expect(res.body.errors.map((e: ResponseItem) => e.name)).to.include('username_length_invalid');
         done();
       });
   });
@@ -146,10 +144,10 @@ describe('Register', () => {
       .end((err, res) => {
         res.should.have.status(200);
         res.body.should.be.a('object');
-        res.body.should.have.property('result');
-        res.body.result.should.be.a('object');
-        res.body.result.should.have.property('code').eql('user_registered');
-        res.body.result.should.have.property('message').eql(user.username);
+        res.body.should.have.property('results');
+        res.body.results.should.be.a('object');
+        res.body.results.should.have.property('name').eql('user_registered');
+        res.body.results.should.have.property('message').eql(user.username);
         done();
       });
   });
@@ -166,10 +164,10 @@ describe('Register', () => {
       .end((err, res) => {
         res.should.have.status(200);
         res.body.should.be.a('object');
-        res.body.should.have.property('result');
-        res.body.result.should.be.a('object');
-        res.body.result.should.have.property('code').eql('user_registered');
-        res.body.result.should.have.property('message').eql(user.username);
+        res.body.should.have.property('results');
+        res.body.results.should.be.a('object');
+        res.body.results.should.have.property('name').eql('user_registered');
+        res.body.results.should.have.property('message').eql(user.username);
         done();
       });
   });
@@ -186,10 +184,10 @@ describe('Register', () => {
       .end((err, res) => {
         res.should.have.status(200);
         res.body.should.be.a('object');
-        res.body.should.have.property('result');
-        res.body.result.should.be.a('object');
-        res.body.result.should.have.property('code').eql('user_registered');
-        res.body.result.should.have.property('message').eql(user.username);
+        res.body.should.have.property('results');
+        res.body.results.should.be.a('object');
+        res.body.results.should.have.property('name').eql('user_registered');
+        res.body.results.should.have.property('message').eql(user.username);
         done();
       });
   });
@@ -211,7 +209,8 @@ describe('Login', () => {
         res.body.should.be.a('object');
         res.body.should.have.property('errors');
         res.body.errors.should.be.a('array');
-        expect(res.body.errors.map((e: ResponseItem) => e.code)).to.include('user_not_found');
+        expect(res.body.errors.map((e: ResponseItem) => e.name)).to.include('authentication_error');
+        expect(res.body.errors.map((e: ResponseItem) => e.message)).to.include('User not found');
         done();
       });
   });
@@ -230,7 +229,8 @@ describe('Login', () => {
         res.body.should.be.a('object');
         res.body.should.have.property('errors');
         res.body.errors.should.be.a('array');
-        expect(res.body.errors.map((e: ResponseItem) => e.code)).to.include('password_incorrect');
+        expect(res.body.errors.map((e: ResponseItem) => e.name)).to.include('authentication_error');
+        expect(res.body.errors.map((e: ResponseItem) => e.message)).to.include('Incorrect password');
         done();
       });
   });
@@ -249,7 +249,8 @@ describe('Login', () => {
         res.body.should.be.a('object');
         res.body.should.have.property('errors');
         res.body.errors.should.be.a('array');
-        expect(res.body.errors.map((e: ResponseItem) => e.code)).to.include('user_not_found');
+        expect(res.body.errors.map((e: ResponseItem) => e.name)).to.include('authentication_error');
+        expect(res.body.errors.map((e: ResponseItem) => e.message)).to.include('User not found');
         done();
       });
   });
@@ -268,7 +269,8 @@ describe('Login', () => {
         res.body.should.be.a('object');
         res.body.should.have.property('errors');
         res.body.errors.should.be.a('array');
-        expect(res.body.errors.map((e: ResponseItem) => e.code)).to.include('user_not_found');
+        expect(res.body.errors.map((e: ResponseItem) => e.name)).to.include('authentication_error');
+        expect(res.body.errors.map((e: ResponseItem) => e.message)).to.include('User not found');
         done();
       });
   });

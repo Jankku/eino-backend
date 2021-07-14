@@ -1,26 +1,17 @@
 interface ResponseItem {
-  code: string,
+  name: string,
   message: string,
 }
 
 /**
  * @description Returns success response object
- * @param result {array|ResponseItem} response items
+ * @param results {array|ResponseItem} Response item array
  */
-const success = (result: Array<any> | ResponseItem) => ({
-  result,
-});
-
-/**
- * @description Returns error response array
- * @param err {ResponseItem} Error object
- */
-const error = (errors: Array<ResponseItem>) => ({
-  errors,
+const success = (results: Array<any> | ResponseItem) => ({
+  results,
 });
 
 export {
   success,
-  error,
   ResponseItem,
 };
