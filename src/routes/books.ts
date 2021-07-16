@@ -3,15 +3,8 @@ import * as books from '../services/booklist';
 
 const router = express.Router();
 
-router.get('/completed', books.getCompletedList);
-router.get('/reading', books.getReadingList);
-router.get('/on-hold', books.getOnHoldList);
-router.get('/dropped', books.getDroppedList);
-router.get('/planned', books.getPlannedList);
-
-router.post('/', books.addBookToList);
-
 router.get('/:bookId', books.getBook);
+router.post('/', books.addBookToList);
 router.put('/:bookId', books.updateBook);
 router.delete('/:bookId', books.deleteBook);
 

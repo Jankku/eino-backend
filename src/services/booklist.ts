@@ -20,7 +20,6 @@ const getBook = async (req: Request, res: Response, next: NextFunction) => {
     const result = await query(getBookQuery);
     res.status(200).json(success(result.rows));
   } catch (err) {
-    Logger.error(err.stack);
     next(new ErrorHandler(422, 'book_list_error', 'Couldnt find book'));
   }
 };

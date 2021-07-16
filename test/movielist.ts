@@ -7,139 +7,139 @@ import app from '../src/app';
 chai.should();
 chai.use(chaiHttp);
 
-describe('Booklist', () => {
-  describe('Insert books', () => {
-    it('Should insert book to completed list', (done) => {
-      const book = {
-        isbn: '1827481928572',
-        title: 'Test book',
-        author: 'Test Author',
-        publisher: 'Publisher',
-        pages: 1234,
+describe('Movielist', () => {
+  describe('Insert movies', () => {
+    it('Should insert movie to completed list', (done) => {
+      const movie = {
+        title: 'Test movie',
+        studio: 'Test studio',
+        director: 'Director',
+        writer: 'Writer',
+        duration: 120,
         year: 2000,
         status: 'completed',
         score: 10,
       };
 
       chai.request(app)
-        .post('/api/books')
+        .post('/api/movies')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
-        .send(book)
+        .send(movie)
         .end((err, res) => {
           res.should.have.status(201);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
           res.body.results.should.be.a('object');
-          res.body.results.should.have.property('name').eql('book_added_to_list');
-          res.body.results.should.have.property('message').eql('Book added to list');
+          res.body.results.should.have.property('name').eql('movie_added_to_list');
+          res.body.results.should.have.property('message').eql('Movie added to list');
           done();
         });
     });
 
-    it('Should insert book to reading list', (done) => {
-      const book = {
-        isbn: '1827481928572',
-        title: 'Test book',
-        author: 'Test Author',
-        publisher: 'Publisher',
-        pages: 1234,
+    it('Should insert movie to watching list', (done) => {
+      const movie = {
+        title: 'Test movie',
+        studio: 'Test studio',
+        director: 'Director',
+        writer: 'Writer',
+        duration: 120,
         year: 2000,
-        status: 'reading',
+        status: 'watching',
         score: 0,
       };
 
       chai.request(app)
-        .post('/api/books')
+        .post('/api/movies')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
-        .send(book)
+        .send(movie)
         .end((err, res) => {
           res.should.have.status(201);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
           res.body.results.should.be.a('object');
-          res.body.results.should.have.property('name').eql('book_added_to_list');
-          res.body.results.should.have.property('message').eql('Book added to list');
+          res.body.results.should.have.property('name').eql('movie_added_to_list');
+          res.body.results.should.have.property('message').eql('Movie added to list');
           done();
         });
     });
 
-    it('Should insert book to on-hold list', (done) => {
-      const book = {
-        isbn: '1827481928572',
-        title: 'Test book',
-        author: 'Test Author',
-        publisher: 'Publisher',
-        pages: 1234,
+    it('Should insert movie to on-hold list', (done) => {
+      const movie = {
+        title: 'Test movie',
+        studio: 'Test studio',
+        director: 'Director',
+        writer: 'Writer',
+        duration: 120,
         year: 2000,
         status: 'on-hold',
         score: 0,
       };
 
       chai.request(app)
-        .post('/api/books')
+        .post('/api/movies')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
-        .send(book)
+        .send(movie)
         .end((err, res) => {
           res.should.have.status(201);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
           res.body.results.should.be.a('object');
-          res.body.results.should.have.property('name').eql('book_added_to_list');
-          res.body.results.should.have.property('message').eql('Book added to list');
+          res.body.results.should.have.property('name').eql('movie_added_to_list');
+          res.body.results.should.have.property('message').eql('Movie added to list');
           done();
         });
     });
 
-    it('Should insert book to dropped list', (done) => {
-      const book = {
-        isbn: '1827481928572',
-        title: 'Test book',
-        author: 'Test Author',
-        publisher: 'Publisher',
-        pages: 1234,
+    it('Should insert movie to dropped list', (done) => {
+      const movie = {
+        title: 'Test movie',
+        studio: 'Test studio',
+        director: 'Director',
+        writer: 'Writer',
+        duration: 120,
         year: 2000,
         status: 'dropped',
         score: 0,
       };
 
       chai.request(app)
-        .post('/api/books')
+        .post('/api/movies')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
-        .send(book)
+        .send(movie)
         .end((err, res) => {
           res.should.have.status(201);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
           res.body.results.should.be.a('object');
-          res.body.results.should.have.property('name').eql('book_added_to_list');
-          res.body.results.should.have.property('message').eql('Book added to list');
+          res.body.results.should.have.property('name').eql('movie_added_to_list');
+          res.body.results.should.have.property('message').eql('Movie added to list');
           done();
         });
     });
 
-    it('Should insert book to planned list', (done) => {
-      const book = {
-        isbn: '1827481928572',
-        title: 'Test book',
-        author: 'Test Author',
-        publisher: 'Publisher',
-        pages: 1234,
+    it('Should insert movie to planned list', (done) => {
+      const movie = {
+        title: 'Test movie',
+        studio: 'Test studio',
+        director: 'Director',
+        writer: 'Writer',
+        duration: 120,
         year: 2000,
         status: 'planned',
         score: 0,
       };
 
       chai.request(app)
-        .post('/api/books')
+        .post('/api/movies')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
-        .send(book)
+        .send(movie)
         .end((err, res) => {
           res.should.have.status(201);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
           res.body.results.should.be.a('object');
-          res.body.results.should.have.property('name').eql('book_added_to_list');
-          res.body.results.should.have.property('message').eql('Book added to list');
+          res.body.results.should.have.property('name').eql('movie_added_to_list');
+          res.body.results.should.have.property('message').eql('Movie added to list');
           done();
         });
     });
@@ -148,7 +148,7 @@ describe('Booklist', () => {
   describe('Return lists with different status', () => {
     it('Should return completed list', (done) => {
       chai.request(app)
-        .get('/api/list/books/completed')
+        .get('/api/list/movies/completed')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
         .end((err, res) => {
           res.should.have.status(200);
@@ -156,7 +156,7 @@ describe('Booklist', () => {
           res.body.should.have.property('results');
           res.body.results.should.be.a('array');
           res.body.results[0].should.be.a('object');
-          res.body.results[0].should.have.property('book_id');
+          res.body.results[0].should.have.property('movie_id');
           res.body.results[0].should.have.property('username');
           res.body.results[0].should.have.property('status');
           res.body.results[0].should.have.property('score');
@@ -165,9 +165,9 @@ describe('Booklist', () => {
         });
     });
 
-    it('Should return reading list', (done) => {
+    it('Should return watching list', (done) => {
       chai.request(app)
-        .get('/api/list/books/reading')
+        .get('/api/list/movies/watching')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
         .end((err, res) => {
           res.should.have.status(200);
@@ -175,7 +175,7 @@ describe('Booklist', () => {
           res.body.should.have.property('results');
           res.body.results.should.be.a('array');
           res.body.results[0].should.be.a('object');
-          res.body.results[0].should.have.property('book_id');
+          res.body.results[0].should.have.property('movie_id');
           res.body.results[0].should.have.property('username');
           res.body.results[0].should.have.property('status');
           res.body.results[0].should.have.property('score');
@@ -186,7 +186,7 @@ describe('Booklist', () => {
 
     it('Should return on-hold list', (done) => {
       chai.request(app)
-        .get('/api/list/books/on-hold')
+        .get('/api/list/movies/on-hold')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
         .end((err, res) => {
           res.should.have.status(200);
@@ -194,7 +194,7 @@ describe('Booklist', () => {
           res.body.should.have.property('results');
           res.body.results.should.be.a('array');
           res.body.results[0].should.be.a('object');
-          res.body.results[0].should.have.property('book_id');
+          res.body.results[0].should.have.property('movie_id');
           res.body.results[0].should.have.property('username');
           res.body.results[0].should.have.property('status');
           res.body.results[0].should.have.property('score');
@@ -205,7 +205,7 @@ describe('Booklist', () => {
 
     it('Should return dropped list', (done) => {
       chai.request(app)
-        .get('/api/list/books/dropped')
+        .get('/api/list/movies/dropped')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
         .end((err, res) => {
           res.should.have.status(200);
@@ -213,7 +213,7 @@ describe('Booklist', () => {
           res.body.should.have.property('results');
           res.body.results.should.be.a('array');
           res.body.results[0].should.be.a('object');
-          res.body.results[0].should.have.property('book_id');
+          res.body.results[0].should.have.property('movie_id');
           res.body.results[0].should.have.property('username');
           res.body.results[0].should.have.property('status');
           res.body.results[0].should.have.property('score');
@@ -224,7 +224,7 @@ describe('Booklist', () => {
 
     it('Should return planned list', (done) => {
       chai.request(app)
-        .get('/api/list/books/planned')
+        .get('/api/list/movies/planned')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
         .end((err, res) => {
           res.should.have.status(200);
@@ -232,7 +232,7 @@ describe('Booklist', () => {
           res.body.should.have.property('results');
           res.body.results.should.be.a('array');
           res.body.results[0].should.be.a('object');
-          res.body.results[0].should.have.property('book_id');
+          res.body.results[0].should.have.property('movie_id');
           res.body.results[0].should.have.property('username');
           res.body.results[0].should.have.property('status');
           res.body.results[0].should.have.property('score');

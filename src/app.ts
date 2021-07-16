@@ -6,6 +6,7 @@ import Logger from './util/logger';
 import { errorResponder } from './util/errorhandler';
 import verifyToken from './middleware/authorization';
 import authRoutes from './routes/authentication';
+import listRoutes from './routes/list';
 import movieRoutes from './routes/movies';
 import bookRoutes from './routes/books';
 
@@ -19,6 +20,7 @@ app.use(helmet());
 app.use(cors({ allowedHeaders: ['Content-Type', 'Authorization'] }));
 
 app.use('/api/auth', authRoutes);
+app.use('/api/list', verifyToken, listRoutes);
 app.use('/api/books', verifyToken, bookRoutes);
 app.use('/api/movies', verifyToken, movieRoutes);
 
@@ -26,6 +28,14 @@ app.use(errorResponder);
 
 app.listen(port, () => {
   Logger.info(`Server Listening to port ${port}`);
+});
+
+process.on('uncaughtException', (err: Error) => {
+  Logger.error(err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  Logger.error(reason);
 });
 
 export default app;
