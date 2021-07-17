@@ -1,4 +1,4 @@
-FROM node:14 as build
+FROM node:latest as build
 WORKDIR /usr/src/entertainmentlist
 COPY package*.json ./
 RUN npm install
@@ -6,7 +6,7 @@ COPY tsconfig.json ./tsconfig.json
 COPY src ./src
 RUN npm run build
 
-FROM node:14
+FROM node:latest
 WORKDIR /usr/src/entertainmentlist
 COPY package*.json ./
 RUN npm ci
