@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+    app:
+        container_name: app
+        build: .
+        ports:
+            - "3000:3000"
+        working_dir: /usr/src/entertainmentlist
+        volumes:
+            - something
+        environment:
+            NODE_ENV: production
+        env_file:
+            - app.env
+        depends_on:
+            - database
+    database:
+        container_name: database
+        image: postgres
+        restart: always
+        env_file:
+            - database.env
+        volumes:
+            - database-data:/var/lib/postgresql/data/
+
+        
