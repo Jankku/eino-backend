@@ -6,7 +6,7 @@ services:
         build: .
         ports:
             - "3000:3000"
-        working_dir: /usr/src/entertainmentlist
+        working_dir: /usr/src/eino
         environment:
             NODE_ENV: production
         env_file: .env

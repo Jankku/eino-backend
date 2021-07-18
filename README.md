@@ -1,7 +1,3 @@
-# Entertainment list
+# eino
 
-## You can manage following lists:
-
--   Books
--   Movies
--   Series
+Book, movie and series tracker with web and Android clients.
