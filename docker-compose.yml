@@ -9,7 +9,6 @@ services:
         working_dir: /usr/src/entertainmentlist
         environment:
             NODE_ENV: production
-            DATABASE_URL: "postgres://database:3001/entertainmentlist"
         env_file: .env
         depends_on:
             - database
@@ -17,8 +16,7 @@ services:
         container_name: database
         image: postgres:latest
         restart: always
-        ports:
-            - "3001:5432"
         env_file: .env
         volumes:
             - ./database-data:/var/lib/postgresql/data/
+            - ./init.sql:/docker-entrypoint-initdb.d/init.sql
