@@ -5,13 +5,13 @@ import BookStatus from './model/bookstatus';
 
 const getBooksByStatus = async (username: string, status: BookStatus): Promise<any[]> => {
   const getBooksQuery = {
-    text: 'SELECT * FROM user_book_list WHERE username = $1 AND status = $2',
+    text: 'SELECT book_id, status, score, created_on FROM user_book_list WHERE username = $1 AND status = $2',
     values: [username, status],
   };
 
   try {
-    const result = await query(getBooksQuery);
-    if (result?.rows.length > 0) return result.rows;
+    const { rows } = await query(getBooksQuery);
+    return rows;
   } catch (err) {
     Logger.error(err.stack);
   }
@@ -27,8 +27,8 @@ const postBook = async (b: Book): Promise<string> => {
   };
 
   try {
-    const result = await query(insertBookQuery);
-    bookId = result.rows[0].book_id;
+    const { rows } = await query(insertBookQuery);
+    bookId = rows[0].book_id;
   } catch (err) {
     Logger.error(err.stack);
   }

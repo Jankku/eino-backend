@@ -13,12 +13,12 @@ const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   try {
     jwt.verify(token, `${process.env.JWT_SECRET}`, (err, decoded) => {
       res.locals.username = decoded?.username;
-      if (err) next(new ErrorHandler(422, 'authorization_error', `${err?.message}`));
+      if (err) next(new ErrorHandler(401, 'authorization_error', `${err?.message}`));
       else next();
     });
   } catch (err) {
     Logger.error(err.stack);
-    next(new ErrorHandler(400, 'authorization_error', 'Unknown authorization error occurred'));
+    next(new ErrorHandler(500, 'authorization_error', 'Unknown authorization error occurred'));
   }
 };
 

@@ -22,7 +22,7 @@ describe('Movielist', () => {
       };
 
       chai.request(app)
-        .post('/api/movies')
+        .post('/api/list/movies/add')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
         .send(movie)
         .end((err, res) => {
@@ -49,7 +49,7 @@ describe('Movielist', () => {
       };
 
       chai.request(app)
-        .post('/api/movies')
+        .post('/api/list/movies/add')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
         .send(movie)
         .end((err, res) => {
@@ -76,7 +76,7 @@ describe('Movielist', () => {
       };
 
       chai.request(app)
-        .post('/api/movies')
+        .post('/api/list/movies/add')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
         .send(movie)
         .end((err, res) => {
@@ -103,7 +103,7 @@ describe('Movielist', () => {
       };
 
       chai.request(app)
-        .post('/api/movies')
+        .post('/api/list/movies/add')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
         .send(movie)
         .end((err, res) => {
@@ -130,7 +130,7 @@ describe('Movielist', () => {
       };
 
       chai.request(app)
-        .post('/api/movies')
+        .post('/api/list/movies/add')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
         .send(movie)
         .end((err, res) => {
@@ -157,7 +157,6 @@ describe('Movielist', () => {
           res.body.results.should.be.a('array');
           res.body.results[0].should.be.a('object');
           res.body.results[0].should.have.property('movie_id');
-          res.body.results[0].should.have.property('username');
           res.body.results[0].should.have.property('status');
           res.body.results[0].should.have.property('score');
           res.body.results[0].should.have.property('created_on');
@@ -176,7 +175,6 @@ describe('Movielist', () => {
           res.body.results.should.be.a('array');
           res.body.results[0].should.be.a('object');
           res.body.results[0].should.have.property('movie_id');
-          res.body.results[0].should.have.property('username');
           res.body.results[0].should.have.property('status');
           res.body.results[0].should.have.property('score');
           res.body.results[0].should.have.property('created_on');
@@ -195,7 +193,6 @@ describe('Movielist', () => {
           res.body.results.should.be.a('array');
           res.body.results[0].should.be.a('object');
           res.body.results[0].should.have.property('movie_id');
-          res.body.results[0].should.have.property('username');
           res.body.results[0].should.have.property('status');
           res.body.results[0].should.have.property('score');
           res.body.results[0].should.have.property('created_on');
@@ -214,7 +211,6 @@ describe('Movielist', () => {
           res.body.results.should.be.a('array');
           res.body.results[0].should.be.a('object');
           res.body.results[0].should.have.property('movie_id');
-          res.body.results[0].should.have.property('username');
           res.body.results[0].should.have.property('status');
           res.body.results[0].should.have.property('score');
           res.body.results[0].should.have.property('created_on');
@@ -233,7 +229,6 @@ describe('Movielist', () => {
           res.body.results.should.be.a('array');
           res.body.results[0].should.be.a('object');
           res.body.results[0].should.have.property('movie_id');
-          res.body.results[0].should.have.property('username');
           res.body.results[0].should.have.property('status');
           res.body.results[0].should.have.property('score');
           res.body.results[0].should.have.property('created_on');

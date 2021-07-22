@@ -4,13 +4,13 @@ import User from './model/user';
 
 const getUserByUsername = async (username: string, next: Function) => {
   const q = {
-    text: 'SELECT * FROM users WHERE username = $1 LIMIT 1',
+    text: 'SELECT * FROM users WHERE username = $1',
     values: [username],
   };
 
   try {
-    const result = await query(q);
-    next(result.rows[0] as User);
+    const { rows } = await query(q);
+    next(rows[0] as User);
   } catch (err) {
     Logger.error(err.stack);
     next(undefined);

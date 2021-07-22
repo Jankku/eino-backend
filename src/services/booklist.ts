@@ -64,12 +64,11 @@ const addBookToList = async (req: Request, res: Response, next: NextFunction) =>
       // Insert book to books table
       await postBook(book)
         .then((bookId) => {
+          // Insert book to user's booklist
           const addBookToUserListQuery = {
             text: 'INSERT INTO user_book_list (book_id, username, status, score) VALUES ($1, $2, $3, $4)',
             values: [bookId, username, status, score],
           };
-
-          // Insert book to user's booklist
           query(addBookToUserListQuery);
           res.status(201).json(success({ name: 'book_added_to_list', message: 'Book added to list' }));
         });

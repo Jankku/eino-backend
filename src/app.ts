@@ -7,8 +7,7 @@ import { errorResponder } from './util/errorhandler';
 import verifyToken from './middleware/authorization';
 import authRoutes from './routes/authentication';
 import listRoutes from './routes/list';
-import movieRoutes from './routes/movies';
-import bookRoutes from './routes/books';
+import { pool } from './db/config';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -21,21 +20,19 @@ app.use(cors({ allowedHeaders: ['Content-Type', 'Authorization'] }));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/list', verifyToken, listRoutes);
-app.use('/api/books', verifyToken, bookRoutes);
-app.use('/api/movies', verifyToken, movieRoutes);
 
 app.use(errorResponder);
 
-app.listen(port, () => {
-  Logger.info(`Server Listening to port ${port}`);
-});
+app.listen(port, () => Logger.info(`Server Listening to port ${port}`));
 
-process.on('uncaughtException', (err: Error) => {
-  Logger.error(err);
+process.on('uncaughtException', (err) => {
+  Logger.error('uncaughtException', err);
+  pool.end(() => Logger.info('Pool has ended'));
+  process.exit(1);
 });
 
 process.on('unhandledRejection', (reason) => {
-  Logger.error(reason);
+  Logger.error('unhandledRejection', reason);
 });
 
 export default app;
