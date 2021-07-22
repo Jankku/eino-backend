@@ -2,6 +2,7 @@
   "name": "eino-backend",
   "version": "1.0.0",
   "description": "Book, movie and series tracker with web and Android clients",
+  "private": true,
   "main": "./dist/app.js",
   "scripts": {
     "build": "tsc",
@@ -15,7 +16,7 @@
     "url": "git+https://github.com/Jankku/eino-backend.git"
   },
   "author": "Jankku",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "bcrypt": "^5.0.1",
     "compression": "^1.7.4",
