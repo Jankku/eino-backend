@@ -11,7 +11,7 @@ const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   }
 
   try {
-    jwt.verify(token, `${process.env.JWT_SECRET}`, (err, decoded) => {
+    jwt.verify(token, `${process.env.JWT_SECRET}`, { audience: 'eino', issuer: 'eino-backend' }, (err, decoded) => {
       res.locals.username = decoded?.username;
       if (err) next(new ErrorHandler(401, 'authorization_error', `${err?.message}`));
       else next();

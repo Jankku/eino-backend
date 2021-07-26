@@ -5,7 +5,7 @@ import { query } from '../db/config';
 import { success } from '../util/response';
 import { validateCredientials, validationErrors } from '../util/validation';
 import Logger from '../util/logger';
-import { generateJwtToken, generatePasswordHash } from '../util/auth';
+import { generateJwt, generatePasswordHash } from '../util/auth';
 import { ErrorHandler } from '../util/errorhandler';
 import User from '../db/model/user';
 
@@ -59,8 +59,8 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
         return;
       }
 
-      const jwtToken = generateJwtToken(userId, username);
-      return res.status(200).json({ token: jwtToken });
+      const jwt = generateJwt(userId, username);
+      return res.status(200).json({ token: jwt });
     });
   } catch (err) {
     Logger.error(err.stack);
