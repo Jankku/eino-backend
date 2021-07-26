@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable import/no-extraneous-dependencies */
 import chai from 'chai';
 import chaiHttp from 'chai-http';
 import app from '../src/app';
@@ -157,6 +155,12 @@ describe('Booklist', () => {
           res.body.results.should.be.a('array');
           res.body.results[0].should.be.a('object');
           res.body.results[0].should.have.property('book_id');
+          res.body.results[0].should.have.property('isbn');
+          res.body.results[0].should.have.property('title');
+          res.body.results[0].should.have.property('author');
+          res.body.results[0].should.have.property('publisher');
+          res.body.results[0].should.have.property('pages');
+          res.body.results[0].should.have.property('year');
           res.body.results[0].should.have.property('status');
           res.body.results[0].should.have.property('score');
           res.body.results[0].should.have.property('created_on');
@@ -175,6 +179,12 @@ describe('Booklist', () => {
           res.body.results.should.be.a('array');
           res.body.results[0].should.be.a('object');
           res.body.results[0].should.have.property('book_id');
+          res.body.results[0].should.have.property('isbn');
+          res.body.results[0].should.have.property('title');
+          res.body.results[0].should.have.property('author');
+          res.body.results[0].should.have.property('publisher');
+          res.body.results[0].should.have.property('pages');
+          res.body.results[0].should.have.property('year');
           res.body.results[0].should.have.property('status');
           res.body.results[0].should.have.property('score');
           res.body.results[0].should.have.property('created_on');
@@ -193,6 +203,12 @@ describe('Booklist', () => {
           res.body.results.should.be.a('array');
           res.body.results[0].should.be.a('object');
           res.body.results[0].should.have.property('book_id');
+          res.body.results[0].should.have.property('isbn');
+          res.body.results[0].should.have.property('title');
+          res.body.results[0].should.have.property('author');
+          res.body.results[0].should.have.property('publisher');
+          res.body.results[0].should.have.property('pages');
+          res.body.results[0].should.have.property('year');
           res.body.results[0].should.have.property('status');
           res.body.results[0].should.have.property('score');
           res.body.results[0].should.have.property('created_on');
@@ -211,6 +227,12 @@ describe('Booklist', () => {
           res.body.results.should.be.a('array');
           res.body.results[0].should.be.a('object');
           res.body.results[0].should.have.property('book_id');
+          res.body.results[0].should.have.property('isbn');
+          res.body.results[0].should.have.property('title');
+          res.body.results[0].should.have.property('author');
+          res.body.results[0].should.have.property('publisher');
+          res.body.results[0].should.have.property('pages');
+          res.body.results[0].should.have.property('year');
           res.body.results[0].should.have.property('status');
           res.body.results[0].should.have.property('score');
           res.body.results[0].should.have.property('created_on');
@@ -229,6 +251,12 @@ describe('Booklist', () => {
           res.body.results.should.be.a('array');
           res.body.results[0].should.be.a('object');
           res.body.results[0].should.have.property('book_id');
+          res.body.results[0].should.have.property('isbn');
+          res.body.results[0].should.have.property('title');
+          res.body.results[0].should.have.property('author');
+          res.body.results[0].should.have.property('publisher');
+          res.body.results[0].should.have.property('pages');
+          res.body.results[0].should.have.property('year');
           res.body.results[0].should.have.property('status');
           res.body.results[0].should.have.property('score');
           res.body.results[0].should.have.property('created_on');

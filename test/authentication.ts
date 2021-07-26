@@ -22,6 +22,7 @@ describe('Authentication', () => {
       const user = {
         username: 'testuser1',
         password: '',
+        password2: '',
       };
 
       chai.request(app)
@@ -41,6 +42,7 @@ describe('Authentication', () => {
       const user = {
         username: 'testuser2',
         password: 'test',
+        password2: 'test',
       };
 
       chai.request(app)
@@ -60,6 +62,7 @@ describe('Authentication', () => {
       const user = {
         username: 'testuser3',
         password: 'hnyf7RrvPBYUqgLp4KCcVG9TRgdCgGubTzShukasduu3i47237riuiuiug3r25CQj9enJMqdtVgHDjfDq8e4eL9n2UvQTKKLgtp2t5Tjbkth7pFQ7dBKqY6m99BLePn8Y799zzhFLBdRL9a7PJSpUqCRV3W5FGgkvnmsbwsVEQjvca6XRfPbPD3QEWnjV6y2As9aYccqXMbewSfJ4ALYzx7heCEmJ6CyGFgqyTnKnWMJs3rtksxsYbkUXxPckGA8tzFhGZgsre9vuct62uCR9cwS8ajshjasjd2312312',
+        password2: 'hnyf7RrvPBYUqgLp4KCcVG9TRgdCgGubTzShukasduu3i47237riuiuiug3r25CQj9enJMqdtVgHDjfDq8e4eL9n2UvQTKKLgtp2t5Tjbkth7pFQ7dBKqY6m99BLePn8Y799zzhFLBdRL9a7PJSpUqCRV3W5FGgkvnmsbwsVEQjvca6XRfPbPD3QEWnjV6y2As9aYccqXMbewSfJ4ALYzx7heCEmJ6CyGFgqyTnKnWMJs3rtksxsYbkUXxPckGA8tzFhGZgsre9vuct62uCR9cwS8ajshjasjd2312312',
       };
 
       chai.request(app)
@@ -79,6 +82,7 @@ describe('Authentication', () => {
       const user = {
         username: '',
         password: 'testpassword123',
+        password2: 'testpassword123',
       };
 
       chai.request(app)
@@ -98,6 +102,7 @@ describe('Authentication', () => {
       const user = {
         username: 'te',
         password: 'testpassword123',
+        password2: 'testpassword123',
       };
 
       chai.request(app)
@@ -117,6 +122,7 @@ describe('Authentication', () => {
       const user = {
         username: 'hnyf7RrvPBYUqgLp4KCcVG9TRgdCgGubTzShukasduu3i47237riuiuiug3r25CQj9enJMqdtVgHDjfDq8e4eL9n2UvQTKKLgtp2t5Tjbkth7pFQ7dBKqY6m99BLePn8Y799zzhFLBdRL9a7PJSpUqCRV3W5FGgkvnmsbwsVEQjvca6XRfPbPD3QEWnjV6y2As9aYccqXMbewSfJ4ALYzx7heCEmJ6CyGFgqyTnKnWMJs3rtksxsYbkUXxPckGA8tzFhGZgsre9vuct62uCR9cwS8ajshjasjd2312312',
         password: 'testpassword123',
+        password2: 'testpassword123',
       };
 
       chai.request(app)
@@ -136,6 +142,7 @@ describe('Authentication', () => {
       const user = {
         username: 'tes',
         password: 'testpassword123',
+        password2: 'testpassword123',
       };
 
       chai.request(app)
@@ -156,6 +163,7 @@ describe('Authentication', () => {
       const user = {
         username: 'someusername',
         password: 'testuser',
+        password2: 'testuser',
       };
 
       chai.request(app)
@@ -176,6 +184,7 @@ describe('Authentication', () => {
       const user = {
         username: 'testuser',
         password: 'testpassword123',
+        password2: 'testpassword123',
       };
 
       chai.request(app)
