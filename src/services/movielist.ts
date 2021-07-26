@@ -12,7 +12,7 @@ const getMovie = async (req: Request, res: Response, next: NextFunction) => {
   const submitter = res.locals.username;
 
   const getMovieQuery = {
-    text: 'SELECT movie_id, title, studio, director, writer, duration, year FROM movies WHERE movie_id=$1 AND submitter=$2 LIMIT 1',
+    text: 'SELECT uml.movie_id, m.title, m.studio, m.director, m.writer, m.duration, m.year, uml.status, uml.score, uml.created_on FROM user_movie_list uml, movies m WHERE uml.movie_id=m.movie_id AND uml.movie_id=$1 AND m.submitter=$2',
     values: [movieId, submitter],
   };
 

@@ -5,7 +5,7 @@ import BookStatus from './model/bookstatus';
 
 const getBooksByStatus = async (username: string, status: BookStatus): Promise<any[]> => {
   const getBooksQuery = {
-    text: 'SELECT book_id, status, score, created_on FROM user_book_list WHERE username = $1 AND status = $2',
+    text: 'SELECT ubl.book_id, b.isbn, b.title, b.author, b.publisher, b.pages, b.year, ubl.status, ubl.score, ubl.created_on FROM user_book_list ubl, books b WHERE ubl.username=b.submitter AND ubl.username=$1 AND ubl.status=$2',
     values: [username, status],
   };
 
@@ -36,7 +36,4 @@ const postBook = async (b: Book): Promise<string> => {
   return bookId;
 };
 
-export {
-  getBooksByStatus,
-  postBook,
-};
+export { getBooksByStatus, postBook };

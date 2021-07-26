@@ -5,7 +5,7 @@ import * as movies from '../services/movielist';
 const router = express.Router();
 
 // Book routes
-router.get('/books/book/:bookId', books.getBook);
+router.get('/books/book/:bookId', books.getBookById);
 router.post('/books/add', books.addBookToList);
 router.put('/books/edit/:bookId', books.updateBook);
 router.delete('/books/delete/:bookId', books.deleteBook);

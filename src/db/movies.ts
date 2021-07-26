@@ -5,7 +5,7 @@ import Status from './model/moviestatus';
 
 const getMoviesByStatus = async (username: string, status: Status): Promise<any[]> => {
   const getMoviesQuery = {
-    text: 'SELECT movie_id, status, score, created_on FROM user_movie_list WHERE username = $1 AND status = $2',
+    text: 'SELECT uml.movie_id, m.title, m.studio, m.director, m.writer, m.duration, m.year, uml.status, uml.score, uml.created_on FROM user_movie_list uml, movies m WHERE uml.username=m.submitter AND uml.username=$1 AND uml.status=$2',
     values: [username, status],
   };
 

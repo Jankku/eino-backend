@@ -7,12 +7,12 @@ import Book from '../db/model/book';
 import { pool, query } from '../db/config';
 import { ErrorHandler } from '../util/errorhandler';
 
-const getBook = async (req: Request, res: Response, next: NextFunction) => {
+const getBookById = async (req: Request, res: Response, next: NextFunction) => {
   const { bookId } = req.params;
   const submitter = res.locals.username;
 
   const getBookQuery = {
-    text: 'SELECT book_id, isbn, title, author, publisher, pages, year FROM books WHERE book_id=$1 AND submitter=$2 LIMIT 1',
+    text: 'SELECT ubl.book_id, b.isbn, b.title, b.author, b.publisher, b.pages, b.year, ubl.status, ubl.score, ubl.created_on FROM user_book_list ubl, books b WHERE ubl.book_id=b.book_id AND ubl.book_id=$1 AND b.submitter=$2',
     values: [bookId, submitter],
   };
 
@@ -124,7 +124,7 @@ const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 export {
-  getBook,
+  getBookById,
   getCompletedList,
   getReadingList,
   getOnHoldList,
