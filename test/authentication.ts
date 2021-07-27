@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable import/no-extraneous-dependencies */
 import chai, { expect } from 'chai';
 import chaiHttp from 'chai-http';
 import app from '../src/app';

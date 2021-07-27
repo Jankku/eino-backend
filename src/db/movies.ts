@@ -5,12 +5,13 @@ import Status from './model/moviestatus';
 
 const getMoviesByStatus = async (username: string, status: Status): Promise<any[]> => {
   const getMoviesQuery = {
-    text: 'SELECT uml.movie_id, m.title, m.studio, m.director, m.writer, m.duration, m.year, uml.status, uml.score, uml.created_on FROM user_movie_list uml, movies m WHERE uml.username=m.submitter AND uml.username=$1 AND uml.status=$2',
+    text: 'SELECT m.movie_id, m.title, m.studio, m.director, m.writer, m.duration, m.year, uml.status, uml.score, uml.start_date, uml.end_date, uml.created_on FROM user_movie_list uml INNER JOIN movies m USING (movie_id) WHERE uml.username=m.submitter AND uml.username=$1 AND uml.status=$2',
     values: [username, status],
   };
 
   try {
     const { rows } = await query(getMoviesQuery);
+
     return rows;
   } catch (err) {
     Logger.error(err.stack);
