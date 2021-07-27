@@ -47,7 +47,7 @@ const addMovieToList = async (req: Request, res: Response, next: NextFunction) =
   const client = await pool.connect();
   const { username } = res.locals;
   const {
-    title, studio, director, writer, duration, year, status, score,
+    title, studio, director, writer, duration, year, status, score, start_date, end_date,
   } = req.body;
   const movie: Movie = {
     title,
@@ -63,16 +63,17 @@ const addMovieToList = async (req: Request, res: Response, next: NextFunction) =
     await client.query('BEGIN');
     try {
       // Insert movie to movies table
-      await postMovie(movie)
-        .then((movieId) => {
-          // Insert movie to user list
-          const addMovieToUserListQuery = {
-            text: 'INSERT INTO user_movie_list (movie_id, username, status, score) VALUES ($1, $2, $3, $4)',
-            values: [movieId, username, status, score],
-          };
-          query(addMovieToUserListQuery);
-          res.status(201).json(success({ name: 'movie_added_to_list', message: 'Movie added to list' }));
-        });
+      await postMovie(movie).then((movieId) => {
+        // Insert movie to user list
+        const addMovieToUserListQuery = {
+          text: 'INSERT INTO user_movie_list (movie_id, username, status, score, start_date, end_date) VALUES ($1, $2, $3, $4, $5, $6)',
+          values: [movieId, username, status, score, start_date, end_date],
+        };
+        query(addMovieToUserListQuery);
+        res
+          .status(201)
+          .json(success({ name: 'movie_added_to_list', message: 'Movie added to list' }));
+      });
       await client.query('END');
     } catch (err) {
       await client.query('ROLLBACK');

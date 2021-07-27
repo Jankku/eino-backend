@@ -45,7 +45,7 @@ const getPlannedList = (req: Request, res: Response, next: NextFunction) => fetc
 const addBookToList = async (req: Request, res: Response, next: NextFunction) => {
   const client = await pool.connect();
   const {
-    isbn, title, author, publisher, pages, year, status, score,
+    isbn, title, author, publisher, pages, year, status, score, start_date, end_date,
   } = req.body;
   const { username } = res.locals;
   const book: Book = {
@@ -62,16 +62,15 @@ const addBookToList = async (req: Request, res: Response, next: NextFunction) =>
     await client.query('BEGIN');
     try {
       // Insert book to books table
-      await postBook(book)
-        .then((bookId) => {
-          // Insert book to user's booklist
-          const addBookToUserListQuery = {
-            text: 'INSERT INTO user_book_list (book_id, username, status, score) VALUES ($1, $2, $3, $4)',
-            values: [bookId, username, status, score],
-          };
-          query(addBookToUserListQuery);
-          res.status(201).json(success({ name: 'book_added_to_list', message: 'Book added to list' }));
-        });
+      await postBook(book).then((bookId) => {
+        // Insert book to user's booklist
+        const addBookToUserListQuery = {
+          text: 'INSERT INTO user_book_list (book_id, username, status, score, start_date, end_date) VALUES ($1, $2, $3, $4, $5, $6)',
+          values: [bookId, username, status, score, start_date, end_date],
+        };
+        query(addBookToUserListQuery);
+        res.status(201).json(success({ name: 'book_added_to_list', message: 'Book added to list' }));
+      });
       await client.query('END');
     } catch (err) {
       await client.query('ROLLBACK');

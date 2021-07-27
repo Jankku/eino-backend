@@ -14,16 +14,16 @@ CREATE TABLE users
 CREATE TABLE books
 (
     book_id uuid DEFAULT uuid_generate_v4(),
-    isbn VARCHAR(255),
-    title TEXT NOT NULL,
-    author VARCHAR(255),
-    publisher VARCHAR(255),
+    isbn VARCHAR(255) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    author VARCHAR(255) NOT NULL,
+    publisher VARCHAR(255) NOT NULL,
     pages INTEGER NOT NULL DEFAULT 0 CHECK (pages >= 0),
     year INTEGER NOT NULL DEFAULT 0 CHECK (year >= 0),
     submitter VARCHAR(255) NOT NULL,
     created_on timestamptz NOT NULL DEFAULT NOW(),
     PRIMARY KEY (book_id),
-    CONSTRAINT fk_users_books_user
+    CONSTRAINT fk_users_books_username
         FOREIGN KEY(submitter)
         REFERENCES users(username)
         ON DELETE cascade
@@ -34,7 +34,9 @@ CREATE TABLE user_book_list
     book_id uuid,
     username VARCHAR(255) NOT NULL,
     status book_status NOT NULL DEFAULT 'planned',
-    score SMALLINT NOT NULL DEFAULT 0 CHECK (score >= 0 AND score <= 10),
+    score INTEGER NOT NULL DEFAULT 0 CHECK (score >= 0 AND score <= 10),
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
     created_on timestamptz NOT NULL DEFAULT NOW(),
     PRIMARY KEY (book_id),
     CONSTRAINT fk_users_book_list_user
@@ -55,11 +57,11 @@ CREATE TABLE movies
     director VARCHAR(255),
     writer VARCHAR(255),
     duration INTEGER NOT NULL DEFAULT 0 CHECK (duration >= 0),
-    year INTEGER NOT NULL DEFAULT 0 CHECK (year >= 0),
+    year INTEGER NOT NULL DEFAULT EXTRACT (YEAR FROM CURRENT_TIMESTAMP) CHECK (year >= 0),
     submitter VARCHAR(255) NOT NULL,
     created_on timestamptz NOT NULL DEFAULT NOW(),
     PRIMARY KEY (movie_id),
-    CONSTRAINT fk_users_movies_user
+    CONSTRAINT fk_users_movies_username
         FOREIGN KEY(submitter)
         REFERENCES users(username)
         ON DELETE cascade
@@ -70,7 +72,9 @@ CREATE TABLE user_movie_list
     movie_id uuid,
     username VARCHAR(255) NOT NULL,
     status movie_status NOT NULL DEFAULT 'planned',
-    score SMALLINT NOT NULL DEFAULT 0 CHECK (score >= 0 AND score <= 10),
+    score INTEGER NOT NULL DEFAULT 0 CHECK (score >= 0 AND score <= 10),
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
     created_on timestamptz NOT NULL DEFAULT NOW(),
     PRIMARY KEY (movie_id),
     CONSTRAINT fk_users_movie_list_user
