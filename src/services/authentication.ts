@@ -25,15 +25,8 @@ const register = async (req: Request, res: Response, next: NextFunction) => {
       values: [username, hashedPassword],
     };
 
-    query(q, (err: Error) => {
-      if (err) {
-        Logger.error(err.stack);
-        next(new ErrorHandler(500, 'authentication_error', 'Unknown error while trying to register user'));
-        return;
-      }
-
-      res.status(200).json(success({ name: 'user_registered', message: username }));
-    });
+    query(q);
+    res.status(200).json(success({ name: 'user_registered', message: username }));
   } catch (err) {
     Logger.error(err.stack);
     next(new ErrorHandler(500, 'authentication_error', 'Unknown error while trying to register user'));
@@ -60,6 +53,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
       }
 
       const jwt = generateJwt(userId, username);
+
       return res.status(200).json({ token: jwt });
     });
   } catch (err) {

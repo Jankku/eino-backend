@@ -24,21 +24,18 @@ const isUserUnique = async (username: string): Promise<boolean> => {
   };
 
   try {
-    const result = await query(q);
-    return result.rows.length === 0;
+    const { rows } = await query(q);
+    return rows.length === 0;
   } catch (err) {
     Logger.error(err.stack);
     return false;
   }
 };
 
+// Used only for tests
 const deleteAllUsers = () => {
-  const q = {
-    text: 'DELETE FROM users',
-  };
-
   try {
-    query(q);
+    query({ text: 'DELETE FROM users' });
   } catch (err) {
     Logger.error(err.stack);
   }
