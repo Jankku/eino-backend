@@ -1,19 +1,19 @@
 import { NextFunction, Request, Response } from 'express';
 import Logger from '../util/logger';
-import { postMovie, getMoviesByStatus } from '../db/movies';
+import { postMovie, getMoviesByStatus, getAllMovies } from '../db/movies';
 import { success } from '../util/response';
 import Movie from '../db/model/movie';
 import { pool, query } from '../db/config';
 import MovieStatus from '../db/model/moviestatus';
 import { ErrorHandler } from '../util/errorhandler';
 
-const getMovie = async (req: Request, res: Response, next: NextFunction) => {
+const getMovieById = async (req: Request, res: Response, next: NextFunction) => {
   const { movieId } = req.params;
-  const submitter = res.locals.username;
+  const { username } = res.locals;
 
   const getMovieQuery = {
-    text: 'SELECT uml.movie_id, m.title, m.studio, m.director, m.writer, m.duration, m.year, uml.status, uml.score, uml.created_on FROM user_movie_list uml, movies m WHERE uml.movie_id=m.movie_id AND uml.movie_id=$1 AND m.submitter=$2',
-    values: [movieId, submitter],
+    text: 'SELECT uml.movie_id, m.title, m.studio, m.director, m.writer, m.duration, m.year, uml.status, uml.score, uml.start_date, uml.end_date, uml.created_on FROM user_movie_list uml, movies m WHERE uml.movie_id=m.movie_id AND uml.movie_id=$1 AND m.submitter=$2',
+    values: [movieId, username],
   };
 
   try {
@@ -22,6 +22,18 @@ const getMovie = async (req: Request, res: Response, next: NextFunction) => {
   } catch (err) {
     Logger.error(err.stack);
     next(new ErrorHandler(422, 'movie_list_error', 'Couldnt find movie'));
+  }
+};
+
+const fetchAllMovies = async (req: Request, res: Response, next: NextFunction) => {
+  const { username } = res.locals;
+
+  try {
+    const books = await getAllMovies(username);
+    res.status(200).json(success(books));
+  } catch (err) {
+    Logger.error(err.stack);
+    next(new ErrorHandler(422, 'book_list_error', 'Couldn\'t find books'));
   }
 };
 
@@ -37,6 +49,7 @@ const fetchList = async (req: Request, res: Response, status: MovieStatus, next:
   }
 };
 
+const getFullMovieList = (req: Request, res: Response, next: NextFunction) => fetchAllMovies(req, res, next);
 const getCompletedList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'completed', next);
 const getWatchingList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'watching', next);
 const getOnHoldList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'on-hold', next);
@@ -87,15 +100,15 @@ const addMovieToList = async (req: Request, res: Response, next: NextFunction) =
 };
 
 const updateMovie = async (req: Request, res: Response, next: NextFunction) => {
+  const { movieId } = req.params;
+  const { username } = res.locals;
   const {
     title, studio, director, writer, duration, year,
   } = req.body;
-  const { movieId } = req.params;
-  const submitter = res.locals.username;
 
   const updateMovieQuery = {
     text: 'UPDATE movies SET title=$1, studio=$2, director=$3, writer=$4, duration=$5, year=$6 WHERE movie_id=$7 AND submitter=$8 RETURNING movie_id, title, studio, director, writer, duration, year',
-    values: [title, studio, director, writer, duration, year, movieId, submitter],
+    values: [title, studio, director, writer, duration, year, movieId, username],
   };
 
   try {
@@ -109,11 +122,11 @@ const updateMovie = async (req: Request, res: Response, next: NextFunction) => {
 
 const deleteMovie = async (req: Request, res: Response, next: NextFunction) => {
   const { movieId } = req.params;
-  const submitter = res.locals.username;
+  const { username } = res.locals;
 
   const deleteMovieQuery = {
     text: 'DELETE FROM movies WHERE movie_id=$1 AND submitter=$2',
-    values: [movieId, submitter],
+    values: [movieId, username],
   };
 
   try {
@@ -126,7 +139,8 @@ const deleteMovie = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 export {
-  getMovie,
+  getMovieById,
+  getFullMovieList,
   getCompletedList,
   getWatchingList,
   getOnHoldList,

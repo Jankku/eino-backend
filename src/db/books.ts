@@ -3,6 +3,22 @@ import { query } from './config';
 import Book from './model/book';
 import BookStatus from './model/bookstatus';
 
+const getAllBooks = async (username: string): Promise<any[]> => {
+  const getBooksQuery = {
+    text: 'SELECT b.book_id, b.isbn, b.title, b.author, b.publisher, b.pages, b.year, ubl.status, ubl.score, ubl.start_date, ubl.end_date, ubl.created_on FROM user_book_list ubl INNER JOIN books b USING (book_id) WHERE ubl.username=b.submitter AND ubl.username=$1 AND b.submitter=$1',
+    values: [username],
+  };
+
+  try {
+    const { rows } = await query(getBooksQuery);
+    return rows;
+  } catch (err) {
+    Logger.error(err.stack);
+  }
+
+  return [];
+};
+
 const getBooksByStatus = async (username: string, status: BookStatus): Promise<any[]> => {
   const getBooksQuery = {
     text: 'SELECT b.book_id, b.isbn, b.title, b.author, b.publisher, b.pages, b.year, ubl.status, ubl.score, ubl.start_date, ubl.end_date, ubl.created_on FROM user_book_list ubl INNER JOIN books b USING (book_id) WHERE ubl.username=b.submitter AND ubl.username=$1 AND b.submitter=$1 AND ubl.status=$2',
@@ -37,4 +53,4 @@ const postBook = async (b: Book): Promise<string> => {
   return bookId;
 };
 
-export { getBooksByStatus, postBook };
+export { getAllBooks, getBooksByStatus, postBook };

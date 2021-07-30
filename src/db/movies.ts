@@ -3,6 +3,22 @@ import { query } from './config';
 import Movie from './model/movie';
 import Status from './model/moviestatus';
 
+const getAllMovies = async (username: string): Promise<any[]> => {
+  const getMoviesQuery = {
+    text: 'SELECT m.movie_id, m.title, m.studio, m.director, m.writer, m.duration, m.year, uml.status, uml.score, uml.start_date, uml.end_date, uml.created_on FROM user_movie_list uml INNER JOIN movies m USING (movie_id) WHERE uml.username=m.submitter AND uml.username=$1',
+    values: [username],
+  };
+
+  try {
+    const { rows } = await query(getMoviesQuery);
+    return rows;
+  } catch (err) {
+    Logger.error(err.stack);
+  }
+
+  return [];
+};
+
 const getMoviesByStatus = async (username: string, status: Status): Promise<any[]> => {
   const getMoviesQuery = {
     text: 'SELECT m.movie_id, m.title, m.studio, m.director, m.writer, m.duration, m.year, uml.status, uml.score, uml.start_date, uml.end_date, uml.created_on FROM user_movie_list uml INNER JOIN movies m USING (movie_id) WHERE uml.username=m.submitter AND uml.username=$1 AND uml.status=$2',
@@ -11,7 +27,6 @@ const getMoviesByStatus = async (username: string, status: Status): Promise<any[
 
   try {
     const { rows } = await query(getMoviesQuery);
-
     return rows;
   } catch (err) {
     Logger.error(err.stack);
@@ -37,6 +52,7 @@ const postMovie = async (m: Movie): Promise<string> => {
 };
 
 export {
+  getAllMovies,
   getMoviesByStatus,
   postMovie,
 };
