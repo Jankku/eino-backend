@@ -14,7 +14,7 @@ CREATE TABLE users
 CREATE TABLE books
 (
     book_id uuid DEFAULT uuid_generate_v4(),
-    isbn VARCHAR(255) NOT NULL CONSTRAINT isbnlengthcheck CHECK (length(isbn) = 10 OR length(isbn) = 13),
+    isbn VARCHAR(255) NOT NULL,
     title VARCHAR(255) NOT NULL,
     author VARCHAR(255) NOT NULL,
     publisher VARCHAR(255) NOT NULL,
@@ -35,8 +35,8 @@ CREATE TABLE user_book_list
     username VARCHAR(255) NOT NULL,
     status book_status NOT NULL DEFAULT 'planned',
     score INTEGER NOT NULL DEFAULT 0 CHECK (score >= 0 AND score <= 10),
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
+    start_date DATE,
+    end_date DATE,
     created_on timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP (0),
     PRIMARY KEY (book_id),
     CONSTRAINT fk_users_book_list_user
@@ -73,8 +73,8 @@ CREATE TABLE user_movie_list
     username VARCHAR(255) NOT NULL,
     status movie_status NOT NULL DEFAULT 'planned',
     score INTEGER NOT NULL DEFAULT 0 CHECK (score >= 0 AND score <= 10),
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
+    start_date DATE,
+    end_date DATE,
     created_on timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP (0),
     PRIMARY KEY (movie_id),
     CONSTRAINT fk_users_movie_list_user
