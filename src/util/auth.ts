@@ -11,7 +11,7 @@ const generateJwt = (userId: string, username: string): string => sign(
   },
 );
 
-const generatePasswordHash = (password: string): string => bcrypt.hashSync(password, 10);
+const generatePasswordHash = (password: string): string => bcrypt.hashSync(password, 12);
 
 export {
   generateJwt,
