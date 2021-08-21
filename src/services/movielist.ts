@@ -103,7 +103,7 @@ const updateMovie = async (req: Request, res: Response, next: NextFunction) => {
   const { movieId } = req.params;
   const { username } = res.locals;
   const {
-    title, studio, director, writer, duration, year,
+    title, studio, director, writer, duration, year, status, score, start_date, end_date,
   } = req.body;
 
   const updateMovieQuery = {
@@ -111,12 +111,18 @@ const updateMovie = async (req: Request, res: Response, next: NextFunction) => {
     values: [title, studio, director, writer, duration, year, movieId, username],
   };
 
+  const updateUserListQuery = {
+    text: 'UPDATE user_movie_list SET status=$1, score=$2, start_date=$3, end_date=$4 WHERE movie_id=$5',
+    values: [status, score, start_date, end_date, movieId],
+  };
+
   try {
-    const result = await query(updateMovieQuery);
-    res.status(200).json(success(result.rows));
+    await query(updateMovieQuery);
+    await query(updateUserListQuery);
+    res.status(200).json(success({ name: 'movie_updated', message: 'Movie successfully updated' }));
   } catch (err) {
     Logger.error(err.stack);
-    next(new ErrorHandler(422, 'movie_list_error', 'Couldnt update movie'));
+    next(new ErrorHandler(422, 'movie_list_error', 'Couldn\'t update movie'));
   }
 };
 
