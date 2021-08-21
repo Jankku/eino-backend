@@ -23,7 +23,7 @@ router.post('/movies/add', movies.addMovieToList);
 router.put('/movies/update/:movieId', movies.updateMovie);
 router.delete('/movies/delete/:movieId', movies.deleteMovie);
 
-router.get('/books/all', movies.getFullMovieList);
+router.get('/movies/all', movies.getFullMovieList);
 router.get('/movies/completed', movies.getCompletedList);
 router.get('/movies/watching', movies.getWatchingList);
 router.get('/movies/on-hold', movies.getOnHoldList);
