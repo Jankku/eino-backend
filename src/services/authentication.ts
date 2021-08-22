@@ -1,11 +1,14 @@
 import * as bcrypt from 'bcrypt';
 import { NextFunction, Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import { getUserByUsername } from '../db/users';
 import { query } from '../db/config';
 import { success } from '../util/response';
 import { validateCredientials, validationErrors } from '../util/validation';
 import Logger from '../util/logger';
-import { generateJwt, generatePasswordHash } from '../util/auth';
+import {
+  generateAccessToken, generatePasswordHash, generateRefreshToken,
+} from '../util/auth';
 import { ErrorHandler } from '../util/errorhandler';
 import User from '../db/model/user';
 
@@ -52,9 +55,10 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
         return;
       }
 
-      const jwt = generateJwt(userId, username);
+      const accessToken = generateAccessToken(userId, username);
+      const refreshToken = generateRefreshToken(userId, username);
 
-      return res.status(200).json({ token: jwt });
+      return res.status(200).json({ accessToken, refreshToken });
     });
   } catch (err) {
     Logger.error(err.stack);
@@ -62,7 +66,28 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export default {
+const refreshTokens = async (req: Request, res: Response, next: NextFunction) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    next(new ErrorHandler(400, 'invalid_request_body', 'Send your refresh token on JSON body with key refreshToken'));
+    return;
+  }
+
+  jwt.verify(refreshToken, `${process.env.REFRESH_TOKEN_SECRET}`, { audience: 'eino', issuer: 'eino-backend' }, (err, decoded) => {
+    if (err) {
+      next(new ErrorHandler(500, 'jwt_refresh_error', err?.message));
+    } else {
+      const newAccessToken = generateAccessToken(decoded?.userId, decoded?.username);
+      const newRefreshToken = generateRefreshToken(decoded?.userId, decoded?.username);
+
+      return res.status(200).json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
+    }
+  });
+};
+
+export {
   register,
   login,
+  refreshTokens,
 };

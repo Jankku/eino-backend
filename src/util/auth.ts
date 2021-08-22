@@ -1,11 +1,25 @@
 import { sign } from 'jsonwebtoken';
 import * as bcrypt from 'bcrypt';
 
-const generateJwt = (userId: string, username: string): string => sign(
+const {
+  ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, ACCESS_TOKEN_VALIDITY, REFRESH_TOKEN_VALIDITY,
+} = process.env;
+
+const generateAccessToken = (userId: string, username: string): string => sign(
   { userId, username },
-  `${process.env.JWT_SECRET}`,
+  `${ACCESS_TOKEN_SECRET}`,
   {
-    expiresIn: '7d',
+    expiresIn: `${ACCESS_TOKEN_VALIDITY}`,
+    audience: 'eino',
+    issuer: 'eino-backend',
+  },
+);
+
+const generateRefreshToken = (userId: string, username: string): string => sign(
+  { userId, username },
+  `${REFRESH_TOKEN_SECRET}`,
+  {
+    expiresIn: `${REFRESH_TOKEN_VALIDITY}`,
     audience: 'eino',
     issuer: 'eino-backend',
   },
@@ -14,6 +28,7 @@ const generateJwt = (userId: string, username: string): string => sign(
 const generatePasswordHash = (password: string): string => bcrypt.hashSync(password, 12);
 
 export {
-  generateJwt,
+  generateAccessToken,
+  generateRefreshToken,
   generatePasswordHash,
 };
