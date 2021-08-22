@@ -79,9 +79,8 @@ const refreshTokens = async (req: Request, res: Response, next: NextFunction) =>
       next(new ErrorHandler(500, 'jwt_refresh_error', err?.message));
     } else {
       const newAccessToken = generateAccessToken(decoded?.userId, decoded?.username);
-      const newRefreshToken = generateRefreshToken(decoded?.userId, decoded?.username);
 
-      return res.status(200).json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
+      return res.status(200).json({ accessToken: newAccessToken });
     }
   });
 };
