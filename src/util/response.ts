@@ -5,11 +5,9 @@ interface ResponseItem {
 
 /**
  * @description Returns success response object
- * @param results {array|ResponseItem} Response item array
+ * @param results {array} Response item array
  */
-const success = (results: Array<any> | ResponseItem) => ({
-  results,
-});
+const success = (results: Array<any>) => ({ results });
 
 export {
   success,

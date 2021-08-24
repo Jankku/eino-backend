@@ -20,7 +20,7 @@ const getBookById = async (req: Request, res: Response, next: NextFunction) => {
     const result = await query(getBookQuery);
     res.status(200).json(success(result.rows));
   } catch (err) {
-    next(new ErrorHandler(422, 'book_list_error', 'Couldn\'t find books'));
+    next(new ErrorHandler(422, 'book_list_error', 'Couldn\'t find book'));
   }
 };
 
@@ -79,7 +79,7 @@ const addBookToList = async (req: Request, res: Response, next: NextFunction) =>
         values: [bookId, username, status, score, start_date, end_date],
       };
       query(addBookToUserListQuery);
-      res.status(201).json(success({ name: 'book_added_to_list', message: 'Book added to list' }));
+      res.status(201).json(success([{ name: 'book_added_to_list', message: 'Book added to list' }]));
     });
   } catch (err) {
     Logger.error(err.stack);
@@ -107,7 +107,7 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
   try {
     await query(updateBookQuery);
     await query(updateUserListQuery);
-    res.status(200).json(success({ name: 'book_updated', message: 'Book successfully updated' }));
+    res.status(200).json(success([{ name: 'book_updated', message: 'Book successfully updated' }]));
   } catch (err) {
     Logger.error(err.stack);
     next(new ErrorHandler(422, 'book_list_error', 'Couldn\'t update book'));
@@ -125,7 +125,7 @@ const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
 
   try {
     await query(deleteBookQuery);
-    res.status(200).json(success({ name: 'book_deleted', message: 'Book deleted' }));
+    res.status(200).json(success([{ name: 'book_deleted', message: 'Book deleted' }]));
   } catch (err) {
     Logger.error(err.stack);
     next(new ErrorHandler(422, 'book_list_error', 'Couldn\'t delete book'));

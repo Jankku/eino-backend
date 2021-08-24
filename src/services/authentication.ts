@@ -29,7 +29,7 @@ const register = async (req: Request, res: Response, next: NextFunction) => {
     };
 
     query(q);
-    res.status(200).json(success({ name: 'user_registered', message: username }));
+    res.status(200).json(success([{ name: 'user_registered', message: username }]));
   } catch (err) {
     Logger.error(err.stack);
     next(new ErrorHandler(500, 'authentication_error', 'Unknown error while trying to register user'));

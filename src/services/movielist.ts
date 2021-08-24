@@ -85,7 +85,7 @@ const addMovieToList = async (req: Request, res: Response, next: NextFunction) =
         query(addMovieToUserListQuery);
         res
           .status(201)
-          .json(success({ name: 'movie_added_to_list', message: 'Movie added to list' }));
+          .json(success([{ name: 'movie_added_to_list', message: 'Movie added to list' }]));
       });
       await client.query('END');
     } catch (err) {
@@ -119,7 +119,7 @@ const updateMovie = async (req: Request, res: Response, next: NextFunction) => {
   try {
     await query(updateMovieQuery);
     await query(updateUserListQuery);
-    res.status(200).json(success({ name: 'movie_updated', message: 'Movie successfully updated' }));
+    res.status(200).json(success([{ name: 'movie_updated', message: 'Movie successfully updated' }]));
   } catch (err) {
     Logger.error(err.stack);
     next(new ErrorHandler(422, 'movie_list_error', 'Couldn\'t update movie'));
@@ -137,7 +137,7 @@ const deleteMovie = async (req: Request, res: Response, next: NextFunction) => {
 
   try {
     await query(deleteMovieQuery);
-    res.status(200).json(success({ name: 'movie_deleted', message: 'Movie deleted' }));
+    res.status(200).json(success([{ name: 'movie_deleted', message: 'Movie deleted' }]));
   } catch (err) {
     Logger.error(err.stack);
     next(new ErrorHandler(422, 'movie_list_error', 'Couldnt delete movie'));
