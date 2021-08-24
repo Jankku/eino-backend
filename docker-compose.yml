@@ -5,7 +5,7 @@ services:
         container_name: app
         build: .
         ports:
-            - "3000:3000"
+            - "5000:5000"
         working_dir: /usr/src/eino
         environment:
             NODE_ENV: production
