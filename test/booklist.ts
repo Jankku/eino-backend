@@ -21,15 +21,15 @@ describe('Booklist', () => {
 
       chai.request(app)
         .post('/api/list/books/add')
-        .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
+        .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
         .send(book)
         .end((err, res) => {
           res.should.have.status(201);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
-          res.body.results.should.be.a('object');
-          res.body.results.should.have.property('name').eql('book_added_to_list');
-          res.body.results.should.have.property('message').eql('Book added to list');
+          res.body.results.should.be.a('array');
+          res.body.results[0].should.have.property('name').eql('book_added_to_list');
+          res.body.results[0].should.have.property('message').eql('Book added to list');
           done();
         });
     });
@@ -48,15 +48,15 @@ describe('Booklist', () => {
 
       chai.request(app)
         .post('/api/list/books/add')
-        .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
+        .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
         .send(book)
         .end((err, res) => {
           res.should.have.status(201);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
-          res.body.results.should.be.a('object');
-          res.body.results.should.have.property('name').eql('book_added_to_list');
-          res.body.results.should.have.property('message').eql('Book added to list');
+          res.body.results.should.be.a('array');
+          res.body.results[0].should.have.property('name').eql('book_added_to_list');
+          res.body.results[0].should.have.property('message').eql('Book added to list');
           done();
         });
     });
@@ -75,15 +75,15 @@ describe('Booklist', () => {
 
       chai.request(app)
         .post('/api/list/books/add')
-        .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
+        .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
         .send(book)
         .end((err, res) => {
           res.should.have.status(201);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
-          res.body.results.should.be.a('object');
-          res.body.results.should.have.property('name').eql('book_added_to_list');
-          res.body.results.should.have.property('message').eql('Book added to list');
+          res.body.results.should.be.a('array');
+          res.body.results[0].should.have.property('name').eql('book_added_to_list');
+          res.body.results[0].should.have.property('message').eql('Book added to list');
           done();
         });
     });
@@ -102,15 +102,15 @@ describe('Booklist', () => {
 
       chai.request(app)
         .post('/api/list/books/add')
-        .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
+        .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
         .send(book)
         .end((err, res) => {
           res.should.have.status(201);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
-          res.body.results.should.be.a('object');
-          res.body.results.should.have.property('name').eql('book_added_to_list');
-          res.body.results.should.have.property('message').eql('Book added to list');
+          res.body.results.should.be.a('array');
+          res.body.results[0].should.have.property('name').eql('book_added_to_list');
+          res.body.results[0].should.have.property('message').eql('Book added to list');
           done();
         });
     });
@@ -129,15 +129,15 @@ describe('Booklist', () => {
 
       chai.request(app)
         .post('/api/list/books/add')
-        .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
+        .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
         .send(book)
         .end((err, res) => {
           res.should.have.status(201);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
-          res.body.results.should.be.a('object');
-          res.body.results.should.have.property('name').eql('book_added_to_list');
-          res.body.results.should.have.property('message').eql('Book added to list');
+          res.body.results.should.be.a('array');
+          res.body.results[0].should.have.property('name').eql('book_added_to_list');
+          res.body.results[0].should.have.property('message').eql('Book added to list');
           done();
         });
     });
@@ -147,7 +147,7 @@ describe('Booklist', () => {
     it('Should return completed list', (done) => {
       chai.request(app)
         .get('/api/list/books/completed')
-        .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
+        .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
         .end((err, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
@@ -163,6 +163,8 @@ describe('Booklist', () => {
           res.body.results[0].should.have.property('year');
           res.body.results[0].should.have.property('status');
           res.body.results[0].should.have.property('score');
+          res.body.results[0].should.have.property('start_date');
+          res.body.results[0].should.have.property('end_date');
           res.body.results[0].should.have.property('created_on');
           done();
         });
@@ -171,7 +173,7 @@ describe('Booklist', () => {
     it('Should return reading list', (done) => {
       chai.request(app)
         .get('/api/list/books/reading')
-        .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
+        .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
         .end((err, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
@@ -187,6 +189,8 @@ describe('Booklist', () => {
           res.body.results[0].should.have.property('year');
           res.body.results[0].should.have.property('status');
           res.body.results[0].should.have.property('score');
+          res.body.results[0].should.have.property('start_date');
+          res.body.results[0].should.have.property('end_date');
           res.body.results[0].should.have.property('created_on');
           done();
         });
@@ -195,7 +199,7 @@ describe('Booklist', () => {
     it('Should return on-hold list', (done) => {
       chai.request(app)
         .get('/api/list/books/on-hold')
-        .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
+        .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
         .end((err, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
@@ -211,6 +215,8 @@ describe('Booklist', () => {
           res.body.results[0].should.have.property('year');
           res.body.results[0].should.have.property('status');
           res.body.results[0].should.have.property('score');
+          res.body.results[0].should.have.property('start_date');
+          res.body.results[0].should.have.property('end_date');
           res.body.results[0].should.have.property('created_on');
           done();
         });
@@ -219,7 +225,7 @@ describe('Booklist', () => {
     it('Should return dropped list', (done) => {
       chai.request(app)
         .get('/api/list/books/dropped')
-        .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
+        .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
         .end((err, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
@@ -235,6 +241,8 @@ describe('Booklist', () => {
           res.body.results[0].should.have.property('year');
           res.body.results[0].should.have.property('status');
           res.body.results[0].should.have.property('score');
+          res.body.results[0].should.have.property('start_date');
+          res.body.results[0].should.have.property('end_date');
           res.body.results[0].should.have.property('created_on');
           done();
         });
@@ -243,7 +251,7 @@ describe('Booklist', () => {
     it('Should return planned list', (done) => {
       chai.request(app)
         .get('/api/list/books/planned')
-        .set('Authorization', `Bearer ${process.env.JWT_TEST_TOKEN}`)
+        .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
         .end((err, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
@@ -259,6 +267,8 @@ describe('Booklist', () => {
           res.body.results[0].should.have.property('year');
           res.body.results[0].should.have.property('status');
           res.body.results[0].should.have.property('score');
+          res.body.results[0].should.have.property('start_date');
+          res.body.results[0].should.have.property('end_date');
           res.body.results[0].should.have.property('created_on');
           done();
         });

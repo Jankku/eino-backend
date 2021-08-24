@@ -1,8 +1,7 @@
-import chai, { expect } from 'chai';
+import chai from 'chai';
 import chaiHttp from 'chai-http';
 import app from '../src/app';
 import { deleteAllUsers } from '../src/db/users';
-import { ResponseItem } from '../src/util/response';
 
 chai.should();
 chai.use(chaiHttp);
@@ -31,7 +30,7 @@ describe('Authentication', () => {
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
           res.body.errors.should.be.a('array');
-          expect(res.body.errors.map((e: ResponseItem) => e.name)).to.include('password_length_invalid');
+          res.body.errors[0].should.have.property('name').eql('password_length_invalid');
           done();
         });
     });
@@ -51,7 +50,7 @@ describe('Authentication', () => {
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
           res.body.errors.should.be.a('array');
-          expect(res.body.errors.map((e: ResponseItem) => e.name)).to.include('password_length_invalid');
+          res.body.errors[0].should.have.property('name').eql('password_length_invalid');
           done();
         });
     });
@@ -71,7 +70,7 @@ describe('Authentication', () => {
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
           res.body.errors.should.be.a('array');
-          expect(res.body.errors.map((e: ResponseItem) => e.name)).to.include('password_length_invalid');
+          res.body.errors[0].should.have.property('name').eql('password_length_invalid');
           done();
         });
     });
@@ -91,7 +90,7 @@ describe('Authentication', () => {
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
           res.body.errors.should.be.a('array');
-          expect(res.body.errors.map((e: ResponseItem) => e.name)).to.include('username_length_invalid');
+          res.body.errors[0].should.have.property('name').eql('username_length_invalid');
           done();
         });
     });
@@ -111,7 +110,7 @@ describe('Authentication', () => {
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
           res.body.errors.should.be.a('array');
-          expect(res.body.errors.map((e: ResponseItem) => e.name)).to.include('username_length_invalid');
+          res.body.errors[0].should.have.property('name').eql('username_length_invalid');
           done();
         });
     });
@@ -131,7 +130,7 @@ describe('Authentication', () => {
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
           res.body.errors.should.be.a('array');
-          expect(res.body.errors.map((e: ResponseItem) => e.name)).to.include('username_length_invalid');
+          res.body.errors[0].should.have.property('name').eql('username_length_invalid');
           done();
         });
     });
@@ -150,9 +149,9 @@ describe('Authentication', () => {
           res.should.have.status(200);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
-          res.body.results.should.be.a('object');
-          res.body.results.should.have.property('name').eql('user_registered');
-          res.body.results.should.have.property('message').eql(user.username);
+          res.body.results.should.be.a('array');
+          res.body.results[0].should.have.property('name').eql('user_registered');
+          res.body.results[0].should.have.property('message').eql(user.username);
           done();
         });
     });
@@ -171,9 +170,9 @@ describe('Authentication', () => {
           res.should.have.status(200);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
-          res.body.results.should.be.a('object');
-          res.body.results.should.have.property('name').eql('user_registered');
-          res.body.results.should.have.property('message').eql(user.username);
+          res.body.results.should.be.a('array');
+          res.body.results[0].should.have.property('name').eql('user_registered');
+          res.body.results[0].should.have.property('message').eql(user.username);
           done();
         });
     });
@@ -192,9 +191,9 @@ describe('Authentication', () => {
           res.should.have.status(200);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
-          res.body.results.should.be.a('object');
-          res.body.results.should.have.property('name').eql('user_registered');
-          res.body.results.should.have.property('message').eql(user.username);
+          res.body.results.should.be.a('array');
+          res.body.results[0].should.have.property('name').eql('user_registered');
+          res.body.results[0].should.have.property('message').eql(user.username);
           done();
         });
     });
@@ -215,8 +214,8 @@ describe('Authentication', () => {
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
           res.body.errors.should.be.a('array');
-          expect(res.body.errors.map((e: ResponseItem) => e.name)).to.include('authentication_error');
-          expect(res.body.errors.map((e: ResponseItem) => e.message)).to.include('User not found');
+          res.body.errors[0].should.have.property('name').eql('authentication_error');
+          res.body.errors[0].should.have.property('message').eql('User not found');
           done();
         });
     });
@@ -235,8 +234,8 @@ describe('Authentication', () => {
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
           res.body.errors.should.be.a('array');
-          expect(res.body.errors.map((e: ResponseItem) => e.name)).to.include('authentication_error');
-          expect(res.body.errors.map((e: ResponseItem) => e.message)).to.include('Incorrect password');
+          res.body.errors[0].should.have.property('name').eql('authentication_error');
+          res.body.errors[0].should.have.property('message').eql('Incorrect password');
           done();
         });
     });
@@ -255,8 +254,8 @@ describe('Authentication', () => {
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
           res.body.errors.should.be.a('array');
-          expect(res.body.errors.map((e: ResponseItem) => e.name)).to.include('authentication_error');
-          expect(res.body.errors.map((e: ResponseItem) => e.message)).to.include('User not found');
+          res.body.errors[0].should.have.property('name').eql('authentication_error');
+          res.body.errors[0].should.have.property('message').eql('User not found');
           done();
         });
     });
@@ -275,13 +274,13 @@ describe('Authentication', () => {
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
           res.body.errors.should.be.a('array');
-          expect(res.body.errors.map((e: ResponseItem) => e.name)).to.include('authentication_error');
-          expect(res.body.errors.map((e: ResponseItem) => e.message)).to.include('User not found');
+          res.body.errors[0].should.have.property('name').eql('authentication_error');
+          res.body.errors[0].should.have.property('message').eql('User not found');
           done();
         });
     });
 
-    it('Should return token when user is successfully logged in', (done) => {
+    it('Should return tokens when user is successfully logged in', (done) => {
       const user = {
         username: 'testuser',
         password: 'testpassword123',
@@ -293,8 +292,67 @@ describe('Authentication', () => {
         .end((err, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
-          res.body.should.have.property('token');
-          res.body.token.should.be.a('string');
+          res.body.should.have.property('accessToken');
+          res.body.accessToken.should.be.a('string');
+          res.body.should.have.property('refreshToken');
+          res.body.refreshToken.should.be.a('string');
+          done();
+        });
+    });
+  });
+
+  describe('Refresh token', () => {
+    it('Should error when using empty token', (done) => {
+      const body = {
+        refreshToken: '',
+      };
+
+      chai.request(app)
+        .post('/api/auth/refreshtoken')
+        .send(body)
+        .end((err, res) => {
+          // res.should.have.status(400);
+          res.body.should.be.a('object');
+          res.body.should.have.property('errors');
+          res.body.errors.should.be.a('array');
+          res.body.errors[0].should.have.property('name').eql('invalid_request_body');
+          res.body.errors[0].should.have.property('message').eql('Send your refresh token on JSON body with key refreshToken');
+          done();
+        });
+    });
+
+    it('Should error when using invalid token', (done) => {
+      const body = {
+        refreshToken: 'asd.asd.asd',
+      };
+
+      chai.request(app)
+        .post('/api/auth/refreshtoken')
+        .send(body)
+        .end((err, res) => {
+          res.should.have.status(422);
+          res.body.should.be.a('object');
+          res.body.should.have.property('errors');
+          res.body.errors.should.be.a('array');
+          res.body.errors[0].should.have.property('name').eql('jwt_refresh_error');
+          res.body.errors[0].should.have.property('message').eql('invalid token');
+          done();
+        });
+    });
+
+    it('Should return new access token', (done) => {
+      const body = {
+        refreshToken: `${process.env.JWT_TEST_REFRESH_TOKEN}`,
+      };
+
+      chai.request(app)
+        .post('/api/auth/refreshtoken')
+        .send(body)
+        .end((err, res) => {
+          res.should.have.status(200);
+          res.body.should.be.a('object');
+          res.body.should.have.property('accessToken');
+          res.body.accessToken.should.be.a('string');
           done();
         });
     });
