@@ -1,3 +1,3 @@
 # eino
 
-Book, movie and series tracker with web and Android clients.
+Book and movie tracker with web and Android clients.
