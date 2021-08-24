@@ -18,6 +18,12 @@ const getBookById = async (req: Request, res: Response, next: NextFunction) => {
 
   try {
     const result = await query(getBookQuery);
+
+    if (result.rowCount === 0) {
+      next(new ErrorHandler(422, 'book_list_error', 'Couldn\'t find book'));
+      return;
+    }
+
     res.status(200).json(success(result.rows));
   } catch (err) {
     next(new ErrorHandler(422, 'book_list_error', 'Couldn\'t find book'));

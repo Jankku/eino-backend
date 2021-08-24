@@ -76,7 +76,7 @@ const refreshTokens = async (req: Request, res: Response, next: NextFunction) =>
 
   jwt.verify(refreshToken, `${process.env.REFRESH_TOKEN_SECRET}`, { audience: 'eino', issuer: 'eino-backend' }, (err, decoded) => {
     if (err) {
-      next(new ErrorHandler(500, 'jwt_refresh_error', err?.message));
+      next(new ErrorHandler(422, 'jwt_refresh_error', err?.message));
     } else {
       const newAccessToken = generateAccessToken(decoded?.userId, decoded?.username);
 

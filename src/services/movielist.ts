@@ -18,6 +18,12 @@ const getMovieById = async (req: Request, res: Response, next: NextFunction) => 
 
   try {
     const result = await query(getMovieQuery);
+
+    if (result.rowCount === 0) {
+      next(new ErrorHandler(422, 'movie_list_error', 'Couldnt find movie'));
+      return;
+    }
+
     res.status(200).json(success(result.rows));
   } catch (err) {
     Logger.error(err.stack);
