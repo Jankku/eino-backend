@@ -1,7 +1,7 @@
 {
   "name": "eino-backend",
   "version": "1.0.0",
-  "description": "Book, movie and series tracker with web and Android clients",
+  "description": "Book and movie tracker with web and Android clients",
   "private": true,
   "main": "./dist/app.js",
   "scripts": {

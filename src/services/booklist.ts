@@ -89,7 +89,7 @@ const addBookToList = async (req: Request, res: Response, next: NextFunction) =>
     });
   } catch (err) {
     Logger.error(err.stack);
-    next(new ErrorHandler(422, 'book_list_error', 'Couldn\'t update list'));
+    next(new ErrorHandler(422, 'book_list_error', 'Couldn\'t create book'));
   }
 };
 
