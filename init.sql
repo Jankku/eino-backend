@@ -19,7 +19,7 @@ CREATE TABLE books
     author VARCHAR(255) NOT NULL,
     publisher VARCHAR(255) NOT NULL,
     pages INTEGER NOT NULL DEFAULT 0 CHECK (pages >= 0),
-    year INTEGER NOT NULL DEFAULT 0 CHECK (year >= 0),
+    year INTEGER NOT NULL DEFAULT EXTRACT (YEAR FROM CURRENT_DATE) CHECK (year >= 0),
     submitter VARCHAR(255) NOT NULL,
     created_on timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP (0),
     PRIMARY KEY (book_id),
@@ -52,10 +52,10 @@ CREATE TABLE user_book_list
 CREATE TABLE movies
 (
     movie_id uuid DEFAULT uuid_generate_v4(),
-    title TEXT NOT NULL,
-    studio VARCHAR(255),
-    director VARCHAR(255),
-    writer VARCHAR(255),
+    title VARCHAR(255) NOT NULL,
+    studio VARCHAR(255) NOT NULL,
+    director VARCHAR(255) NOT NULL,
+    writer VARCHAR(255) NOT NULL,
     duration INTEGER NOT NULL DEFAULT 0 CHECK (duration >= 0),
     year INTEGER NOT NULL DEFAULT EXTRACT (YEAR FROM CURRENT_DATE) CHECK (year >= 0),
     submitter VARCHAR(255) NOT NULL,
