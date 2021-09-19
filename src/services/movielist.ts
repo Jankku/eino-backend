@@ -25,7 +25,7 @@ const getMovieById = async (req: Request, res: Response, next: NextFunction) => 
     }
 
     res.status(200).json(success(result.rows));
-  } catch (err) {
+  } catch (err: any) {
     Logger.error(err.stack);
     next(new ErrorHandler(422, 'movie_list_error', 'Couldn\'t find movie'));
   }
@@ -37,7 +37,7 @@ const fetchAllMovies = async (req: Request, res: Response, next: NextFunction) =
   try {
     const movies = await getAllMovies(username);
     res.status(200).json(success(movies));
-  } catch (err) {
+  } catch (err: any) {
     Logger.error(err.stack);
     next(new ErrorHandler(422, 'movie_list_error', 'Couldn\'t find movies'));
   }
@@ -49,7 +49,7 @@ const fetchList = async (req: Request, res: Response, status: MovieStatus, next:
   try {
     const movies = await getMoviesByStatus(username, status);
     res.status(200).json(success(movies));
-  } catch (err) {
+  } catch (err: any) {
     Logger.error(err.stack);
     next(new ErrorHandler(422, 'movie_list_error', 'Couldn\'t find movies'));
   }
@@ -94,7 +94,7 @@ const addMovieToList = async (req: Request, res: Response, next: NextFunction) =
           .json(success([{ name: 'movie_added_to_list', message: 'Movie added to list' }]));
       });
       await client.query('END');
-    } catch (err) {
+    } catch (err: any) {
       await client.query('ROLLBACK');
 
       Logger.error(err.stack);
@@ -126,7 +126,7 @@ const updateMovie = async (req: Request, res: Response, next: NextFunction) => {
     await query(updateMovieQuery);
     await query(updateUserListQuery);
     res.status(200).json(success([{ name: 'movie_updated', message: 'Movie successfully updated' }]));
-  } catch (err) {
+  } catch (err: any) {
     Logger.error(err.stack);
     next(new ErrorHandler(422, 'movie_list_error', 'Couldn\'t update movie'));
   }
@@ -142,9 +142,15 @@ const deleteMovie = async (req: Request, res: Response, next: NextFunction) => {
   };
 
   try {
-    await query(deleteMovieQuery);
+    const { rowCount } = await query(deleteMovieQuery);
+
+    if (rowCount === 0) {
+      next(new ErrorHandler(422, 'movie_list_error', 'Couldn\'t find movie'));
+      return;
+    }
+
     res.status(200).json(success([{ name: 'movie_deleted', message: 'Movie deleted' }]));
-  } catch (err) {
+  } catch (err: any) {
     Logger.error(err.stack);
     next(new ErrorHandler(422, 'movie_list_error', 'Couldn\'t delete movie'));
   }

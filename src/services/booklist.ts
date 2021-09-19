@@ -25,7 +25,7 @@ const getBookById = async (req: Request, res: Response, next: NextFunction) => {
     }
 
     res.status(200).json(success(result.rows));
-  } catch (err) {
+  } catch (err: any) {
     next(new ErrorHandler(422, 'book_list_error', 'Couldn\'t find book'));
   }
 };
@@ -36,7 +36,7 @@ const fetchAllBooks = async (req: Request, res: Response, next: NextFunction) =>
   try {
     const books = await getAllBooks(username);
     res.status(200).json(success(books));
-  } catch (err) {
+  } catch (err: any) {
     Logger.error(err.stack);
     next(new ErrorHandler(422, 'book_list_error', 'Couldn\'t find books'));
   }
@@ -48,7 +48,7 @@ const fetchList = async (req: Request, res: Response, status: BookStatus, next: 
   try {
     const books = await getBooksByStatus(username, status);
     res.status(200).json(success(books));
-  } catch (err) {
+  } catch (err: any) {
     Logger.error(err.stack);
     next(new ErrorHandler(422, 'book_list_error', 'Couldn\'t find books'));
   }
@@ -87,7 +87,7 @@ const addBookToList = async (req: Request, res: Response, next: NextFunction) =>
       query(addBookToUserListQuery);
       res.status(201).json(success([{ name: 'book_added_to_list', message: 'Book added to list' }]));
     });
-  } catch (err) {
+  } catch (err: any) {
     Logger.error(err.stack);
     next(new ErrorHandler(422, 'book_list_error', 'Couldn\'t create book'));
   }
@@ -114,7 +114,7 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
     await query(updateBookQuery);
     await query(updateUserListQuery);
     res.status(200).json(success([{ name: 'book_updated', message: 'Book successfully updated' }]));
-  } catch (err) {
+  } catch (err: any) {
     Logger.error(err.stack);
     next(new ErrorHandler(422, 'book_list_error', 'Couldn\'t update book'));
   }
@@ -130,9 +130,15 @@ const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
   };
 
   try {
-    await query(deleteBookQuery);
+    const { rowCount } = await query(deleteBookQuery);
+
+    if (rowCount === 0) {
+      next(new ErrorHandler(422, 'book_list_error', 'Couldn\'t find book'));
+      return;
+    }
+
     res.status(200).json(success([{ name: 'book_deleted', message: 'Book deleted' }]));
-  } catch (err) {
+  } catch (err: any) {
     Logger.error(err.stack);
     next(new ErrorHandler(422, 'book_list_error', 'Couldn\'t delete book'));
   }

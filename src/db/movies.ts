@@ -5,7 +5,7 @@ import Status from './model/moviestatus';
 
 const getAllMovies = async (username: string): Promise<any[]> => {
   const getMoviesQuery = {
-    text: 'SELECT m.movie_id, m.title, m.studio, m.director, m.writer, m.duration, m.year, uml.status, uml.score, uml.start_date, uml.end_date, uml.created_on FROM user_movie_list uml INNER JOIN movies m USING (movie_id) WHERE uml.username=m.submitter AND uml.username=$1',
+    text: 'SELECT m.movie_id, m.title, m.studio, m.director, m.writer, m.duration, m.year, uml.status, uml.score, uml.start_date, uml.end_date, uml.created_on FROM user_movie_list uml INNER JOIN movies m USING (movie_id) WHERE uml.username=m.submitter AND uml.username=$1 ORDER BY m.title',
     values: [username],
   };
 
@@ -20,13 +20,13 @@ const getAllMovies = async (username: string): Promise<any[]> => {
 };
 
 const getMoviesByStatus = async (username: string, status: Status): Promise<any[]> => {
-  const getMoviesQuery = {
-    text: 'SELECT m.movie_id, m.title, m.studio, m.director, m.writer, m.duration, m.year, uml.status, uml.score, uml.start_date, uml.end_date, uml.created_on FROM user_movie_list uml INNER JOIN movies m USING (movie_id) WHERE uml.username=m.submitter AND uml.username=$1 AND uml.status=$2',
+  const getMoviesByStatusQuery = {
+    text: 'SELECT m.movie_id, m.title, m.studio, m.director, m.writer, m.duration, m.year, uml.status, uml.score, uml.start_date, uml.end_date, uml.created_on FROM user_movie_list uml INNER JOIN movies m USING (movie_id) WHERE uml.username=m.submitter AND uml.username=$1 AND uml.status=$2 ORDER BY m.title',
     values: [username, status],
   };
 
   try {
-    const { rows } = await query(getMoviesQuery);
+    const { rows } = await query(getMoviesByStatusQuery);
     return rows;
   } catch (err) {
     Logger.error(err.stack);

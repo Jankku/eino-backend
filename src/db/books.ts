@@ -5,7 +5,7 @@ import BookStatus from './model/bookstatus';
 
 const getAllBooks = async (username: string): Promise<any[]> => {
   const getBooksQuery = {
-    text: 'SELECT b.book_id, b.isbn, b.title, b.author, b.publisher, b.pages, b.year, ubl.status, ubl.score, ubl.start_date, ubl.end_date, ubl.created_on FROM user_book_list ubl INNER JOIN books b USING (book_id) WHERE ubl.username=b.submitter AND ubl.username=$1 AND b.submitter=$1',
+    text: 'SELECT b.book_id, b.isbn, b.title, b.author, b.publisher, b.pages, b.year, ubl.status, ubl.score, ubl.start_date, ubl.end_date, ubl.created_on FROM user_book_list ubl INNER JOIN books b USING (book_id) WHERE ubl.username=b.submitter AND ubl.username=$1 AND b.submitter=$1 ORDER BY b.title',
     values: [username],
   };
 
@@ -20,13 +20,13 @@ const getAllBooks = async (username: string): Promise<any[]> => {
 };
 
 const getBooksByStatus = async (username: string, status: BookStatus): Promise<any[]> => {
-  const getBooksQuery = {
-    text: 'SELECT b.book_id, b.isbn, b.title, b.author, b.publisher, b.pages, b.year, ubl.status, ubl.score, ubl.start_date, ubl.end_date, ubl.created_on FROM user_book_list ubl INNER JOIN books b USING (book_id) WHERE ubl.username=b.submitter AND ubl.username=$1 AND b.submitter=$1 AND ubl.status=$2',
+  const getBooksByStatusQuery = {
+    text: 'SELECT b.book_id, b.isbn, b.title, b.author, b.publisher, b.pages, b.year, ubl.status, ubl.score, ubl.start_date, ubl.end_date, ubl.created_on FROM user_book_list ubl INNER JOIN books b USING (book_id) WHERE ubl.username=b.submitter AND ubl.username=$1 AND b.submitter=$1 AND ubl.status=$2 ORDER BY b.title',
     values: [username, status],
   };
 
   try {
-    const { rows } = await query(getBooksQuery);
+    const { rows } = await query(getBooksByStatusQuery);
     return rows;
   } catch (err) {
     Logger.error(err.stack);
