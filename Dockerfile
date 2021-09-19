@@ -1,15 +1,17 @@
-FROM mhart/alpine-node:latest as build
+FROM mhart/alpine-node:16.4 AS build
+USER node
 WORKDIR /usr/src/eino
-COPY package*.json ./
+COPY package.json package-lock.json ./
 RUN npm install
 COPY tsconfig.json ./tsconfig.json
 COPY src ./src
 RUN npm run build
 
-FROM mhart/alpine-node:latest
+FROM mhart/alpine-node:16.4
+USER node
 WORKDIR /usr/src/eino
-COPY package*.json ./
-RUN npm ci && npm install pm2 -g
-COPY --from=build /usr/src/eino/dist ./dist
+COPY package.json package-lock.json ./
+RUN npm ci --only=production
+COPY --chown=node:node --from=build /usr/src/eino/dist ./dist
 EXPOSE 3000
-CMD [ "pm2-runtime", "./dist/app.js" ]
+CMD [ "node", "./dist/app.js" ]

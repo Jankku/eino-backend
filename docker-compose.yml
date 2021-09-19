@@ -12,8 +12,6 @@ services:
         env_file: .env
         depends_on:
             - database
-        volumes:
-            - ./logs:/usr/src/eino/logs/
     database:
         container_name: database
         image: postgres:latest
