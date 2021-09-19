@@ -30,7 +30,7 @@ const register = async (req: Request, res: Response, next: NextFunction) => {
 
     query(q);
     res.status(200).json(success([{ name: 'user_registered', message: username }]));
-  } catch (err) {
+  } catch (err: any) {
     Logger.error(err.stack);
     next(new ErrorHandler(500, 'authentication_error', 'Unknown error while trying to register user'));
   }
@@ -60,13 +60,13 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
 
       return res.status(200).json({ accessToken, refreshToken });
     });
-  } catch (err) {
+  } catch (err: any) {
     Logger.error(err.stack);
     next(new ErrorHandler(500, 'authentication_error', 'Unknown error while trying to log-in user'));
   }
 };
 
-const refreshTokens = async (req: Request, res: Response, next: NextFunction) => {
+const generateNewAccessToken = async (req: Request, res: Response, next: NextFunction) => {
   const { refreshToken } = req.body;
 
   if (!refreshToken) {
@@ -88,5 +88,5 @@ const refreshTokens = async (req: Request, res: Response, next: NextFunction) =>
 export {
   register,
   login,
-  refreshTokens,
+  generateNewAccessToken,
 };
