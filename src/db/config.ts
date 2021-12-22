@@ -8,7 +8,6 @@ const pool = new Pool({
   idleTimeoutMillis: 30000,
 });
 
-pool.on('connect', () => Logger.info('Connected to pool'));
 pool.on('error', (err: Error) => Logger.error(err.stack));
 
 const query = async (q: QueryConfig) => {
@@ -19,7 +18,7 @@ const query = async (q: QueryConfig) => {
     try {
       res = await client.query(q);
       await client.query('COMMIT');
-    } catch (err) {
+    } catch (err: any) {
       await client.query('ROLLBACK');
       throw err;
     }

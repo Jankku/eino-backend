@@ -1,9 +1,9 @@
-import chai from 'chai';
+import chai, { use, should } from 'chai';
 import chaiHttp from 'chai-http';
 import app from '../src/app';
 
-chai.should();
-chai.use(chaiHttp);
+should();
+use(chaiHttp);
 
 describe('Booklist', () => {
   describe('Insert books', () => {

@@ -12,7 +12,10 @@ const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   }
 
   try {
-    jwt.verify(accessToken, `${process.env.ACCESS_TOKEN_SECRET}`, { audience: 'eino', issuer: 'eino-backend' }, (err, decoded) => {
+    jwt.verify(accessToken, `${process.env.ACCESS_TOKEN_SECRET}`, {
+      audience: 'eino',
+      issuer: 'eino-backend',
+    }, (err, decoded) => {
       if (err) {
         next(new ErrorHandler(401, 'authorization_error', `${err?.message}`));
       } else {
@@ -20,7 +23,7 @@ const verifyToken = (req: Request, res: Response, next: NextFunction) => {
         next();
       }
     });
-  } catch (err) {
+  } catch (err: any) {
     Logger.error(err.stack);
     next(new ErrorHandler(500, 'authorization_error', 'Unknown authorization error occurred'));
   }

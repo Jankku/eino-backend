@@ -12,7 +12,7 @@ const getAllMovies = async (username: string): Promise<any[]> => {
   try {
     const { rows } = await query(getMoviesQuery);
     return rows;
-  } catch (err) {
+  } catch (err: any) {
     Logger.error(err.stack);
   }
 
@@ -28,7 +28,7 @@ const getMoviesByStatus = async (username: string, status: Status): Promise<any[
   try {
     const { rows } = await query(getMoviesByStatusQuery);
     return rows;
-  } catch (err) {
+  } catch (err: any) {
     Logger.error(err.stack);
   }
 
@@ -44,7 +44,7 @@ const postMovie = async (m: Movie): Promise<string> => {
     };
     const { rows } = await query(insertMovieQuery);
     movieId = rows[0].movie_id;
-  } catch (err) {
+  } catch (err: any) {
     Logger.error(err.stack);
   }
 

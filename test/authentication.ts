@@ -1,10 +1,10 @@
-import chai from 'chai';
+import chai, { use, should } from 'chai';
 import chaiHttp from 'chai-http';
 import app from '../src/app';
 import { deleteAllUsers } from '../src/db/users';
 
-chai.should();
-chai.use(chaiHttp);
+should();
+use(chaiHttp);
 
 describe('Authentication', () => {
   describe('Register', () => {

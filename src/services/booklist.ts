@@ -42,7 +42,7 @@ const fetchAllBooks = async (req: Request, res: Response, next: NextFunction) =>
   }
 };
 
-const fetchList = async (req: Request, res: Response, status: BookStatus, next: NextFunction) => {
+const fetchListByStatus = async (req: Request, res: Response, status: BookStatus, next: NextFunction) => {
   const { username } = res.locals;
 
   try {
@@ -54,12 +54,7 @@ const fetchList = async (req: Request, res: Response, status: BookStatus, next: 
   }
 };
 
-const getFullBookList = (req: Request, res: Response, next: NextFunction) => fetchAllBooks(req, res, next);
-const getCompletedList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'completed', next);
-const getReadingList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'reading', next);
-const getOnHoldList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'on-hold', next);
-const getDroppedList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'dropped', next);
-const getPlannedList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'planned', next);
+const getFullList = (req: Request, res: Response, next: NextFunction) => fetchAllBooks(req, res, next);
 
 const addBookToList = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
@@ -146,12 +141,8 @@ const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
 
 export {
   getBookById,
-  getFullBookList,
-  getCompletedList,
-  getReadingList,
-  getOnHoldList,
-  getDroppedList,
-  getPlannedList,
+  getFullList,
+  fetchListByStatus,
   addBookToList,
   updateBook,
   deleteBook,

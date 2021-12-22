@@ -12,7 +12,7 @@ const getAllBooks = async (username: string): Promise<any[]> => {
   try {
     const { rows } = await query(getBooksQuery);
     return rows;
-  } catch (err) {
+  } catch (err: any) {
     Logger.error(err.stack);
   }
 
@@ -28,7 +28,7 @@ const getBooksByStatus = async (username: string, status: BookStatus): Promise<a
   try {
     const { rows } = await query(getBooksByStatusQuery);
     return rows;
-  } catch (err) {
+  } catch (err: any) {
     Logger.error(err.stack);
   }
 
@@ -46,7 +46,7 @@ const postBook = async (b: Book): Promise<string> => {
   try {
     const { rows } = await query(insertBookQuery);
     bookId = rows[0].book_id;
-  } catch (err) {
+  } catch (err: any) {
     Logger.error(err.stack);
   }
 

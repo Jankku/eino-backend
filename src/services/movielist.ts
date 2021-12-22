@@ -43,7 +43,7 @@ const fetchAllMovies = async (req: Request, res: Response, next: NextFunction) =
   }
 };
 
-const fetchList = async (req: Request, res: Response, status: MovieStatus, next: NextFunction) => {
+const fetchListByStatus = async (req: Request, res: Response, status: MovieStatus, next: NextFunction) => {
   const { username } = res.locals;
 
   try {
@@ -55,12 +55,8 @@ const fetchList = async (req: Request, res: Response, status: MovieStatus, next:
   }
 };
 
-const getFullMovieList = (req: Request, res: Response, next: NextFunction) => fetchAllMovies(req, res, next);
-const getCompletedList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'completed', next);
-const getWatchingList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'watching', next);
-const getOnHoldList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'on-hold', next);
-const getDroppedList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'dropped', next);
-const getPlannedList = (req: Request, res: Response, next: NextFunction) => fetchList(req, res, 'planned', next);
+const getFullList = (req: Request, res: Response, next: NextFunction) => fetchAllMovies(req, res, next);
+
 
 const addMovieToList = async (req: Request, res: Response, next: NextFunction) => {
   const client = await pool.connect();
@@ -158,12 +154,8 @@ const deleteMovie = async (req: Request, res: Response, next: NextFunction) => {
 
 export {
   getMovieById,
-  getFullMovieList,
-  getCompletedList,
-  getWatchingList,
-  getOnHoldList,
-  getDroppedList,
-  getPlannedList,
+  getFullList,
+  fetchListByStatus,
   addMovieToList,
   updateMovie,
   deleteMovie,
