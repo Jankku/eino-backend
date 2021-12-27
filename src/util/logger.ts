@@ -1,13 +1,13 @@
-import { createLogger, format, transports } from 'winston';
+import { createLogger, format, transports } from "winston";
 
 const Logger = createLogger({
-  level: 'info',
-  defaultMeta: { service: 'eino' },
+  level: "info",
+  defaultMeta: { service: "eino" },
   format: format.combine(
-    format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
     format.errors({ stack: true }),
     format.splat(),
-    format.json(),
+    format.json()
   ),
   transports: [
     new transports.Console({
@@ -16,6 +16,6 @@ const Logger = createLogger({
   ],
 });
 
-Logger.on('error', () => {});
+Logger.on("error", () => {});
 
 export default Logger;

@@ -1,6 +1,6 @@
 interface ResponseItem {
-  name: string,
-  message: string,
+  name: string;
+  message: string;
 }
 
 /**
@@ -9,7 +9,4 @@ interface ResponseItem {
  */
 const success = (results: Array<any>) => ({ results });
 
-export {
-  success,
-  ResponseItem,
-};
+export { success, ResponseItem };

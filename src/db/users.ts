@@ -1,10 +1,10 @@
-import Logger from '../util/logger';
-import { query } from './config';
-import User from './model/user';
+import Logger from "../util/logger";
+import { query } from "./config";
+import User from "./model/user";
 
 const getUserByUsername = async (username: string, next: Function) => {
   const q = {
-    text: 'SELECT * FROM users WHERE username = $1',
+    text: "SELECT * FROM users WHERE username = $1",
     values: [username],
   };
 
@@ -19,7 +19,7 @@ const getUserByUsername = async (username: string, next: Function) => {
 
 const isUserUnique = async (username: string): Promise<boolean> => {
   const q = {
-    text: 'SELECT user_id, username FROM users WHERE username = $1',
+    text: "SELECT user_id, username FROM users WHERE username = $1",
     values: [username],
   };
 
@@ -35,14 +35,10 @@ const isUserUnique = async (username: string): Promise<boolean> => {
 // Used only for tests
 const deleteAllUsers = () => {
   try {
-    query({ text: 'DELETE FROM users' });
+    query({ text: "DELETE FROM users" });
   } catch (err: any) {
     Logger.error(err.stack);
   }
 };
 
-export {
-  getUserByUsername,
-  isUserUnique,
-  deleteAllUsers,
-};
+export { getUserByUsername, isUserUnique, deleteAllUsers };

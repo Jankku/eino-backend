@@ -1,5 +1,5 @@
-import { NextFunction, Request, Response } from 'express';
-import { clearErrors } from './validation';
+import { NextFunction, Request, Response } from "express";
+import { clearErrors } from "./validation";
 
 class ErrorHandler extends Error {
   status: number;
@@ -13,7 +13,12 @@ class ErrorHandler extends Error {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const errorResponder = (errors: any, req: Request, res: Response, next: NextFunction) => {
+const errorResponder = (
+  errors: any,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   if (errors instanceof Array) {
     res.status(422).json({ errors });
   } else {
@@ -24,7 +29,4 @@ const errorResponder = (errors: any, req: Request, res: Response, next: NextFunc
   clearErrors();
 };
 
-export {
-  ErrorHandler,
-  errorResponder,
-};
+export { ErrorHandler, errorResponder };
