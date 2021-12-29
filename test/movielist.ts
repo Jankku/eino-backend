@@ -21,11 +21,12 @@ describe('Movielist', () => {
         score: 10,
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/list/movies/add')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
         .send(movie)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(201);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -50,11 +51,12 @@ describe('Movielist', () => {
         score: 0,
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/list/movies/add')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
         .send(movie)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(201);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -79,11 +81,12 @@ describe('Movielist', () => {
         score: 0,
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/list/movies/add')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
         .send(movie)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(201);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -108,11 +111,12 @@ describe('Movielist', () => {
         score: 1,
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/list/movies/add')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
         .send(movie)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(201);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -137,11 +141,12 @@ describe('Movielist', () => {
         score: 0,
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/list/movies/add')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
         .send(movie)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(201);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -155,10 +160,11 @@ describe('Movielist', () => {
 
   describe('Return lists with different status', () => {
     it('Should return completed list', (done) => {
-      chai.request(app)
+      chai
+        .request(app)
         .get('/api/list/movies/completed')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -181,10 +187,11 @@ describe('Movielist', () => {
     });
 
     it('Should return watching list', (done) => {
-      chai.request(app)
+      chai
+        .request(app)
         .get('/api/list/movies/watching')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -207,10 +214,11 @@ describe('Movielist', () => {
     });
 
     it('Should return on-hold list', (done) => {
-      chai.request(app)
+      chai
+        .request(app)
         .get('/api/list/movies/on-hold')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -233,10 +241,11 @@ describe('Movielist', () => {
     });
 
     it('Should return dropped list', (done) => {
-      chai.request(app)
+      chai
+        .request(app)
         .get('/api/list/movies/dropped')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -259,10 +268,11 @@ describe('Movielist', () => {
     });
 
     it('Should return planned list', (done) => {
-      chai.request(app)
+      chai
+        .request(app)
         .get('/api/list/movies/planned')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
           res.body.should.have.property('results');

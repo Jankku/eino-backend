@@ -19,10 +19,11 @@ describe('Authentication', () => {
         password2: '',
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/auth/register')
         .send(user)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(422);
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
@@ -39,10 +40,11 @@ describe('Authentication', () => {
         password2: 'test',
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/auth/register')
         .send(user)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(422);
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
@@ -55,14 +57,17 @@ describe('Authentication', () => {
     it('Should error with too long password', (done) => {
       const user = {
         username: 'testuser3',
-        password: 'hnyf7RrvPBYUqgLp4KCcVG9TRgdCgGubTzShukasduu3i47237riuiuiug3r25CQj9enJMqdtVgHDjfDq8e4eL9n2UvQTKKLgtp2t5Tjbkth7pFQ7dBKqY6m99BLePn8Y799zzhFLBdRL9a7PJSpUqCRV3W5FGgkvnmsbwsVEQjvca6XRfPbPD3QEWnjV6y2As9aYccqXMbewSfJ4ALYzx7heCEmJ6CyGFgqyTnKnWMJs3rtksxsYbkUXxPckGA8tzFhGZgsre9vuct62uCR9cwS8ajshjasjd2312312',
-        password2: 'hnyf7RrvPBYUqgLp4KCcVG9TRgdCgGubTzShukasduu3i47237riuiuiug3r25CQj9enJMqdtVgHDjfDq8e4eL9n2UvQTKKLgtp2t5Tjbkth7pFQ7dBKqY6m99BLePn8Y799zzhFLBdRL9a7PJSpUqCRV3W5FGgkvnmsbwsVEQjvca6XRfPbPD3QEWnjV6y2As9aYccqXMbewSfJ4ALYzx7heCEmJ6CyGFgqyTnKnWMJs3rtksxsYbkUXxPckGA8tzFhGZgsre9vuct62uCR9cwS8ajshjasjd2312312',
+        password:
+          'hnyf7RrvPBYUqgLp4KCcVG9TRgdCgGubTzShukasduu3i47237riuiuiug3r25CQj9enJMqdtVgHDjfDq8e4eL9n2UvQTKKLgtp2t5Tjbkth7pFQ7dBKqY6m99BLePn8Y799zzhFLBdRL9a7PJSpUqCRV3W5FGgkvnmsbwsVEQjvca6XRfPbPD3QEWnjV6y2As9aYccqXMbewSfJ4ALYzx7heCEmJ6CyGFgqyTnKnWMJs3rtksxsYbkUXxPckGA8tzFhGZgsre9vuct62uCR9cwS8ajshjasjd2312312',
+        password2:
+          'hnyf7RrvPBYUqgLp4KCcVG9TRgdCgGubTzShukasduu3i47237riuiuiug3r25CQj9enJMqdtVgHDjfDq8e4eL9n2UvQTKKLgtp2t5Tjbkth7pFQ7dBKqY6m99BLePn8Y799zzhFLBdRL9a7PJSpUqCRV3W5FGgkvnmsbwsVEQjvca6XRfPbPD3QEWnjV6y2As9aYccqXMbewSfJ4ALYzx7heCEmJ6CyGFgqyTnKnWMJs3rtksxsYbkUXxPckGA8tzFhGZgsre9vuct62uCR9cwS8ajshjasjd2312312',
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/auth/register')
         .send(user)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(422);
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
@@ -79,10 +84,11 @@ describe('Authentication', () => {
         password2: 'testpassword123',
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/auth/register')
         .send(user)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(422);
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
@@ -99,10 +105,11 @@ describe('Authentication', () => {
         password2: 'testpassword123',
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/auth/register')
         .send(user)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(422);
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
@@ -114,15 +121,17 @@ describe('Authentication', () => {
 
     it('Should error with too long username', (done) => {
       const user = {
-        username: 'hnyf7RrvPBYUqgLp4KCcVG9TRgdCgGubTzShukasduu3i47237riuiuiug3r25CQj9enJMqdtVgHDjfDq8e4eL9n2UvQTKKLgtp2t5Tjbkth7pFQ7dBKqY6m99BLePn8Y799zzhFLBdRL9a7PJSpUqCRV3W5FGgkvnmsbwsVEQjvca6XRfPbPD3QEWnjV6y2As9aYccqXMbewSfJ4ALYzx7heCEmJ6CyGFgqyTnKnWMJs3rtksxsYbkUXxPckGA8tzFhGZgsre9vuct62uCR9cwS8ajshjasjd2312312',
+        username:
+          'hnyf7RrvPBYUqgLp4KCcVG9TRgdCgGubTzShukasduu3i47237riuiuiug3r25CQj9enJMqdtVgHDjfDq8e4eL9n2UvQTKKLgtp2t5Tjbkth7pFQ7dBKqY6m99BLePn8Y799zzhFLBdRL9a7PJSpUqCRV3W5FGgkvnmsbwsVEQjvca6XRfPbPD3QEWnjV6y2As9aYccqXMbewSfJ4ALYzx7heCEmJ6CyGFgqyTnKnWMJs3rtksxsYbkUXxPckGA8tzFhGZgsre9vuct62uCR9cwS8ajshjasjd2312312',
         password: 'testpassword123',
         password2: 'testpassword123',
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/auth/register')
         .send(user)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(422);
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
@@ -139,10 +148,11 @@ describe('Authentication', () => {
         password2: 'testpassword123',
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/auth/register')
         .send(user)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -160,10 +170,11 @@ describe('Authentication', () => {
         password2: 'testuser',
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/auth/register')
         .send(user)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -181,10 +192,11 @@ describe('Authentication', () => {
         password2: 'testpassword123',
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/auth/register')
         .send(user)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -203,10 +215,11 @@ describe('Authentication', () => {
         password: 'testpassword123',
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/auth/login')
         .send(user)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(422);
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
@@ -223,10 +236,11 @@ describe('Authentication', () => {
         password: '',
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/auth/login')
         .send(user)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(422);
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
@@ -243,10 +257,11 @@ describe('Authentication', () => {
         password: '',
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/auth/login')
         .send(user)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(422);
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
@@ -263,10 +278,11 @@ describe('Authentication', () => {
         password: 'testpassword123',
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/auth/login')
         .send(user)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(422);
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
@@ -283,10 +299,11 @@ describe('Authentication', () => {
         password: 'testpassword123',
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/auth/login')
         .send(user)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
           res.body.should.have.property('accessToken');
@@ -304,16 +321,19 @@ describe('Authentication', () => {
         refreshToken: '',
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/auth/refreshtoken')
         .send(body)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(400);
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
           res.body.errors.should.be.a('array');
           res.body.errors[0].should.have.property('name').eql('invalid_request_body');
-          res.body.errors[0].should.have.property('message').eql('Send your refresh token on JSON body with key refreshToken');
+          res.body.errors[0].should.have
+            .property('message')
+            .eql('Send your refresh token on JSON body with key refreshToken');
           done();
         });
     });
@@ -323,10 +343,11 @@ describe('Authentication', () => {
         refreshToken: 'asd.asd.asd',
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/auth/refreshtoken')
         .send(body)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(422);
           res.body.should.be.a('object');
           res.body.should.have.property('errors');
@@ -342,10 +363,11 @@ describe('Authentication', () => {
         refreshToken: `${process.env.JWT_TEST_REFRESH_TOKEN}`,
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/auth/refreshtoken')
         .send(body)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
           res.body.should.have.property('accessToken');

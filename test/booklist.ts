@@ -19,11 +19,12 @@ describe('Booklist', () => {
         score: 10,
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/list/books/add')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
         .send(book)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(201);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -46,11 +47,12 @@ describe('Booklist', () => {
         score: 0,
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/list/books/add')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
         .send(book)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(201);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -73,11 +75,12 @@ describe('Booklist', () => {
         score: 0,
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/list/books/add')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
         .send(book)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(201);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -100,11 +103,12 @@ describe('Booklist', () => {
         score: 0,
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/list/books/add')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
         .send(book)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(201);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -127,11 +131,12 @@ describe('Booklist', () => {
         score: 0,
       };
 
-      chai.request(app)
+      chai
+        .request(app)
         .post('/api/list/books/add')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
         .send(book)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(201);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -145,10 +150,11 @@ describe('Booklist', () => {
 
   describe('Return lists with different status', () => {
     it('Should return completed list', (done) => {
-      chai.request(app)
+      chai
+        .request(app)
         .get('/api/list/books/completed')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -171,10 +177,11 @@ describe('Booklist', () => {
     });
 
     it('Should return reading list', (done) => {
-      chai.request(app)
+      chai
+        .request(app)
         .get('/api/list/books/reading')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -197,10 +204,11 @@ describe('Booklist', () => {
     });
 
     it('Should return on-hold list', (done) => {
-      chai.request(app)
+      chai
+        .request(app)
         .get('/api/list/books/on-hold')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -223,10 +231,11 @@ describe('Booklist', () => {
     });
 
     it('Should return dropped list', (done) => {
-      chai.request(app)
+      chai
+        .request(app)
         .get('/api/list/books/dropped')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
           res.body.should.have.property('results');
@@ -249,10 +258,11 @@ describe('Booklist', () => {
     });
 
     it('Should return planned list', (done) => {
-      chai.request(app)
+      chai
+        .request(app)
         .get('/api/list/books/planned')
         .set('Authorization', `Bearer ${process.env.JWT_TEST_ACCESS_TOKEN}`)
-        .end((err, res) => {
+        .end((error, res) => {
           res.should.have.status(200);
           res.body.should.be.a('object');
           res.body.should.have.property('results');

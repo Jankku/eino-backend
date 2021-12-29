@@ -1,7 +1,7 @@
-import validator from "validator";
-import { ResponseItem } from "./response";
-import { isUserUnique } from "../db/users";
-import Logger from "./logger";
+import validator from 'validator';
+import { ResponseItem } from './response';
+import { isUserUnique } from '../db/users';
+import Logger from './logger';
 
 const validationErrors: Array<ResponseItem> = [];
 
@@ -14,21 +14,21 @@ const isValidUsername = async (username: string): Promise<boolean> => {
     const isUnique: boolean = await isUserUnique(username);
     if (!isUnique) {
       validationErrors.push({
-        name: "username_exists",
-        message: "Username already exists",
+        name: 'username_exists',
+        message: 'Username already exists',
       });
       return false;
     }
 
     if (!validator.isLength(username, { min: 3, max: 255 })) {
       validationErrors.push({
-        name: "username_length_invalid",
-        message: "Username length should be between 3-255 characters",
+        name: 'username_length_invalid',
+        message: 'Username length should be between 3-255 characters',
       });
       return false;
     }
-  } catch (err) {
-    Logger.error(err);
+  } catch (error) {
+    Logger.error(error);
     return false;
   }
 
@@ -38,7 +38,7 @@ const isValidPassword = (password: string, password2: string): boolean => {
   try {
     if (!(password === password2)) {
       validationErrors.push({
-        name: "passwords_dont_match",
+        name: 'passwords_dont_match',
         message: "Passwords don't match",
       });
       return false;
@@ -46,8 +46,8 @@ const isValidPassword = (password: string, password2: string): boolean => {
 
     if (!validator.isLength(password, { min: 8, max: 255 })) {
       validationErrors.push({
-        name: "password_length_invalid",
-        message: "Password length should be between 8-255 characters",
+        name: 'password_length_invalid',
+        message: 'Password length should be between 8-255 characters',
       });
       return false;
     }
@@ -60,13 +60,13 @@ const isValidPassword = (password: string, password2: string): boolean => {
       })
     ) {
       validationErrors.push({
-        name: "password_invalid",
+        name: 'password_invalid',
         message: "Password doesn't meet the requirements",
       });
       return false;
     }
-  } catch (err) {
-    Logger.error(err);
+  } catch (error) {
+    Logger.error(error);
     return false;
   }
 
@@ -80,17 +80,7 @@ const isValidPassword = (password: string, password2: string): boolean => {
  * @param password2 {string} Validate user password
  * @returns {boolean} true if username and passwords are valid
  */
-const validateCredentials = async (
-  username: string,
-  password: string,
-  password2: string
-): Promise<boolean> =>
+const validateCredentials = async (username: string, password: string, password2: string): Promise<boolean> =>
   (await isValidUsername(username)) && isValidPassword(password, password2);
 
-export {
-  isValidUsername,
-  isValidPassword,
-  validateCredentials,
-  validationErrors,
-  clearErrors,
-};
+export { isValidUsername, isValidPassword, validateCredentials, validationErrors, clearErrors };

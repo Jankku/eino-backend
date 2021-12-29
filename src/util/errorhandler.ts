@@ -1,7 +1,7 @@
-import { NextFunction, Request, Response } from "express";
-import { clearErrors } from "./validation";
+import { NextFunction, Request, Response } from 'express';
+import { clearErrors } from './validation';
 
-class ErrorHandler extends Error {
+class ErrorWithStatus extends Error {
   status: number;
 
   constructor(status: number, name: string, message: string) {
@@ -12,16 +12,16 @@ class ErrorHandler extends Error {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const errorResponder = (
-  errors: any,
+const errorHandler = (
+  errors: unknown,
   req: Request,
   res: Response,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   next: NextFunction
 ) => {
   if (errors instanceof Array) {
     res.status(422).json({ errors });
-  } else {
+  } else if (errors instanceof ErrorWithStatus) {
     const { status, name, message } = errors;
     res.status(status).json({ errors: [{ name, message }] });
   }
@@ -29,4 +29,4 @@ const errorResponder = (
   clearErrors();
 };
 
-export { ErrorHandler, errorResponder };
+export { ErrorWithStatus, errorHandler };

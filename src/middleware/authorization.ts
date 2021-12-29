@@ -1,19 +1,13 @@
-import { NextFunction, Request, Response } from "express";
-import jwt from "jsonwebtoken";
-import { ErrorHandler } from "../util/errorhandler";
-import Logger from "../util/logger";
+import { NextFunction, Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
+import { ErrorWithStatus } from '../util/errorhandler';
+import Logger from '../util/logger';
 
 const verifyToken = (req: Request, res: Response, next: NextFunction) => {
-  const accessToken = req.headers.authorization?.split(" ")[1];
+  const accessToken = req.headers.authorization?.split(' ')[1];
 
   if (!accessToken) {
-    next(
-      new ErrorHandler(
-        401,
-        "no_authorization_header",
-        "Add Authorization header to request"
-      )
-    );
+    next(new ErrorWithStatus(401, 'no_authorization_header', 'Add Authorization header to request'));
     return;
   }
 
@@ -22,27 +16,21 @@ const verifyToken = (req: Request, res: Response, next: NextFunction) => {
       accessToken,
       `${process.env.ACCESS_TOKEN_SECRET}`,
       {
-        audience: "eino",
-        issuer: "eino-backend",
+        audience: 'eino',
+        issuer: 'eino-backend',
       },
-      (err, decoded) => {
-        if (err) {
-          next(new ErrorHandler(401, "authorization_error", `${err?.message}`));
+      (error, decoded) => {
+        if (error) {
+          next(new ErrorWithStatus(401, 'authorization_error', `${error?.message}`));
         } else {
           res.locals.username = decoded?.username;
           next();
         }
       }
     );
-  } catch (err: any) {
-    Logger.error(err.stack);
-    next(
-      new ErrorHandler(
-        500,
-        "authorization_error",
-        "Unknown authorization error occurred"
-      )
-    );
+  } catch (error) {
+    Logger.error((error as Error).stack);
+    next(new ErrorWithStatus(500, 'authorization_error', 'Unknown authorization error occurred'));
   }
 };
 
