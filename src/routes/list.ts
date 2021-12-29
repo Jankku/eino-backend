@@ -19,6 +19,7 @@ router.get("/books/dropped", (req, res, next) => books.fetchListByStatus(req, re
 router.get("/books/planned", (req, res, next) => books.fetchListByStatus(req, res, "planned", next));
 
 // Movie routes
+router.get("/movies/search", movies.searchMovie);
 router.get("/movies/movie/:movieId", movies.getMovieById);
 router.post("/movies/add", movies.addMovieToList);
 router.put("/movies/update/:movieId", movies.updateMovie);
