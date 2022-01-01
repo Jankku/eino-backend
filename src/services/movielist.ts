@@ -185,8 +185,8 @@ const searchMovie = async (req: Request, res: Response, next: NextFunction) => {
 
     for (const queryPart of queryAsArray) {
       const searchQuery: QueryConfig = {
-        text: `SELECT movie_id, title, studio, director, writer
-               FROM movies
+        text: `SELECT m.movie_id, m.title, m.studio, m.director, m.writer, uml.score
+               FROM movies m INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
                WHERE document @@ to_tsquery('english', $2)
                  AND submitter = $1
                ORDER BY ts_rank(document, plainto_tsquery($2)) DESC;`,
@@ -203,13 +203,13 @@ const searchMovie = async (req: Request, res: Response, next: NextFunction) => {
 
     if (resultArray.length === 0) {
       const searchQuery: QueryConfig = {
-        text: `SELECT movie_id, title, studio, director, writer
-               FROM movies
+        text: `SELECT m.movie_id, m.title, m.studio, m.director, m.writer, uml.score
+               FROM movies m INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
                WHERE title ILIKE $1
                   OR studio ILIKE $1
                   OR director ILIKE $1
                   OR writer ILIKE $1
-               LIMIT 100`,
+               LIMIT 100;`,
         values: [`%${queryString}%`]
       };
 

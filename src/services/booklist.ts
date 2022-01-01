@@ -181,8 +181,8 @@ const searchBook = async (req: Request, res: Response, next: NextFunction) => {
 
     for (const queryPart of queryAsArray) {
       const searchQuery: QueryConfig = {
-        text: `SELECT book_id, title, author, publisher
-               FROM books
+        text: `SELECT b.book_id, b.title, b.author, b.publisher, ubl.score
+               FROM books b INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
                WHERE document @@ to_tsquery('english', $2)
                  AND submitter = $1
                ORDER BY ts_rank(document, plainto_tsquery($2)) DESC;`,
@@ -199,12 +199,12 @@ const searchBook = async (req: Request, res: Response, next: NextFunction) => {
 
     if (resultArray.length === 0) {
       const searchQuery: QueryConfig = {
-        text: `SELECT book_id, title, author, publisher
-               FROM books
+        text: `SELECT b.book_id, b.title, b.author, b.publisher, ubl.score
+               FROM books b INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
                WHERE title ILIKE $1
                   OR author ILIKE $1
                   OR publisher ILIKE $1
-               LIMIT 100`,
+               LIMIT 100;`,
         values: [`%${queryString}%`]
       };
 
