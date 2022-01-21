@@ -7,6 +7,7 @@ import { errorHandler } from './util/errorhandler';
 import verifyToken from './middleware/authorization';
 import authRoutes from './routes/authentication';
 import listRoutes from './routes/list';
+import profileRoutes from './routes/profile';
 import { pool } from './db/config';
 
 const app = express();
@@ -20,6 +21,7 @@ app.use(cors({ allowedHeaders: ['Content-Type', 'Authorization'] }));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/list', verifyToken, listRoutes);
+app.use('/api/profile', verifyToken, profileRoutes);
 
 app.use(errorHandler);
 
