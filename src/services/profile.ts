@@ -35,7 +35,7 @@ const getBookData = async (username: string, next: NextFunction) => {
 
 const getMovieData = async (username: string, next: NextFunction) => {
   const movieQuery: QueryConfig = {
-    text: `SELECT count(movie_id), coalesce(sum(duration), 0) as watch_time
+    text: `SELECT count(movie_id), coalesce(sum(duration) / 60, 0) as watch_time
            FROM movies
            WHERE submitter = $1`,
     values: [username]
