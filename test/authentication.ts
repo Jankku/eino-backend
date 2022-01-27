@@ -1,4 +1,4 @@
-import chai, { use, should } from 'chai';
+import chai, { should, use } from 'chai';
 import chaiHttp from 'chai-http';
 import app from '../src/app';
 import { deleteAllUsers } from '../src/db/users';
@@ -225,7 +225,7 @@ describe('Authentication', () => {
           res.body.should.have.property('errors');
           res.body.errors.should.be.a('array');
           res.body.errors[0].should.have.property('name').eql('authentication_error');
-          res.body.errors[0].should.have.property('message').eql('User not found');
+          res.body.errors[0].should.have.property('message').eql('Incorrect username or password');
           done();
         });
     });
@@ -246,7 +246,7 @@ describe('Authentication', () => {
           res.body.should.have.property('errors');
           res.body.errors.should.be.a('array');
           res.body.errors[0].should.have.property('name').eql('authentication_error');
-          res.body.errors[0].should.have.property('message').eql('Incorrect password');
+          res.body.errors[0].should.have.property('message').eql('Incorrect username or password');
           done();
         });
     });
@@ -267,7 +267,7 @@ describe('Authentication', () => {
           res.body.should.have.property('errors');
           res.body.errors.should.be.a('array');
           res.body.errors[0].should.have.property('name').eql('authentication_error');
-          res.body.errors[0].should.have.property('message').eql('User not found');
+          res.body.errors[0].should.have.property('message').eql('Incorrect username or password');
           done();
         });
     });
@@ -288,7 +288,7 @@ describe('Authentication', () => {
           res.body.should.have.property('errors');
           res.body.errors.should.be.a('array');
           res.body.errors[0].should.have.property('name').eql('authentication_error');
-          res.body.errors[0].should.have.property('message').eql('User not found');
+          res.body.errors[0].should.have.property('message').eql('Incorrect username or password');
           done();
         });
     });

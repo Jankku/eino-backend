@@ -8,7 +8,7 @@ import { validateCredentials, validationErrors } from '../util/validation';
 import Logger from '../util/logger';
 import { generateAccessToken, generatePasswordHash, generateRefreshToken } from '../util/auth';
 import { ErrorWithStatus } from '../util/errorhandler';
-import User from '../db/model/user';
+import { QueryConfig } from 'pg';
 
 const register = async (req: Request, res: Response, next: NextFunction) => {
   const { username, password, password2 } = req.body;
@@ -20,13 +20,14 @@ const register = async (req: Request, res: Response, next: NextFunction) => {
   }
 
   try {
-    const hashedPassword = generatePasswordHash(password);
-    const q = {
-      text: `INSERT INTO users (username, password) VALUES ($1, $2)`,
-      values: [username, hashedPassword],
+    const hashedPassword = await generatePasswordHash(password);
+    const registerQuery: QueryConfig = {
+      text: `INSERT INTO users (username, password)
+             VALUES ($1, $2)`,
+      values: [username, hashedPassword]
     };
 
-    query(q);
+    await query(registerQuery);
     res.status(200).json(success([{ name: 'user_registered', message: username }]));
   } catch (error) {
     Logger.error((error as Error).stack);
@@ -38,24 +39,21 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
   const { username, password } = req.body;
 
   try {
-    await getUserByUsername(username, (user: User | undefined) => {
+    const user = await getUserByUsername(username);
 
-      if (user === undefined) {
-        next(new ErrorWithStatus(422, 'authentication_error', 'User not found'));
+    if (user === undefined) {
+      next(new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password'));
+      return;
+    }
+
+    bcrypt.compare(password, user.password).then((result) => {
+      if (!result) {
+        next(new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password'));
         return;
       }
 
-      const userId = user.user_id;
-      const hashedPassword = user.password;
-
-      if (!bcrypt.compareSync(password, hashedPassword)) {
-        next(new ErrorWithStatus(422, 'authentication_error', 'Incorrect password'));
-        return;
-      }
-
-      const accessToken = generateAccessToken(userId, username);
-      const refreshToken = generateRefreshToken(userId, username);
-
+      const accessToken = generateAccessToken(user.user_id, username);
+      const refreshToken = generateRefreshToken(user.user_id, username);
       return res.status(200).json({ accessToken, refreshToken });
     });
   } catch (error) {
@@ -69,7 +67,9 @@ const generateNewAccessToken = async (req: Request, res: Response, next: NextFun
 
   if (!refreshToken) {
     next(
-      new ErrorWithStatus(400, 'invalid_request_body', 'Send your refresh token on JSON body with key refreshToken')
+      new ErrorWithStatus(400,
+        'invalid_request_body',
+        'Send your refresh token on JSON body with key refreshToken')
     );
     return;
   }
@@ -83,7 +83,6 @@ const generateNewAccessToken = async (req: Request, res: Response, next: NextFun
         next(new ErrorWithStatus(422, 'jwt_refresh_error', error?.message));
       } else {
         const newAccessToken = generateAccessToken(decoded?.userId, decoded?.username);
-
         return res.status(200).json({ accessToken: newAccessToken });
       }
     }
