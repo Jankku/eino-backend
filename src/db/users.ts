@@ -8,7 +8,7 @@ const getUserByUsername = async (username: string): Promise<User | undefined> =>
     text: `SELECT *
            FROM users
            WHERE username = $1`,
-    values: [username]
+    values: [username],
   };
 
   try {
@@ -25,7 +25,7 @@ const isUserUnique = async (username: string): Promise<boolean> => {
     text: `SELECT username
            FROM users
            WHERE username = $1`,
-    values: [username]
+    values: [username],
   };
 
   try {
@@ -42,7 +42,7 @@ const deleteAllUsers = () => {
   try {
     query({
       text: `DELETE
-             FROM users`
+             FROM users`,
     });
   } catch (error) {
     Logger.error((error as Error).stack);

@@ -80,7 +80,10 @@ const isValidPassword = (password: string, password2: string): boolean => {
  * @param password2 {string} Validate user password
  * @returns {boolean} true if username and passwords are valid
  */
-const validateCredentials = async (username: string, password: string, password2: string): Promise<boolean> =>
-  (await isValidUsername(username)) && isValidPassword(password, password2);
+const validateCredentials = async (
+  username: string,
+  password: string,
+  password2: string
+): Promise<boolean> => (await isValidUsername(username)) && isValidPassword(password, password2);
 
 export { isValidUsername, isValidPassword, validateCredentials, validationErrors, clearErrors };

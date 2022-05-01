@@ -8,7 +8,7 @@ const getUserInfo = async (username: string, next: NextFunction) => {
     text: `SELECT user_id, created_on as registration_date
            FROM users
            WHERE username = $1`,
-    values: [username]
+    values: [username],
   };
   try {
     const { rows } = await query(usernameQuery);
@@ -23,7 +23,7 @@ const getBookData = async (username: string, next: NextFunction) => {
     text: `SELECT count(book_id), coalesce(sum(pages), 0) as pages_read
            FROM books
            WHERE submitter = $1`,
-    values: [username]
+    values: [username],
   };
   try {
     const { rows } = await query(bookQuery);
@@ -38,7 +38,7 @@ const getMovieData = async (username: string, next: NextFunction) => {
     text: `SELECT count(movie_id), coalesce(sum(duration) / 60, 0) as watch_time
            FROM movies
            WHERE submitter = $1`,
-    values: [username]
+    values: [username],
   };
   try {
     const { rows } = await query(movieQuery);
@@ -55,7 +55,7 @@ const getBookScores = async (username: string, next: NextFunction) => {
                     INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
            WHERE submitter = $1
            GROUP BY ubl.score;`,
-    values: [username]
+    values: [username],
   };
 
   try {
@@ -73,7 +73,7 @@ const getMovieScores = async (username: string, next: NextFunction) => {
                     INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
            WHERE submitter = $1
            GROUP BY uml.score;`,
-    values: [username]
+    values: [username],
   };
 
   try {
@@ -90,7 +90,7 @@ const getBookAvgScore = async (username: string, next: NextFunction) => {
            FROM books b
                     INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
            WHERE submitter = $1;`,
-    values: [username]
+    values: [username],
   };
 
   try {
@@ -107,7 +107,7 @@ const getMovieAvgScore = async (username: string, next: NextFunction) => {
            FROM movies m
                     INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
            WHERE submitter = $1;`,
-    values: [username]
+    values: [username],
   };
 
   try {
@@ -119,8 +119,8 @@ const getMovieAvgScore = async (username: string, next: NextFunction) => {
 };
 
 type ItemScore = {
-  score: number,
-  count: string
+  score: number;
+  count: string;
 };
 
 /**
@@ -167,25 +167,23 @@ const getProfile = async (req: Request, res: Response, next: NextFunction) => {
   const bookAverageScore = await getBookAvgScore(username, next);
   const movieAverageScore = await getMovieAvgScore(username, next);
 
-  res.status(200).json(
-    {
-      user_id,
-      username,
-      registration_date,
-      stats: {
-        book: {
-          ...book,
-          score_average: bookAverageScore,
-          score_distribution: bookScoreDistribution
-        },
-        movie: {
-          ...movie,
-          score_average: movieAverageScore,
-          score_distribution: movieScoreDistribution
-        }
-      }
-    }
-  );
+  res.status(200).json({
+    user_id,
+    username,
+    registration_date,
+    stats: {
+      book: {
+        ...book,
+        score_average: bookAverageScore,
+        score_distribution: bookScoreDistribution,
+      },
+      movie: {
+        ...movie,
+        score_average: movieAverageScore,
+        score_distribution: movieScoreDistribution,
+      },
+    },
+  });
 };
 
 export { getProfile };
