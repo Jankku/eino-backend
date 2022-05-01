@@ -4,7 +4,22 @@ import { query } from './config';
 import Book from './model/book';
 import BookStatus from './model/bookstatus';
 
-const getAllBooks = async (username: string): Promise<any[]> => {
+type DbBook = {
+  book_id: string;
+  isbn: string;
+  title: string;
+  author: string;
+  publisher: string;
+  pages: number;
+  year: number;
+  status: BookStatus;
+  score: number;
+  start_date: string;
+  end_date: string;
+  created_on: string;
+};
+
+const getAllBooks = async (username: string): Promise<DbBook[]> => {
   const getBooksQuery: QueryConfig = {
     text: `SELECT b.book_id,
                   b.isbn,
@@ -36,7 +51,7 @@ const getAllBooks = async (username: string): Promise<any[]> => {
   }
 };
 
-const getBooksByStatus = async (username: string, status: BookStatus): Promise<any[]> => {
+const getBooksByStatus = async (username: string, status: BookStatus): Promise<DbBook[]> => {
   const getBooksByStatusQuery: QueryConfig = {
     text: `SELECT b.book_id,
                   b.isbn,

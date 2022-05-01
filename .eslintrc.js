@@ -17,8 +17,6 @@ module.exports = {
     'max-len': [1, { code: 120, ignoreUrls: true }],
     'consistent-return': 0,
     'no-plusplus': 0,
-    'no-await-in-loop': 0,
-    'no-explicit-any': 0,
     '@typescript-eslint/naming-convention': ['off'],
   },
 };

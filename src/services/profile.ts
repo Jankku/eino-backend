@@ -136,8 +136,8 @@ type ItemScore = {
  * ]
  * @param array Initial book/movie score array
  */
-const fillAndSortResponse = async (array: ItemScore[]) => {
-  return new Promise<Array<ItemScore>>((resolve) => {
+const fillAndSortResponse = async (array: ItemScore[]) =>
+  new Promise<Array<ItemScore>>((resolve) => {
     const resultArray: ItemScore[] = [];
     const foundNumbers: number[] = [];
 
@@ -155,7 +155,6 @@ const fillAndSortResponse = async (array: ItemScore[]) => {
     resultArray.sort((a, b) => a.score - b.score);
     resolve(resultArray);
   });
-};
 
 const getProfile = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;

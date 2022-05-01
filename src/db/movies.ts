@@ -2,9 +2,23 @@ import { QueryConfig } from 'pg';
 import Logger from '../util/logger';
 import { query } from './config';
 import Movie from './model/movie';
-import Status from './model/moviestatus';
+import MovieStatus from './model/moviestatus';
 
-const getAllMovies = async (username: string): Promise<any[]> => {
+type DbMovie = {
+  movie_id: string;
+  title: string;
+  studio: string;
+  director: string;
+  writer: string;
+  duration: number;
+  year: number;
+  status: MovieStatus;
+  score: number;
+  start_date: string;
+  end_date: string;
+  created_on: string;
+};
+const getAllMovies = async (username: string): Promise<DbMovie[]> => {
   const getMoviesQuery: QueryConfig = {
     text: `SELECT m.movie_id,
                   m.title,
@@ -36,7 +50,7 @@ const getAllMovies = async (username: string): Promise<any[]> => {
   return [];
 };
 
-const getMoviesByStatus = async (username: string, status: Status): Promise<any[]> => {
+const getMoviesByStatus = async (username: string, status: MovieStatus): Promise<DbMovie[]> => {
   const getMoviesByStatusQuery: QueryConfig = {
     text: `SELECT m.movie_id,
                   m.title,
