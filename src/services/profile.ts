@@ -1,7 +1,11 @@
 import { NextFunction, Request, Response } from 'express';
 import { QueryConfig } from 'pg';
 import { query } from '../db/config';
+import { getUserByUsername } from '../db/users';
 import { ErrorWithStatus } from '../util/errorhandler';
+import * as bcrypt from 'bcrypt';
+import { success } from '../util/response';
+import Logger from '../util/logger';
 
 const getUserInfo = async (username: string, next: NextFunction) => {
   const usernameQuery: QueryConfig = {
@@ -158,31 +162,72 @@ const fillAndSortResponse = async (array: ItemScore[]) =>
 
 const getProfile = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
-  const { user_id, registration_date } = await getUserInfo(username, next);
-  const book = await getBookData(username, next);
-  const movie = await getMovieData(username, next);
-  const bookScoreDistribution = await getBookScores(username, next);
-  const movieScoreDistribution = await getMovieScores(username, next);
-  const bookAverageScore = await getBookAvgScore(username, next);
-  const movieAverageScore = await getMovieAvgScore(username, next);
 
-  res.status(200).json({
-    user_id,
-    username,
-    registration_date,
-    stats: {
-      book: {
-        ...book,
-        score_average: bookAverageScore,
-        score_distribution: bookScoreDistribution,
+  try {
+    const { user_id, registration_date } = await getUserInfo(username, next);
+    const book = await getBookData(username, next);
+    const movie = await getMovieData(username, next);
+    const bookScoreDistribution = await getBookScores(username, next);
+    const movieScoreDistribution = await getMovieScores(username, next);
+    const bookAverageScore = await getBookAvgScore(username, next);
+    const movieAverageScore = await getMovieAvgScore(username, next);
+
+    res.status(200).json({
+      user_id,
+      username,
+      registration_date,
+      stats: {
+        book: {
+          ...book,
+          score_average: bookAverageScore,
+          score_distribution: bookScoreDistribution,
+        },
+        movie: {
+          ...movie,
+          score_average: movieAverageScore,
+          score_distribution: movieScoreDistribution,
+        },
       },
-      movie: {
-        ...movie,
-        score_average: movieAverageScore,
-        score_distribution: movieScoreDistribution,
-      },
-    },
-  });
+    });
+  } catch (error) {
+    Logger.error((error as Error).stack);
+    next(new ErrorWithStatus(422, 'profile_error', "Couldn't fetch profile"));
+  }
 };
 
-export { getProfile };
+const deleteAccount = async (req: Request, res: Response, next: NextFunction) => {
+  const { username } = res.locals;
+  const { password } = req.body;
+
+  if (!password || password === undefined) {
+    next(new ErrorWithStatus(422, 'profile_error', 'Send user password in the request body'));
+    return;
+  }
+
+  const user = await getUserByUsername(username);
+  if (user === undefined) {
+    next(new ErrorWithStatus(422, 'profile_error', "Couldn't find user"));
+    return;
+  }
+
+  const result = await bcrypt.compare(password, user.password);
+  if (!result) {
+    next(new ErrorWithStatus(422, 'profile_error', 'Incorrect password'));
+    return;
+  }
+
+  try {
+    const deleteAccountQuery: QueryConfig = {
+      text: `DELETE FROM users WHERE username = $1`,
+      values: [username],
+    };
+    await query(deleteAccountQuery);
+    res
+      .status(200)
+      .json(success([{ name: 'account_deleted', message: 'Account successfully deleted' }]));
+  } catch (error) {
+    next(new ErrorWithStatus(422, 'profile_error', "Couldn't delete account."));
+  }
+};
+
+export { getProfile, deleteAccount };
