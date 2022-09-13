@@ -6,6 +6,7 @@ import { ErrorWithStatus } from '../util/errorhandler';
 import * as bcrypt from 'bcrypt';
 import { success } from '../util/response';
 import Logger from '../util/logger';
+import { fillAndSortResponse } from '../util/profile';
 
 const getUserInfo = async (username: string, next: NextFunction) => {
   const usernameQuery: QueryConfig = {
@@ -22,34 +23,100 @@ const getUserInfo = async (username: string, next: NextFunction) => {
   }
 };
 
+type BookData = {
+  count: number;
+  pages_read: number;
+  score_average: number;
+};
+
 const getBookData = async (username: string, next: NextFunction) => {
-  const bookQuery: QueryConfig = {
-    text: `SELECT count(book_id), coalesce(sum(pages), 0) as pages_read
+  const countQuery: QueryConfig = {
+    text: `SELECT count(*)
            FROM books
            WHERE submitter = $1`,
     values: [username],
   };
+
+  const pagesReadQuery: QueryConfig = {
+    text: `SELECT coalesce(sum(b.pages), 0) as pages_read
+           FROM books b
+                    INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
+           WHERE submitter = $1 AND ubl.status != 'planned'`,
+    values: [username],
+  };
+
+  const avgScoreQuery: QueryConfig = {
+    text: `SELECT coalesce(round(avg(ubl.score), 1), 0) AS average
+           FROM books b
+                    INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
+           WHERE submitter = $1 AND ubl.status != 'planned'`,
+    values: [username],
+  };
+
   try {
-    const { rows } = await query(bookQuery);
-    return rows[0];
+    const bookCount = await query(countQuery);
+    const pagesRead = await query(pagesReadQuery);
+    const avgBookScore = await query(avgScoreQuery);
+
+    const response: BookData = {
+      count: bookCount.rows[0].count,
+      pages_read: pagesRead.rows[0].pages_read,
+      score_average: avgBookScore.rows[0].average,
+    };
+    return response;
   } catch (e) {
     next(new ErrorWithStatus(500, 'profile_error', 'Error fetching book data'));
   }
 };
 
+type MovieData = {
+  count: number;
+  watch_time: number;
+  score_average: number;
+};
+
 const getMovieData = async (username: string, next: NextFunction) => {
-  const movieQuery: QueryConfig = {
-    text: `SELECT count(movie_id), coalesce(sum(duration) / 60, 0) as watch_time
+  const countQuery: QueryConfig = {
+    text: `SELECT count(*)
            FROM movies
            WHERE submitter = $1`,
     values: [username],
   };
+
+  const watchTimeQuery: QueryConfig = {
+    text: `SELECT coalesce(sum(m.duration) / 60, 0) as watch_time
+           FROM movies m INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
+           WHERE submitter = $1 AND uml.status != 'planned'`,
+    values: [username],
+  };
+
+  const avgScoreQuery: QueryConfig = {
+    text: `SELECT coalesce(round(avg(uml.score), 1), 0) AS average
+           FROM movies m
+                    INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
+           WHERE submitter = $1 AND uml.status != 'planned'`,
+    values: [username],
+  };
+
   try {
-    const { rows } = await query(movieQuery);
-    return rows[0];
+    const movieCount = await query(countQuery);
+    const watchTime = await query(watchTimeQuery);
+    const avgMovieScore = await query(avgScoreQuery);
+
+    const response: MovieData = {
+      count: movieCount.rows[0].count,
+      watch_time: watchTime.rows[0].watch_time,
+      score_average: avgMovieScore.rows[0].average,
+    };
+    return response;
   } catch (e) {
     next(new ErrorWithStatus(500, 'profile_error', 'Error fetching movie data'));
   }
+};
+
+type ItemScore = {
+  score: number;
+  count: string;
 };
 
 const getBookScores = async (username: string, next: NextFunction) => {
@@ -57,13 +124,13 @@ const getBookScores = async (username: string, next: NextFunction) => {
     text: `SELECT ubl.score, count(ubl.score)
            FROM books b
                     INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
-           WHERE submitter = $1
+           WHERE submitter = $1 AND ubl.status != 'planned'
            GROUP BY ubl.score;`,
     values: [username],
   };
 
   try {
-    const { rows } = await query(scoreQuery);
+    const { rows }: { rows: ItemScore[] } = await query(scoreQuery);
     return await fillAndSortResponse(rows);
   } catch (e) {
     next(new ErrorWithStatus(500, 'profile_error', 'Error fetching book scores'));
@@ -75,90 +142,18 @@ const getMovieScores = async (username: string, next: NextFunction) => {
     text: `SELECT uml.score, count(uml.score)
            FROM movies m
                     INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
-           WHERE submitter = $1
+           WHERE submitter = $1 AND uml.status != 'planned'
            GROUP BY uml.score;`,
     values: [username],
   };
 
   try {
-    const { rows } = await query(scoreQuery);
+    const { rows }: { rows: ItemScore[] } = await query(scoreQuery);
     return await fillAndSortResponse(rows);
   } catch (e) {
     next(new ErrorWithStatus(500, 'profile_error', 'Error fetching movie scores'));
   }
 };
-
-const getBookAvgScore = async (username: string, next: NextFunction) => {
-  const avgScoreQuery: QueryConfig = {
-    text: `SELECT coalesce(round(avg(ubl.score), 1), 0) AS average
-           FROM books b
-                    INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
-           WHERE submitter = $1;`,
-    values: [username],
-  };
-
-  try {
-    const { rows } = await query(avgScoreQuery);
-    return rows[0].average;
-  } catch (e) {
-    next(new ErrorWithStatus(500, 'profile_error', 'Error fetching book average scores'));
-  }
-};
-
-const getMovieAvgScore = async (username: string, next: NextFunction) => {
-  const avgScoreQuery: QueryConfig = {
-    text: `SELECT coalesce(round(avg(uml.score), 1), 0) AS average
-           FROM movies m
-                    INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
-           WHERE submitter = $1;`,
-    values: [username],
-  };
-
-  try {
-    const { rows } = await query(avgScoreQuery);
-    return rows[0].average;
-  } catch (e) {
-    next(new ErrorWithStatus(500, 'profile_error', 'Error fetching movie average scores'));
-  }
-};
-
-type ItemScore = {
-  score: number;
-  count: string;
-};
-
-/**
- * Fills array gaps so that there are ItemScore objects which have score
- * from 0 to 10. Lastly it sorts the array by the score property.
- * @example
- * [
- *    { score: 0, count: 6 },
- *    { score: 1, count: 4 },
- *    { score: 2, count: 1 },
- *    { score: 3, count: 12 }
- *    ...
- * ]
- * @param array Initial book/movie score array
- */
-const fillAndSortResponse = async (array: ItemScore[]) =>
-  new Promise<Array<ItemScore>>((resolve) => {
-    const resultArray: ItemScore[] = [];
-    const foundNumbers: number[] = [];
-
-    array.forEach((item) => {
-      resultArray.push(item);
-      foundNumbers.push(item.score);
-    });
-
-    for (let i = 0; i <= 10; i++) {
-      if (!foundNumbers.includes(i)) {
-        resultArray.push({ score: i, count: '0' });
-      }
-    }
-
-    resultArray.sort((a, b) => a.score - b.score);
-    resolve(resultArray);
-  });
 
 const getProfile = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
@@ -169,8 +164,6 @@ const getProfile = async (req: Request, res: Response, next: NextFunction) => {
     const movie = await getMovieData(username, next);
     const bookScoreDistribution = await getBookScores(username, next);
     const movieScoreDistribution = await getMovieScores(username, next);
-    const bookAverageScore = await getBookAvgScore(username, next);
-    const movieAverageScore = await getMovieAvgScore(username, next);
 
     res.status(200).json({
       user_id,
@@ -179,12 +172,10 @@ const getProfile = async (req: Request, res: Response, next: NextFunction) => {
       stats: {
         book: {
           ...book,
-          score_average: bookAverageScore,
           score_distribution: bookScoreDistribution,
         },
         movie: {
           ...movie,
-          score_average: movieAverageScore,
           score_distribution: movieScoreDistribution,
         },
       },
@@ -230,4 +221,4 @@ const deleteAccount = async (req: Request, res: Response, next: NextFunction) =>
   }
 };
 
-export { getProfile, deleteAccount };
+export { getProfile, deleteAccount, ItemScore };
