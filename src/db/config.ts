@@ -1,5 +1,5 @@
 import Pool from 'pg-pool';
-import { QueryConfig } from 'pg';
+import { PoolClient, QueryConfig } from 'pg';
 import Logger from '../util/logger';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -16,4 +16,19 @@ pool.on('error', (error: Error) => {
 
 const query = (q: QueryConfig) => pool.query(q);
 
-export { query, pool };
+const transaction = async (callback: (client: PoolClient) => Promise<void>) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+    await callback(client);
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export { query, transaction, pool };

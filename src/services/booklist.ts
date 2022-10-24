@@ -1,54 +1,27 @@
 import { NextFunction, Request, Response } from 'express';
 import { QueryConfig } from 'pg';
 import Logger from '../util/logger';
-import { getAllBooks, getBooksByStatus, postBook } from '../db/books';
+import { getAllBooks, getBookById, getBooksByStatus, postBook } from '../db/books';
 import { success } from '../util/response';
 import BookStatus from '../db/model/bookstatus';
 import Book from '../db/model/book';
-import { query } from '../db/config';
+import { query, transaction } from '../db/config';
 import { ErrorWithStatus } from '../util/errorhandler';
 import BookSearchResult from '../db/model/booksearchresult';
 
-const getBookById = async (req: Request, res: Response, next: NextFunction) => {
+const fetchOne = async (req: Request, res: Response, next: NextFunction) => {
   const { bookId } = req.params;
   const { username } = res.locals;
 
-  const getBookQuery: QueryConfig = {
-    text: `SELECT b.book_id,
-                  b.isbn,
-                  b.title,
-                  b.author,
-                  b.publisher,
-                  b.pages,
-                  b.year,
-                  ubl.status,
-                  ubl.score,
-                  ubl.start_date,
-                  ubl.end_date,
-                  ubl.created_on
-           FROM user_book_list ubl,
-                books b
-           WHERE ubl.book_id = b.book_id
-             AND ubl.book_id = $1
-             AND b.submitter = $2`,
-    values: [bookId, username],
-  };
-
   try {
-    const result = await query(getBookQuery);
-
-    if (result.rowCount === 0) {
-      next(new ErrorWithStatus(422, 'book_list_error', "Couldn't find book"));
-      return;
-    }
-
-    res.status(200).json(success(result.rows));
+    const book = await getBookById(bookId, username);
+    res.status(200).json(success(book));
   } catch (error) {
     next(new ErrorWithStatus(422, 'book_list_error', "Couldn't find book"));
   }
 };
 
-const fetchAllBooks = async (req: Request, res: Response, next: NextFunction) => {
+const fetchAll = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
 
   try {
@@ -60,7 +33,7 @@ const fetchAllBooks = async (req: Request, res: Response, next: NextFunction) =>
   }
 };
 
-const fetchListByStatus = async (
+const fetchByStatus = async (
   req: Request,
   res: Response,
   status: BookStatus,
@@ -77,10 +50,7 @@ const fetchListByStatus = async (
   }
 };
 
-const getFullList = (req: Request, res: Response, next: NextFunction) =>
-  fetchAllBooks(req, res, next);
-
-const addBookToList = async (req: Request, res: Response, next: NextFunction) => {
+const addOne = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
   const { isbn, title, author, publisher, pages, year, status, score, start_date, end_date } =
     req.body;
@@ -95,31 +65,30 @@ const addBookToList = async (req: Request, res: Response, next: NextFunction) =>
   };
 
   try {
-    // Insert book to books table
-    const bookId = await postBook(book);
-
-    // Insert book to user's booklist
-    const addBookToUserListQuery: QueryConfig = {
-      text: `INSERT INTO user_book_list (book_id, username, status, score, start_date, end_date)
+    await transaction(async (client) => {
+      const bookId = await postBook(client, book);
+      const addBookToUserListQuery: QueryConfig = {
+        text: `INSERT INTO user_book_list (book_id, username, status, score, start_date, end_date)
              VALUES ($1, $2, $3, $4, $5, $6)`,
-      values: [bookId, username, status, score, start_date, end_date],
-    };
-    await query(addBookToUserListQuery);
+        values: [bookId, username, status, score, start_date, end_date],
+      };
+      await client.query(addBookToUserListQuery);
+    });
 
     res.status(201).json(success([{ name: 'book_added_to_list', message: 'Book added to list' }]));
   } catch (error) {
     Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(422, 'book_list_error', "Couldn't create book"));
+    next(new ErrorWithStatus(422, 'book_list_error', "Couldn't addOne book"));
   }
 };
 
-const updateBook = async (req: Request, res: Response, next: NextFunction) => {
+const updateOne = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
   const { bookId } = req.params;
   const { isbn, title, author, publisher, pages, year, status, score, start_date, end_date } =
     req.body;
 
-  const updateBookQuery: QueryConfig = {
+  const updateQuery: QueryConfig = {
     text: `UPDATE books
            SET title=$1,
                author=$2,
@@ -128,8 +97,7 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
                isbn=$5,
                year=$6
            WHERE book_id = $7
-             AND submitter = $8
-           RETURNING book_id, title, author, publisher, pages, isbn, year`,
+             AND submitter = $8`,
     values: [title, author, publisher, pages, isbn, year, bookId, username],
   };
 
@@ -144,16 +112,19 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
   };
 
   try {
-    await query(updateBookQuery);
-    await query(updateUserListQuery);
-    res.status(200).json(success([{ name: 'book_updated', message: 'Book successfully updated' }]));
+    await transaction(async (client) => {
+      await client.query(updateQuery);
+      await client.query(updateUserListQuery);
+    });
+    const updatedBook = await getBookById(bookId, username);
+    res.status(200).json(success(updatedBook));
   } catch (error) {
     Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(422, 'book_list_error', "Couldn't update book"));
+    next(new ErrorWithStatus(422, 'book_list_error', "Couldn't updateOne book"));
   }
 };
 
-const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
+const deleteOne = async (req: Request, res: Response, next: NextFunction) => {
   const { bookId } = req.params;
   const { username } = res.locals;
 
@@ -166,13 +137,7 @@ const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
   };
 
   try {
-    const { rowCount } = await query(deleteBookQuery);
-
-    if (rowCount === 0) {
-      next(new ErrorWithStatus(422, 'book_list_error', "Couldn't find book"));
-      return;
-    }
-
+    await query(deleteBookQuery);
     res.status(200).json(success([{ name: 'book_deleted', message: 'Book deleted' }]));
   } catch (error) {
     Logger.error((error as Error).stack);
@@ -180,7 +145,7 @@ const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const searchBook = async (req: Request, res: Response, next: NextFunction) => {
+const search = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const queryString = String(req.query.query).trim();
     const queryAsArray = queryString.split(' ');
@@ -188,7 +153,7 @@ const searchBook = async (req: Request, res: Response, next: NextFunction) => {
     const resultArray: BookSearchResult[] = [];
 
     for (const queryPart of queryAsArray) {
-      const searchQuery: QueryConfig = {
+      const accurateSearchQuery: QueryConfig = {
         text: `SELECT b.book_id, b.title, b.author, b.publisher, ubl.score
                FROM books b INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
                WHERE document @@ to_tsquery('english', $2)
@@ -197,7 +162,8 @@ const searchBook = async (req: Request, res: Response, next: NextFunction) => {
         values: [username, `${queryPart}:*`],
       };
 
-      const { rows } = await query(searchQuery);
+      const { rows } = await query(accurateSearchQuery);
+      // Push only unique results
       rows.forEach((row) => {
         if (!resultArray.some((item) => item.book_id === row.book_id)) {
           resultArray.push(row);
@@ -206,7 +172,7 @@ const searchBook = async (req: Request, res: Response, next: NextFunction) => {
     }
 
     if (resultArray.length === 0) {
-      const searchQuery: QueryConfig = {
+      const lessAccurateSearchQuery: QueryConfig = {
         text: `SELECT b.book_id, b.title, b.author, b.publisher, ubl.score
                FROM books b INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
                WHERE title ILIKE $1
@@ -216,7 +182,8 @@ const searchBook = async (req: Request, res: Response, next: NextFunction) => {
         values: [`%${queryString}%`],
       };
 
-      const { rows } = await query(searchQuery);
+      const { rows } = await query(lessAccurateSearchQuery);
+      // Push only unique results
       rows.forEach((row) => {
         if (!resultArray.some((item) => item.book_id === row.book_id)) {
           resultArray.push(row);
@@ -230,12 +197,4 @@ const searchBook = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export {
-  getBookById,
-  getFullList,
-  fetchListByStatus,
-  addBookToList,
-  updateBook,
-  deleteBook,
-  searchBook,
-};
+export { fetchOne, fetchAll, fetchByStatus, addOne, updateOne, deleteOne, search };

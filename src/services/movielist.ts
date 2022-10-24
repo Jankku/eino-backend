@@ -1,56 +1,28 @@
 import { NextFunction, Request, Response } from 'express';
 import { QueryConfig } from 'pg';
 import Logger from '../util/logger';
-import { getAllMovies, getMoviesByStatus, postMovie } from '../db/movies';
+import { getAllMovies, getMovieById, getMoviesByStatus, postMovie } from '../db/movies';
 import { success } from '../util/response';
 import Movie from '../db/model/movie';
-import { pool, query } from '../db/config';
+import { query, transaction } from '../db/config';
 import MovieStatus from '../db/model/moviestatus';
 import { ErrorWithStatus } from '../util/errorhandler';
-import BookSearchResult from '../db/model/booksearchresult';
 import MovieSearchResult from '../db/model/moviesearchresult';
 
-const getMovieById = async (req: Request, res: Response, next: NextFunction) => {
+const fetchOne = async (req: Request, res: Response, next: NextFunction) => {
   const { movieId } = req.params;
   const { username } = res.locals;
 
-  const getMovieQuery: QueryConfig = {
-    text: `SELECT uml.movie_id,
-                  m.title,
-                  m.studio,
-                  m.director,
-                  m.writer,
-                  m.duration,
-                  m.year,
-                  uml.status,
-                  uml.score,
-                  uml.start_date,
-                  uml.end_date,
-                  uml.created_on
-           FROM user_movie_list uml,
-                movies m
-           WHERE uml.movie_id = m.movie_id
-             AND uml.movie_id = $1
-             AND m.submitter = $2`,
-    values: [movieId, username],
-  };
-
   try {
-    const result = await query(getMovieQuery);
-
-    if (result.rowCount === 0) {
-      next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't find movie"));
-      return;
-    }
-
-    res.status(200).json(success(result.rows));
+    const movie = await getMovieById(movieId, username);
+    res.status(200).json(success(movie));
   } catch (error) {
     Logger.error((error as Error).stack);
     next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't find movie"));
   }
 };
 
-const fetchAllMovies = async (req: Request, res: Response, next: NextFunction) => {
+const fetchAll = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
 
   try {
@@ -62,7 +34,7 @@ const fetchAllMovies = async (req: Request, res: Response, next: NextFunction) =
   }
 };
 
-const fetchListByStatus = async (
+const fetchByStatus = async (
   req: Request,
   res: Response,
   status: MovieStatus,
@@ -79,10 +51,7 @@ const fetchListByStatus = async (
   }
 };
 
-const getFullList = (req: Request, res: Response, next: NextFunction) =>
-  fetchAllMovies(req, res, next);
-
-const addMovieToList = async (req: Request, res: Response, next: NextFunction) => {
+const addOne = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
   const { title, studio, director, writer, duration, year, status, score, start_date, end_date } =
     req.body;
@@ -97,17 +66,16 @@ const addMovieToList = async (req: Request, res: Response, next: NextFunction) =
   };
 
   try {
-    // Insert movie to movies table
-    const movieId = await postMovie(movie);
-
-    // Insert movie to user list
-    const addMovieToUserListQuery: QueryConfig = {
-      text: `INSERT INTO user_movie_list (movie_id, username, status, score, start_date, end_date)
+    await transaction(async (client) => {
+      const movieId = await postMovie(client, movie);
+      const addMovieToUserListQuery: QueryConfig = {
+        text: `INSERT INTO user_movie_list (movie_id, username, status, score, start_date, end_date)
              VALUES ($1, $2, $3, $4, $5, $6)`,
-      values: [movieId, username, status, score, start_date, end_date],
-    };
+        values: [movieId, username, status, score, start_date, end_date],
+      };
+      await client.query(addMovieToUserListQuery);
+    });
 
-    await query(addMovieToUserListQuery);
     res
       .status(201)
       .json(success([{ name: 'movie_added_to_list', message: 'Movie added to list' }]));
@@ -117,7 +85,7 @@ const addMovieToList = async (req: Request, res: Response, next: NextFunction) =
   }
 };
 
-const updateMovie = async (req: Request, res: Response, next: NextFunction) => {
+const updateOne = async (req: Request, res: Response, next: NextFunction) => {
   const { movieId } = req.params;
   const { username } = res.locals;
   const { title, studio, director, writer, duration, year, status, score, start_date, end_date } =
@@ -149,18 +117,19 @@ const updateMovie = async (req: Request, res: Response, next: NextFunction) => {
   };
 
   try {
-    await query(updateMovieQuery);
-    await query(updateUserListQuery);
-    res
-      .status(200)
-      .json(success([{ name: 'movie_updated', message: 'Movie successfully updated' }]));
+    await transaction(async (client) => {
+      await client.query(updateMovieQuery);
+      await client.query(updateUserListQuery);
+    });
+    const updatedMovie = await getMovieById(movieId, username);
+    res.status(200).json(success(updatedMovie));
   } catch (error) {
     Logger.error((error as Error).stack);
     next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't update movie"));
   }
 };
 
-const deleteMovie = async (req: Request, res: Response, next: NextFunction) => {
+const deleteOne = async (req: Request, res: Response, next: NextFunction) => {
   const { movieId } = req.params;
   const { username } = res.locals;
 
@@ -173,13 +142,7 @@ const deleteMovie = async (req: Request, res: Response, next: NextFunction) => {
   };
 
   try {
-    const { rowCount } = await query(deleteMovieQuery);
-
-    if (rowCount === 0) {
-      next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't find movie"));
-      return;
-    }
-
+    await query(deleteMovieQuery);
     res.status(200).json(success([{ name: 'movie_deleted', message: 'Movie deleted' }]));
   } catch (error) {
     Logger.error((error as Error).stack);
@@ -187,7 +150,7 @@ const deleteMovie = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const searchMovie = async (req: Request, res: Response, next: NextFunction) => {
+const search = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const queryString = String(req.query.query).trim();
     const queryAsArray = queryString.split(' ');
@@ -195,7 +158,7 @@ const searchMovie = async (req: Request, res: Response, next: NextFunction) => {
     const resultArray: MovieSearchResult[] = [];
 
     for (const queryPart of queryAsArray) {
-      const searchQuery: QueryConfig = {
+      const accurateSearchQuery: QueryConfig = {
         text: `SELECT m.movie_id, m.title, m.studio, m.director, m.writer, uml.score
                FROM movies m INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
                WHERE document @@ to_tsquery('english', $2)
@@ -204,7 +167,8 @@ const searchMovie = async (req: Request, res: Response, next: NextFunction) => {
         values: [username, `${queryPart}:*`],
       };
 
-      const { rows } = await query(searchQuery);
+      const { rows } = await query(accurateSearchQuery);
+      // Push only unique results
       rows.forEach((row) => {
         if (!resultArray.some((item) => item.movie_id === row.movie_id)) {
           resultArray.push(row);
@@ -213,7 +177,7 @@ const searchMovie = async (req: Request, res: Response, next: NextFunction) => {
     }
 
     if (resultArray.length === 0) {
-      const searchQuery: QueryConfig = {
+      const lessAccurateSearchQuery: QueryConfig = {
         text: `SELECT m.movie_id, m.title, m.studio, m.director, m.writer, uml.score
                FROM movies m INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
                WHERE title ILIKE $1
@@ -224,7 +188,8 @@ const searchMovie = async (req: Request, res: Response, next: NextFunction) => {
         values: [`%${queryString}%`],
       };
 
-      const { rows } = await query(searchQuery);
+      const { rows } = await query(lessAccurateSearchQuery);
+      // Push only unique results
       rows.forEach((row) => {
         if (!resultArray.some((item) => item.movie_id === row.movie_id)) {
           resultArray.push(row);
@@ -238,12 +203,4 @@ const searchMovie = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export {
-  getMovieById,
-  getFullList,
-  fetchListByStatus,
-  addMovieToList,
-  updateMovie,
-  deleteMovie,
-  searchMovie,
-};
+export { fetchOne, fetchAll, fetchByStatus, addOne, updateOne, deleteOne, search };

@@ -1,5 +1,4 @@
-import { QueryConfig } from 'pg';
-import Logger from '../util/logger';
+import { PoolClient, QueryConfig } from 'pg';
 import { query } from './config';
 import Movie from './model/movie';
 import MovieStatus from './model/moviestatus';
@@ -39,15 +38,33 @@ const getAllMovies = async (username: string): Promise<DbMovie[]> => {
            ORDER BY m.title`,
     values: [username],
   };
+  const { rows } = await query(getMoviesQuery);
+  return rows;
+};
 
-  try {
-    const { rows } = await query(getMoviesQuery);
-    return rows;
-  } catch (error) {
-    Logger.error((error as Error).stack);
-  }
-
-  return [];
+const getMovieById = async (movieId: string, username: string): Promise<DbMovie[]> => {
+  const getMovieQuery: QueryConfig = {
+    text: `SELECT uml.movie_id,
+                  m.title,
+                  m.studio,
+                  m.director,
+                  m.writer,
+                  m.duration,
+                  m.year,
+                  uml.status,
+                  uml.score,
+                  uml.start_date,
+                  uml.end_date,
+                  uml.created_on
+           FROM user_movie_list uml,
+                movies m
+           WHERE uml.movie_id = m.movie_id
+             AND uml.movie_id = $1
+             AND m.submitter = $2`,
+    values: [movieId, username],
+  };
+  const { rows } = await query(getMovieQuery);
+  return rows;
 };
 
 const getMoviesByStatus = async (username: string, status: MovieStatus): Promise<DbMovie[]> => {
@@ -72,33 +89,19 @@ const getMoviesByStatus = async (username: string, status: MovieStatus): Promise
            ORDER BY m.title`,
     values: [username, status],
   };
-
-  try {
-    const { rows } = await query(getMoviesByStatusQuery);
-    return rows;
-  } catch (error) {
-    Logger.error((error as Error).stack);
-  }
-
-  return [];
+  const { rows } = await query(getMoviesByStatusQuery);
+  return rows;
 };
 
-const postMovie = async (m: Movie): Promise<string> => {
-  let movieId = '';
-  try {
-    const insertMovieQuery: QueryConfig = {
-      text: `INSERT INTO movies (title, studio, director, writer, duration, year, submitter)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
-             RETURNING movie_id`,
-      values: [m.title, m.studio, m.director, m.writer, m.duration, m.year, m.submitter],
-    };
-    const { rows } = await query(insertMovieQuery);
-    movieId = rows[0].movie_id;
-  } catch (error) {
-    Logger.error((error as Error).stack);
-  }
-
-  return movieId;
+const postMovie = async (client: PoolClient, m: Movie): Promise<string> => {
+  const insertMovieQuery: QueryConfig = {
+    text: `INSERT INTO movies (title, studio, director, writer, duration, year, submitter)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           RETURNING movie_id`,
+    values: [m.title, m.studio, m.director, m.writer, m.duration, m.year, m.submitter],
+  };
+  const { rows } = await client.query(insertMovieQuery);
+  return rows[0].movie_id;
 };
 
-export { getAllMovies, getMoviesByStatus, postMovie };
+export { getAllMovies, getMovieById, getMoviesByStatus, postMovie };

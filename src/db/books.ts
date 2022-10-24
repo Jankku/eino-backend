@@ -1,5 +1,4 @@
-import { QueryConfig } from 'pg';
-import Logger from '../util/logger';
+import { PoolClient, QueryConfig } from 'pg';
 import { query } from './config';
 import Book from './model/book';
 import BookStatus from './model/bookstatus';
@@ -41,14 +40,33 @@ const getAllBooks = async (username: string): Promise<DbBook[]> => {
            ORDER BY b.title`,
     values: [username],
   };
+  const { rows } = await query(getBooksQuery);
+  return rows;
+};
 
-  try {
-    const { rows } = await query(getBooksQuery);
-    return rows;
-  } catch (error) {
-    Logger.error((error as Error).stack);
-    return [];
-  }
+const getBookById = async (bookId: string, username: string): Promise<DbBook[]> => {
+  const getBookQuery: QueryConfig = {
+    text: `SELECT b.book_id,
+                  b.isbn,
+                  b.title,
+                  b.author,
+                  b.publisher,
+                  b.pages,
+                  b.year,
+                  ubl.status,
+                  ubl.score,
+                  ubl.start_date,
+                  ubl.end_date,
+                  ubl.created_on
+           FROM user_book_list ubl,
+                books b
+           WHERE ubl.book_id = b.book_id
+             AND ubl.book_id = $1
+             AND b.submitter = $2`,
+    values: [bookId, username],
+  };
+  const { rows } = await query(getBookQuery);
+  return rows;
 };
 
 const getBooksByStatus = async (username: string, status: BookStatus): Promise<DbBook[]> => {
@@ -73,34 +91,19 @@ const getBooksByStatus = async (username: string, status: BookStatus): Promise<D
            ORDER BY b.title`,
     values: [username, status],
   };
-
-  try {
-    const { rows } = await query(getBooksByStatusQuery);
-    return rows;
-  } catch (error) {
-    Logger.error((error as Error).stack);
-    return [];
-  }
+  const { rows } = await query(getBooksByStatusQuery);
+  return rows;
 };
 
-const postBook = async (b: Book): Promise<string> => {
-  let bookId = '';
-
+const postBook = async (client: PoolClient, b: Book): Promise<string> => {
   const insertBookQuery: QueryConfig = {
     text: `INSERT INTO books (isbn, title, author, publisher, pages, year, submitter)
            VALUES ($1, $2, $3, $4, $5, $6, $7)
            RETURNING book_id`,
     values: [b.isbn, b.title, b.author, b.publisher, b.pages, b.year, b.submitter],
   };
-
-  try {
-    const { rows } = await query(insertBookQuery);
-    bookId = rows[0].book_id;
-  } catch (error) {
-    Logger.error((error as Error).stack);
-  }
-
-  return bookId;
+  const { rows } = await client.query(insertBookQuery);
+  return rows[0].book_id;
 };
 
-export { getAllBooks, getBooksByStatus, postBook };
+export { getAllBooks, getBookById, getBooksByStatus, postBook };
