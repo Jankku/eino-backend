@@ -16,6 +16,7 @@ const Logger = createLogger({
   ],
 });
 
+// eslint-disable-next-line @typescript-eslint/no-empty-function
 Logger.on('error', () => {});
 
 export default Logger;

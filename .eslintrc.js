@@ -14,7 +14,6 @@ module.exports = {
     project: './tsconfig.json',
   },
   rules: {
-    'max-len': [1, { code: 120, ignoreUrls: true }],
     'consistent-return': 0,
     'no-plusplus': 0,
     '@typescript-eslint/naming-convention': ['off'],

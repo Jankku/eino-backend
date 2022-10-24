@@ -2,8 +2,6 @@ import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import JwtPayload from '../model/jwtpayload';
 import { ErrorWithStatus } from '../util/errorhandler';
-import Logger from '../util/logger';
-
 
 const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   const accessToken = req.headers.authorization?.split(' ')[1];
@@ -24,7 +22,6 @@ const verifyToken = (req: Request, res: Response, next: NextFunction) => {
     res.locals.username = username;
     next();
   } catch (error) {
-    Logger.error((error as Error).stack);
     next(new ErrorWithStatus(401, 'authorization_error', `${(error as Error)?.message}`));
   }
 };
