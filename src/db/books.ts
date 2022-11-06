@@ -2,21 +2,7 @@ import { PoolClient, QueryConfig } from 'pg';
 import { query } from './config';
 import Book from './model/book';
 import BookStatus from './model/bookstatus';
-
-type DbBook = {
-  book_id: string;
-  isbn: string;
-  title: string;
-  author: string;
-  publisher: string;
-  pages: number;
-  year: number;
-  status: BookStatus;
-  score: number;
-  start_date: string;
-  end_date: string;
-  created_on: string;
-};
+import DbBook from './model/dbbook';
 
 const getAllBooks = async (username: string): Promise<DbBook[]> => {
   const getBooksQuery: QueryConfig = {
@@ -106,4 +92,30 @@ const postBook = async (client: PoolClient, b: Book): Promise<string> => {
   return rows[0].book_id;
 };
 
-export { getAllBooks, getBookById, getBooksByStatus, postBook };
+const getTop10Books = async (username: string): Promise<DbBook[]> => {
+  const getTopBooksQuery: QueryConfig = {
+    text: `SELECT b.book_id,
+                  b.isbn,
+                  b.title,
+                  b.author,
+                  b.publisher,
+                  b.pages,
+                  b.year,
+                  ubl.status,
+                  ubl.score,
+                  ubl.start_date,
+                  ubl.end_date,
+                  ubl.created_on
+           FROM user_book_list ubl
+                    INNER JOIN books b USING (book_id)
+           WHERE ubl.username = b.submitter
+             AND ubl.username = $1
+           ORDER BY ubl.score DESC
+           LIMIT 10;`,
+    values: [username],
+  };
+  const { rows } = await query(getTopBooksQuery);
+  return rows;
+};
+
+export { getAllBooks, getBookById, getBooksByStatus, postBook, getTop10Books };

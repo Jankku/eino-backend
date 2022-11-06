@@ -1,22 +1,9 @@
 import { PoolClient, QueryConfig } from 'pg';
 import { query } from './config';
+import DbMovie from './model/dbmovie';
 import Movie from './model/movie';
 import MovieStatus from './model/moviestatus';
 
-type DbMovie = {
-  movie_id: string;
-  title: string;
-  studio: string;
-  director: string;
-  writer: string;
-  duration: number;
-  year: number;
-  status: MovieStatus;
-  score: number;
-  start_date: string;
-  end_date: string;
-  created_on: string;
-};
 const getAllMovies = async (username: string): Promise<DbMovie[]> => {
   const getMoviesQuery: QueryConfig = {
     text: `SELECT m.movie_id,
@@ -104,4 +91,30 @@ const postMovie = async (client: PoolClient, m: Movie): Promise<string> => {
   return rows[0].movie_id;
 };
 
-export { getAllMovies, getMovieById, getMoviesByStatus, postMovie };
+const getTop10Movies = async (username: string): Promise<DbMovie[]> => {
+  const getTopMoviesQuery: QueryConfig = {
+    text: `SELECT m.movie_id,
+                  m.title,
+                  m.studio,
+                  m.director,
+                  m.writer,
+                  m.duration,
+                  m.year,
+                  uml.status,
+                  uml.score,
+                  uml.start_date,
+                  uml.end_date,
+                  uml.created_on
+           FROM user_movie_list uml
+                    INNER JOIN movies m USING (movie_id)
+           WHERE uml.username = m.submitter
+             AND uml.username = $1
+           ORDER BY uml.score DESC
+           LIMIT 10;`,
+    values: [username],
+  };
+  const { rows } = await query(getTopMoviesQuery);
+  return rows;
+};
+
+export { getAllMovies, getMovieById, getMoviesByStatus, postMovie, getTop10Movies };

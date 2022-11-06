@@ -124,3 +124,14 @@ CREATE TABLE IF NOT EXISTS user_movie_list
             REFERENCES movies (movie_id)
             ON DELETE cascade
 );
+
+CREATE TABLE IF NOT EXISTS shares (
+    share_id   VARCHAR(255),
+    username   VARCHAR(255) NOT NULL,
+    created_on timestamptz  NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+    PRIMARY KEY (share_id),
+    CONSTRAINT fk_users_username
+        FOREIGN KEY (username)
+            REFERENCES users (username)
+            ON DELETE cascade
+);

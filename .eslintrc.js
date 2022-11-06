@@ -17,5 +17,6 @@ module.exports = {
     'consistent-return': 0,
     'no-plusplus': 0,
     '@typescript-eslint/naming-convention': ['off'],
+    'security/detect-non-literal-fs-filename': 0,
   },
 };

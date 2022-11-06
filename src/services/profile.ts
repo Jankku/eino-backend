@@ -3,10 +3,17 @@ import { QueryConfig } from 'pg';
 import { query } from '../db/config';
 import { getUserByUsername } from '../db/users';
 import { ErrorWithStatus } from '../util/errorhandler';
+import * as fs from 'fs/promises';
 import * as bcrypt from 'bcrypt';
 import { success } from '../util/response';
 import Logger from '../util/logger';
-import { fillAndSortResponse } from '../util/profile';
+import { fillAndSortResponse, getTruncatedTitles } from '../util/profile';
+import { registerFont, createCanvas } from 'canvas';
+import { getTop10Books } from '../db/books';
+import { getTop10Movies } from '../db/movies';
+import { generateShareId, getFontPath, getShareItemPath } from '../util/share';
+import { postShare } from '../db/share';
+import { DateTime } from 'luxon';
 
 const getUserInfo = async (username: string, next: NextFunction) => {
   const usernameQuery: QueryConfig = {
@@ -221,4 +228,137 @@ const deleteAccount = async (req: Request, res: Response, next: NextFunction) =>
   }
 };
 
-export { getProfile, deleteAccount, ItemScore };
+const generateShareImage = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { username } = res.locals;
+    const bookTitles = getTruncatedTitles(await getTop10Books(username));
+    const movieTitles = getTruncatedTitles(await getTop10Movies(username));
+
+    if (bookTitles.length === 0 && movieTitles.length === 0) {
+      next(new ErrorWithStatus(422, 'profile_error', 'Not enough items for image creation'));
+      return;
+    }
+
+    const canvasWidth = 700;
+    const canvasHeight = 500;
+    const canvasLeftPadding = 20;
+    const dividerHeight = 70;
+    const listItemPadding = 32;
+    const listColumnPadding = 120;
+    const listColumnPaddingTop = 20;
+    const listColumnTitleY = dividerHeight + listColumnPaddingTop;
+    const listColumnContentY = listColumnTitleY + 45;
+
+    const backgroundColor = '#191b21';
+    const dividerColor = '#323642';
+    const accentColor = '#64b5f6';
+    const headerTextColor = '#eee';
+    const bodyTextColor = '#ccc';
+
+    const listHeaderFont = '700 18pt Roboto';
+    const listItemFont = '700 14pt Roboto';
+
+    registerFont(getFontPath('pacifico.ttf'), { family: 'Pacifico' });
+    registerFont(getFontPath('roboto-regular.ttf'), { family: 'Roboto', weight: '400' });
+    registerFont(getFontPath('roboto-bold.ttf'), { family: 'Roboto', weight: '700' });
+
+    const canvas = createCanvas(canvasWidth, canvasHeight);
+    const ctx = canvas.getContext('2d');
+
+    ctx.textBaseline = 'top';
+
+    // Background
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    // Image borders
+    ctx.fillStyle = accentColor;
+    const thickness = 2;
+    ctx.fillRect(0, 0, canvasWidth, thickness); // Top
+    ctx.fillRect(0, 0, thickness, canvasHeight); // Left
+    ctx.fillRect(0, canvasHeight - thickness, canvasWidth, thickness); // Bottom
+    ctx.fillRect(canvasWidth - thickness, 0, thickness, canvasHeight); // Right
+
+    // Top-left logo
+    ctx.fillStyle = headerTextColor;
+    ctx.font = '40pt Pacifico';
+    ctx.fillText('e', 12, -34);
+
+    // Bottom-right date
+    ctx.fillStyle = '#b2b2b2';
+    ctx.font = '10pt Roboto';
+    const date = DateTime.now().toISODate();
+    const dateWidth = ctx.measureText(date).width;
+    const dateX = canvasWidth - dateWidth - 20;
+    const dateY = canvasHeight - 30;
+    ctx.fillText(date, dateX, dateY);
+
+    // Username
+    ctx.fillStyle = headerTextColor;
+    ctx.font = 'bold 24pt Roboto';
+    const usernameWidth = ctx.measureText(username).width;
+    const usernameX = canvasWidth / 2 - usernameWidth / 2;
+    ctx.fillText(username, usernameX, 15);
+
+    // Divider
+    ctx.fillStyle = dividerColor;
+    ctx.fillRect(70, dividerHeight, canvasWidth - 140, 2);
+
+    // Book list
+    let maxTitleWidth = 0;
+
+    if (bookTitles.length > 0) {
+      const bookListX = 70;
+      let bookListY = listColumnContentY;
+
+      ctx.fillStyle = headerTextColor;
+      ctx.font = listHeaderFont;
+      ctx.fillText('Top books', bookListX, listColumnTitleY);
+
+      ctx.fillStyle = bodyTextColor;
+      ctx.font = listItemFont;
+      bookTitles.forEach((title, i) => {
+        ctx.fillText(`${i + 1}. ${title}`, bookListX, bookListY);
+        bookListY += listItemPadding;
+
+        const titleWidth = ctx.measureText(title).width;
+        if (titleWidth > maxTitleWidth) {
+          maxTitleWidth = titleWidth;
+        }
+      });
+    }
+
+    // Movie list
+    if (movieTitles.length > 0) {
+      const movieListX =
+        maxTitleWidth + canvasLeftPadding < canvasLeftPadding
+          ? canvasLeftPadding
+          : maxTitleWidth + listColumnPadding;
+      let movieListY = listColumnContentY;
+
+      ctx.fillStyle = headerTextColor;
+      ctx.font = listHeaderFont;
+      ctx.fillText('Top movies', movieListX, listColumnTitleY);
+
+      ctx.fillStyle = bodyTextColor;
+      ctx.font = listItemFont;
+      movieTitles.forEach((title, i) => {
+        ctx.fillText(`${i + 1}. ${title}`, movieListX, movieListY);
+        movieListY += listItemPadding;
+      });
+    }
+
+    const buffer = canvas.toBuffer('image/png');
+    const shareId = generateShareId();
+    const imagePath = getShareItemPath(shareId);
+    await fs.writeFile(imagePath, buffer);
+    await postShare(shareId, username);
+
+    res.status(200).json(success([{ share_id: shareId }]));
+  } catch (error) {
+    Logger.error(error);
+    next(new ErrorWithStatus(500, 'profile_error', "Couldn't share profile"));
+  }
+};
+
+export { getProfile, generateShareImage, deleteAccount, ItemScore };
