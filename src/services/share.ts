@@ -10,7 +10,7 @@ const getShareImage = async (req: Request, res: Response, next: NextFunction) =>
 
   try {
     const share = await getShare(id);
-    const imagePath = getShareItemPath(share.share_id);
+    const imagePath = getShareItemPath(share.username);
     const shareImage = await fs.readFile(imagePath);
     res.set({ 'Content-Type': 'image/png' }).send(shareImage);
   } catch (error) {

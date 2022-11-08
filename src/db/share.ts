@@ -18,6 +18,8 @@ const postShare = async (id: string, username: string): Promise<string> => {
   const postShareQuery: QueryConfig = {
     text: `INSERT INTO shares (share_id, username)
            VALUES ($1, $2)
+           ON CONFLICT (username)
+            DO UPDATE SET share_id = $1
            RETURNING share_id;`,
     values: [id, username],
   };

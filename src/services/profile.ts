@@ -350,7 +350,7 @@ const generateShareImage = async (req: Request, res: Response, next: NextFunctio
 
     const buffer = canvas.toBuffer('image/png');
     const shareId = generateShareId();
-    const imagePath = getShareItemPath(shareId);
+    const imagePath = getShareItemPath(username);
     await fs.writeFile(imagePath, buffer);
     await postShare(shareId, username);
 

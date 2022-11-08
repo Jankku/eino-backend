@@ -15,7 +15,8 @@ const createShareDir = async () => {
 
 const getSharePath = () => path.join(SHARE_PATH);
 
-const getShareItemPath = (id: string) => path.join(SHARE_PATH, `${id}${IMAGE_EXTENSION}`);
+const getShareItemPath = (username: string) =>
+  path.join(SHARE_PATH, `${username}${IMAGE_EXTENSION}`);
 
 const generateShareId = () => crypto.randomBytes(4).toString('hex');
 
