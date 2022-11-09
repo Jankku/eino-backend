@@ -19,7 +19,6 @@
   "author": "Jankku",
   "license": "MIT",
   "dependencies": {
-    "@types/pg-pool": "^2.0.3",
     "bcrypt": "^5.1.0",
     "canvas": "^2.10.2",
     "compression": "^1.7.4",
@@ -36,7 +35,7 @@
     "winston": "^3.8.2"
   },
   "devDependencies": {
-    "@tsconfig/node16": "^1.0.3",
+    "@tsconfig/node18": "^1.0.1",
     "@types/bcrypt": "^5.0.0",
     "@types/chai": "^4.3.3",
     "@types/compression": "^1.7.2",
@@ -48,6 +47,7 @@
     "@types/mocha": "^10.0.0",
     "@types/node": "^18.11.4",
     "@types/pg": "^8.6.5",
+    "@types/pg-pool": "^2.0.3",
     "@types/validator": "^13.7.9",
     "@typescript-eslint/eslint-plugin": "^5.40.1",
     "@typescript-eslint/parser": "^5.41.0",
