@@ -305,10 +305,10 @@ const generateShareImage = async (req: Request, res: Response, next: NextFunctio
     ctx.fillRect(70, dividerHeight, canvasWidth - 140, 2);
 
     // Book list
-    let maxTitleWidth = 0;
+    const bookListX = 70;
+    let maxTitleWidth = bookListX; // Minimum so that columns don't overlap
 
     if (bookTitles.length > 0) {
-      const bookListX = 70;
       let bookListY = listColumnContentY;
 
       ctx.fillStyle = headerTextColor;
@@ -330,10 +330,15 @@ const generateShareImage = async (req: Request, res: Response, next: NextFunctio
 
     // Movie list
     if (movieTitles.length > 0) {
-      const movieListX =
-        maxTitleWidth + canvasLeftPadding < canvasLeftPadding
-          ? canvasLeftPadding
-          : maxTitleWidth + listColumnPadding;
+      let movieListX = maxTitleWidth;
+
+      if (bookTitles.length > 0) {
+        movieListX =
+          listColumnPadding > movieListX
+            ? maxTitleWidth + listColumnPadding + canvasLeftPadding
+            : movieListX + listColumnPadding;
+      }
+
       let movieListY = listColumnContentY;
 
       ctx.fillStyle = headerTextColor;
