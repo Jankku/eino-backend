@@ -1,7 +1,7 @@
 FROM node:lts AS build
 WORKDIR /usr/src/eino
 COPY package*.json ./
-RUN apt-get update && apt-get install -y build-essential libcairo2-dev libpango1.0-dev libjpeg-dev && npm install --build-from-source
+RUN apt-get update && apt-get install -y build-essential libcairo2-dev libpango1.0-dev libjpeg-dev && npm ci --build-from-source
 RUN apt-get remove -y build-essential libcairo2-dev libpango1.0-dev libjpeg-dev
 COPY tsconfig.json ./
 COPY src ./src
