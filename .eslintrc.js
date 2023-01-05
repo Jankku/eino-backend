@@ -1,6 +1,5 @@
 module.exports = {
   root: true,
-  plugins: ['@typescript-eslint', 'security', 'import'],
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
@@ -9,14 +8,12 @@ module.exports = {
     'plugin:import/typescript',
     'prettier',
   ],
+  plugins: ['@typescript-eslint', 'security', 'import'],
   parser: '@typescript-eslint/parser',
   parserOptions: {
-    project: './tsconfig.json',
+    project: './tsconfig.eslint.json',
   },
   rules: {
-    'consistent-return': 0,
-    'no-plusplus': 0,
-    '@typescript-eslint/naming-convention': ['off'],
     'security/detect-non-literal-fs-filename': 0,
   },
 };
