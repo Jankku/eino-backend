@@ -15,19 +15,20 @@ import { generateShareId, getFontPath, getShareItemPath } from '../util/share';
 import { postShare } from '../db/share';
 import { DateTime } from 'luxon';
 
-const getUserInfo = async (username: string, next: NextFunction) => {
+type UserInfo = {
+  user_id: string;
+  registration_date: string;
+};
+
+const getUserInfo = async (username: string): Promise<UserInfo> => {
   const usernameQuery: QueryConfig = {
     text: `SELECT user_id, created_on as registration_date
            FROM users
            WHERE username = $1`,
     values: [username],
   };
-  try {
-    const { rows } = await query(usernameQuery);
-    return rows[0];
-  } catch (e) {
-    next(new ErrorWithStatus(500, 'profile_error', 'Error fetching user data'));
-  }
+  const { rows }: { rows: UserInfo[] } = await query(usernameQuery);
+  return rows[0];
 };
 
 type BookData = {
@@ -36,7 +37,7 @@ type BookData = {
   score_average: number;
 };
 
-const getBookData = async (username: string, next: NextFunction) => {
+const getBookData = async (username: string): Promise<BookData> => {
   const countQuery: QueryConfig = {
     text: `SELECT count(*)
            FROM books
@@ -60,20 +61,16 @@ const getBookData = async (username: string, next: NextFunction) => {
     values: [username],
   };
 
-  try {
-    const bookCount = await query(countQuery);
-    const pagesRead = await query(pagesReadQuery);
-    const avgBookScore = await query(avgScoreQuery);
+  const bookCount = await query(countQuery);
+  const pagesRead = await query(pagesReadQuery);
+  const avgBookScore = await query(avgScoreQuery);
 
-    const response: BookData = {
-      count: bookCount.rows[0].count,
-      pages_read: pagesRead.rows[0].pages_read,
-      score_average: avgBookScore.rows[0].average,
-    };
-    return response;
-  } catch (e) {
-    next(new ErrorWithStatus(500, 'profile_error', 'Error fetching book data'));
-  }
+  const response: BookData = {
+    count: bookCount.rows[0].count,
+    pages_read: pagesRead.rows[0].pages_read,
+    score_average: avgBookScore.rows[0].average,
+  };
+  return response;
 };
 
 type MovieData = {
@@ -82,7 +79,7 @@ type MovieData = {
   score_average: number;
 };
 
-const getMovieData = async (username: string, next: NextFunction) => {
+const getMovieData = async (username: string): Promise<MovieData> => {
   const countQuery: QueryConfig = {
     text: `SELECT count(*)
            FROM movies
@@ -105,20 +102,16 @@ const getMovieData = async (username: string, next: NextFunction) => {
     values: [username],
   };
 
-  try {
-    const movieCount = await query(countQuery);
-    const watchTime = await query(watchTimeQuery);
-    const avgMovieScore = await query(avgScoreQuery);
+  const movieCount = await query(countQuery);
+  const watchTime = await query(watchTimeQuery);
+  const avgMovieScore = await query(avgScoreQuery);
 
-    const response: MovieData = {
-      count: movieCount.rows[0].count,
-      watch_time: watchTime.rows[0].watch_time,
-      score_average: avgMovieScore.rows[0].average,
-    };
-    return response;
-  } catch (e) {
-    next(new ErrorWithStatus(500, 'profile_error', 'Error fetching movie data'));
-  }
+  const response: MovieData = {
+    count: movieCount.rows[0].count,
+    watch_time: watchTime.rows[0].watch_time,
+    score_average: avgMovieScore.rows[0].average,
+  };
+  return response;
 };
 
 type ItemScore = {
@@ -126,7 +119,7 @@ type ItemScore = {
   count: string;
 };
 
-const getBookScores = async (username: string, next: NextFunction) => {
+const getBookScores = async (username: string): Promise<ItemScore[]> => {
   const scoreQuery: QueryConfig = {
     text: `SELECT ubl.score, count(ubl.score)
            FROM books b
@@ -135,16 +128,11 @@ const getBookScores = async (username: string, next: NextFunction) => {
            GROUP BY ubl.score;`,
     values: [username],
   };
-
-  try {
-    const { rows }: { rows: ItemScore[] } = await query(scoreQuery);
-    return await fillAndSortResponse(rows);
-  } catch (e) {
-    next(new ErrorWithStatus(500, 'profile_error', 'Error fetching book scores'));
-  }
+  const { rows }: { rows: ItemScore[] } = await query(scoreQuery);
+  return await fillAndSortResponse(rows);
 };
 
-const getMovieScores = async (username: string, next: NextFunction) => {
+const getMovieScores = async (username: string): Promise<ItemScore[]> => {
   const scoreQuery: QueryConfig = {
     text: `SELECT uml.score, count(uml.score)
            FROM movies m
@@ -154,23 +142,19 @@ const getMovieScores = async (username: string, next: NextFunction) => {
     values: [username],
   };
 
-  try {
-    const { rows }: { rows: ItemScore[] } = await query(scoreQuery);
-    return await fillAndSortResponse(rows);
-  } catch (e) {
-    next(new ErrorWithStatus(500, 'profile_error', 'Error fetching movie scores'));
-  }
+  const { rows }: { rows: ItemScore[] } = await query(scoreQuery);
+  return await fillAndSortResponse(rows);
 };
 
 const getProfile = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
 
   try {
-    const { user_id, registration_date } = await getUserInfo(username, next);
-    const book = await getBookData(username, next);
-    const movie = await getMovieData(username, next);
-    const bookScoreDistribution = await getBookScores(username, next);
-    const movieScoreDistribution = await getMovieScores(username, next);
+    const { user_id, registration_date } = await getUserInfo(username);
+    const book = await getBookData(username);
+    const movie = await getMovieData(username);
+    const bookScoreDistribution = await getBookScores(username);
+    const movieScoreDistribution = await getMovieScores(username);
 
     res.status(200).json({
       user_id,
@@ -224,7 +208,7 @@ const deleteAccount = async (req: Request, res: Response, next: NextFunction) =>
       .status(200)
       .json(success([{ name: 'account_deleted', message: 'Account successfully deleted' }]));
   } catch (error) {
-    next(new ErrorWithStatus(422, 'profile_error', "Couldn't delete account."));
+    next(new ErrorWithStatus(422, 'profile_error', "Couldn't delete account"));
   }
 };
 
@@ -353,11 +337,12 @@ const generateShareImage = async (req: Request, res: Response, next: NextFunctio
       });
     }
 
-    const buffer = canvas.toBuffer('image/png');
+    const imageBuffer = canvas.toBuffer('image/png');
+    const shareImagePath = getShareItemPath(username);
     const shareId = generateShareId();
-    const imagePath = getShareItemPath(username);
-    await fs.writeFile(imagePath, buffer);
+
     await postShare(shareId, username);
+    await fs.writeFile(shareImagePath, imageBuffer);
 
     res.status(200).json(success([{ share_id: shareId }]));
   } catch (error) {
