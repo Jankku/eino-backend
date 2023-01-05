@@ -6,11 +6,11 @@ import { errorHandler } from './util/errorhandler';
 import verifyToken from './middleware/verifytoken';
 import { pool } from './db/config';
 import { createShareDir } from './util/share';
-import { authRouter } from './routes/auth';
-import { bookRouter } from './routes/books';
-import { movieRouter } from './routes/movies';
-import { profileRouter } from './routes/profile';
-import { shareRouter } from './routes/share';
+import authRouter from './routes/auth';
+import bookRouter from './routes/books';
+import movieRouter from './routes/movies';
+import profileRouter from './routes/profile';
+import shareRouter from './routes/share';
 
 const app = express();
 const port = process.env.PORT || 5000;
