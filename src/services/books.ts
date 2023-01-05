@@ -3,11 +3,11 @@ import { QueryConfig } from 'pg';
 import Logger from '../util/logger';
 import { getAllBooks, getBookById, getBooksByStatus, postBook } from '../db/books';
 import { success } from '../util/response';
-import BookStatus from '../db/model/bookstatus';
 import Book from '../db/model/book';
 import { query, transaction } from '../db/config';
 import { ErrorWithStatus } from '../util/errorhandler';
 import BookSearchResult from '../db/model/booksearchresult';
+import BookStatus from '../db/model/bookstatus';
 
 const fetchOne = async (req: Request, res: Response, next: NextFunction) => {
   const { bookId } = req.params;
@@ -33,13 +33,9 @@ const fetchAll = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const fetchByStatus = async (
-  req: Request,
-  res: Response,
-  status: BookStatus,
-  next: NextFunction
-) => {
+const fetchByStatus = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
+  const status = req.params.status as BookStatus;
 
   try {
     const books = await getBooksByStatus(username, status);
@@ -78,7 +74,7 @@ const addOne = async (req: Request, res: Response, next: NextFunction) => {
     res.status(201).json(success([{ name: 'book_added_to_list', message: 'Book added to list' }]));
   } catch (error) {
     Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(422, 'book_list_error', "Couldn't addOne book"));
+    next(new ErrorWithStatus(422, 'book_list_error', "Couldn't add book"));
   }
 };
 
@@ -120,7 +116,7 @@ const updateOne = async (req: Request, res: Response, next: NextFunction) => {
     res.status(200).json(success(updatedBook));
   } catch (error) {
     Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(422, 'book_list_error', "Couldn't updateOne book"));
+    next(new ErrorWithStatus(422, 'book_list_error', "Couldn't update book"));
   }
 };
 

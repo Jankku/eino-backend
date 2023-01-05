@@ -11,13 +11,8 @@ const getUserByUsername = async (username: string): Promise<User | undefined> =>
     values: [username],
   };
 
-  try {
-    const { rows } = await query(getUserQuery);
-    return rows[0] as User;
-  } catch (error) {
-    Logger.error((error as Error).stack);
-    return undefined;
-  }
+  const { rows }: { rows: User[] } = await query(getUserQuery);
+  return rows[0];
 };
 
 const isUserUnique = async (username: string): Promise<boolean> => {
@@ -29,7 +24,7 @@ const isUserUnique = async (username: string): Promise<boolean> => {
   };
 
   try {
-    const { rows } = await query(isUniqueQuery);
+    const { rows }: { rows: User[] } = await query(isUniqueQuery);
     return rows.length === 0;
   } catch (error) {
     Logger.error((error as Error).stack);

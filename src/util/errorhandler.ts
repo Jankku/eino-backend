@@ -1,5 +1,4 @@
 import { NextFunction, Request, Response } from 'express';
-import { clearErrors } from './validation';
 
 class ErrorWithStatus extends Error {
   status: number;
@@ -25,8 +24,6 @@ const errorHandler = (
     const { status, name, message } = errors;
     res.status(status).json({ errors: [{ name, message }] });
   }
-
-  clearErrors();
 };
 
 export { ErrorWithStatus, errorHandler };

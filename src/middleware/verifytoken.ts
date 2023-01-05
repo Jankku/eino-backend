@@ -3,13 +3,14 @@ import jwt from 'jsonwebtoken';
 import JwtPayload from '../model/jwtpayload';
 import { ErrorWithStatus } from '../util/errorhandler';
 
+/**
+ * Verifies that user's access token is valid
+ */
 const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   const accessToken = req.headers.authorization?.split(' ')[1];
 
   if (!accessToken) {
-    next(
-      new ErrorWithStatus(401, 'no_authorization_header', 'Add Authorization header to request')
-    );
+    next(new ErrorWithStatus(401, 'authorization_error', 'Add Authorization header to request'));
     return;
   }
 

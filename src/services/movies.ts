@@ -22,7 +22,7 @@ const fetchOne = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const fetchAll = async (req: Request, res: Response, next: NextFunction) => {
+const fetchAll = async (_req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
 
   try {
@@ -34,13 +34,9 @@ const fetchAll = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const fetchByStatus = async (
-  req: Request,
-  res: Response,
-  status: MovieStatus,
-  next: NextFunction
-) => {
+const fetchByStatus = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
+  const status = req.params.status as MovieStatus;
 
   try {
     const movies = await getMoviesByStatus(username, status);
