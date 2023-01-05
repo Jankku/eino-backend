@@ -204,6 +204,9 @@ const deleteAccount = async (req: Request, res: Response, next: NextFunction) =>
       values: [username],
     };
     await query(deleteAccountQuery);
+    const shareImagePath = getShareItemPath(username);
+    await fs.rm(shareImagePath);
+
     res
       .status(200)
       .json(success([{ name: 'account_deleted', message: 'Account successfully deleted' }]));
