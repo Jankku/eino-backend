@@ -205,7 +205,7 @@ const deleteAccount = async (req: Request, res: Response, next: NextFunction) =>
     };
     await query(deleteAccountQuery);
     const shareImagePath = getShareItemPath(username);
-    await fs.rm(shareImagePath);
+    await fs.rm(shareImagePath, { force: true });
 
     res
       .status(200)
