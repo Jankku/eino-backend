@@ -176,12 +176,13 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
       const lessAccurateSearchQuery: QueryConfig = {
         text: `SELECT m.movie_id, m.title, m.studio, m.director, m.writer, uml.score
                FROM movies m INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
-               WHERE title ILIKE $1
-                  OR studio ILIKE $1
-                  OR director ILIKE $1
-                  OR writer ILIKE $1
+               WHERE submitter = $1 AND (
+                title ILIKE $2
+                  OR studio ILIKE $2
+                  OR director ILIKE $2
+                  OR writer ILIKE $2)
                LIMIT 100;`,
-        values: [`%${queryString}%`],
+        values: [username, `%${queryString}%`],
       };
 
       const { rows } = await query(lessAccurateSearchQuery);

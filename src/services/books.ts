@@ -171,11 +171,12 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
       const lessAccurateSearchQuery: QueryConfig = {
         text: `SELECT b.book_id, b.title, b.author, b.publisher, ubl.score
                FROM books b INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
-               WHERE title ILIKE $1
-                  OR author ILIKE $1
-                  OR publisher ILIKE $1
+               WHERE submitter = $1 AND (
+                  title ILIKE $2
+                  OR author ILIKE $2
+                  OR publisher ILIKE $2)
                LIMIT 100;`,
-        values: [`%${queryString}%`],
+        values: [username, `%${queryString}%`],
       };
 
       const { rows } = await query(lessAccurateSearchQuery);
