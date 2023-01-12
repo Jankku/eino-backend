@@ -1,20 +1,30 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import { z, ZodError } from 'zod';
 import JwtPayload from '../model/jwtpayload';
 import { ErrorWithStatus } from '../util/errorhandler';
+import { formatZodErrors } from '../util/zod';
+
+const tokenSchema = z.object({
+  headers: z.object({
+    authorization: z
+      .string({ required_error: 'Authorization header required' })
+      .refine((val) => val.split(' ')[0] === 'Bearer', {
+        params: {
+          name: 'authorization_error',
+        },
+        message: 'Authorization header must be Bearer',
+      })
+      .transform((val) => val.split(' ')[1]),
+  }),
+});
 
 /**
  * Verifies that user's access token is valid
  */
 const verifyToken = (req: Request, res: Response, next: NextFunction) => {
-  const accessToken = req.headers.authorization?.split(' ')[1];
-
-  if (!accessToken) {
-    next(new ErrorWithStatus(401, 'authorization_error', 'Add Authorization header to request'));
-    return;
-  }
-
   try {
+    const accessToken = tokenSchema.parse(req).headers.authorization;
     const { username } = jwt.verify(accessToken, `${process.env.ACCESS_TOKEN_SECRET}`, {
       audience: 'eino',
       issuer: 'eino-backend',
@@ -23,7 +33,11 @@ const verifyToken = (req: Request, res: Response, next: NextFunction) => {
     res.locals.username = username;
     next();
   } catch (error) {
-    next(new ErrorWithStatus(401, 'authorization_error', `${(error as Error)?.message}`));
+    if (error instanceof ZodError) {
+      next(formatZodErrors(error));
+    } else {
+      next(new ErrorWithStatus(401, 'authorization_error', `${(error as Error)?.message}`));
+    }
   }
 };
 
