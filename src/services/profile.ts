@@ -7,10 +7,10 @@ import * as fs from 'fs/promises';
 import * as bcrypt from 'bcrypt';
 import { success } from '../util/response';
 import Logger from '../util/logger';
-import { fillAndSortResponse, getTruncatedTitles } from '../util/profile';
+import { fillAndSortResponse } from '../util/profile';
 import { registerFont, createCanvas } from 'canvas';
-import { getTop10Books } from '../db/books';
-import { getTop10Movies } from '../db/movies';
+import { getTop10BookTitles } from '../db/books';
+import { getTop10MovieTitles } from '../db/movies';
 import { generateShareId, getFontPath, getShareItemPath } from '../util/share';
 import { postShare } from '../db/share';
 import { DateTime } from 'luxon';
@@ -218,8 +218,8 @@ const deleteAccount = async (req: Request, res: Response, next: NextFunction) =>
 const generateShareImage = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { username } = res.locals;
-    const bookTitles = getTruncatedTitles(await getTop10Books(username));
-    const movieTitles = getTruncatedTitles(await getTop10Movies(username));
+    const bookTitles = await getTop10BookTitles(username);
+    const movieTitles = await getTop10MovieTitles(username);
 
     if (bookTitles.length === 0 && movieTitles.length === 0) {
       next(new ErrorWithStatus(422, 'profile_error', 'Not enough items for image creation'));

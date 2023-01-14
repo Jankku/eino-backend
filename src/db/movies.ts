@@ -91,30 +91,25 @@ const postMovie = async (client: PoolClient, m: Movie): Promise<string> => {
   return rows[0].movie_id;
 };
 
-const getTop10Movies = async (username: string): Promise<DbMovie[]> => {
+const getTop10MovieTitles = async (username: string): Promise<string[]> => {
   const getTopMoviesQuery: QueryConfig = {
-    text: `SELECT m.movie_id,
-                  m.title,
-                  m.studio,
-                  m.director,
-                  m.writer,
-                  m.duration,
-                  m.year,
-                  uml.status,
-                  uml.score,
-                  uml.start_date,
-                  uml.end_date,
-                  uml.created_on
+    text: `SELECT CASE
+                WHEN char_length(m.title) > 25
+                  THEN concat(left(m.title, 22), '...')
+                  ELSE m.title
+                END
            FROM user_movie_list uml
                     INNER JOIN movies m USING (movie_id)
            WHERE uml.username = m.submitter
              AND uml.username = $1
-           ORDER BY uml.score DESC
+             AND uml.status = 'completed'
+           ORDER BY uml.score DESC,
+                      uml.end_date DESC
            LIMIT 10;`,
     values: [username],
   };
-  const { rows } = await query(getTopMoviesQuery);
-  return rows;
+  const { rows }: { rows: { title: string }[] } = await query(getTopMoviesQuery);
+  return rows.map(({ title }) => title);
 };
 
-export { getAllMovies, getMovieById, getMoviesByStatus, postMovie, getTop10Movies };
+export { getAllMovies, getMovieById, getMoviesByStatus, postMovie, getTop10MovieTitles };

@@ -92,30 +92,25 @@ const postBook = async (client: PoolClient, b: Book): Promise<string> => {
   return rows[0].book_id;
 };
 
-const getTop10Books = async (username: string): Promise<DbBook[]> => {
+const getTop10BookTitles = async (username: string): Promise<string[]> => {
   const getTopBooksQuery: QueryConfig = {
-    text: `SELECT b.book_id,
-                  b.isbn,
-                  b.title,
-                  b.author,
-                  b.publisher,
-                  b.pages,
-                  b.year,
-                  ubl.status,
-                  ubl.score,
-                  ubl.start_date,
-                  ubl.end_date,
-                  ubl.created_on
-           FROM user_book_list ubl
+    text: `SELECT CASE
+                WHEN char_length(b.title) > 25
+                  THEN concat(left(b.title, 22), '...')
+                  ELSE b.title
+              END
+            FROM user_book_list ubl
                     INNER JOIN books b USING (book_id)
-           WHERE ubl.username = b.submitter
-             AND ubl.username = $1
-           ORDER BY ubl.score DESC
-           LIMIT 10;`,
+            WHERE ubl.username = b.submitter
+              AND ubl.username = $1
+              AND ubl.status = 'completed'
+            ORDER BY ubl.score DESC,
+                      ubl.end_date DESC
+            LIMIT 10;`,
     values: [username],
   };
-  const { rows } = await query(getTopBooksQuery);
-  return rows;
+  const { rows }: { rows: { title: string }[] } = await query(getTopBooksQuery);
+  return rows.map(({ title }) => title);
 };
 
-export { getAllBooks, getBookById, getBooksByStatus, postBook, getTop10Books };
+export { getAllBooks, getBookById, getBooksByStatus, postBook, getTop10BookTitles };

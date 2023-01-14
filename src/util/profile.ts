@@ -1,5 +1,3 @@
-import DbBook from '../db/model/dbbook';
-import DbMovie from '../db/model/dbmovie';
 import { ItemScore } from '../services/profile';
 
 /**
@@ -35,7 +33,4 @@ const fillAndSortResponse = async (array: ItemScore[]) =>
     resolve(resultArray);
   });
 
-const getTruncatedTitles = (list: DbBook[] | DbMovie[]) =>
-  list.map(({ title }) => (title.length > 25 ? `${title.slice(0, 22)}...` : title));
-
-export { fillAndSortResponse, getTruncatedTitles };
+export { fillAndSortResponse };
