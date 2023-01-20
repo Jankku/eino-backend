@@ -116,7 +116,7 @@ const getMovieData = async (username: string): Promise<MovieData> => {
 
 type ItemScore = {
   score: number;
-  count: string;
+  count: number;
 };
 
 const getBookScores = async (username: string): Promise<ItemScore[]> => {

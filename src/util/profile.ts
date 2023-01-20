@@ -25,7 +25,7 @@ const fillAndSortResponse = async (array: ItemScore[]) =>
 
     for (let i = 0; i <= 10; i++) {
       if (!foundNumbers.includes(i)) {
-        resultArray.push({ score: i, count: '0' });
+        resultArray.push({ score: i, count: 0 });
       }
     }
 

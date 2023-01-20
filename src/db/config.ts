@@ -1,9 +1,13 @@
 import Pool from 'pg-pool';
-import { PoolClient, QueryConfig } from 'pg';
+import { PoolClient, QueryConfig, types } from 'pg';
 import Logger from '../util/logger';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 require('dotenv').config();
+
+types.setTypeParser(types.builtins.INT8, (value: string) => parseInt(value));
+types.setTypeParser(types.builtins.FLOAT8, (value: string) => parseFloat(value));
+types.setTypeParser(types.builtins.NUMERIC, (value: string) => parseFloat(value));
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
