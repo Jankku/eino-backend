@@ -6,6 +6,7 @@ type DbBook = {
   title: string;
   author: string;
   publisher: string;
+  image_url: string;
   pages: number;
   year: number;
   status: BookStatus;

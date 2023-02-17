@@ -1,9 +1,10 @@
 import { NextFunction, Request, Response } from 'express';
 import { QueryConfig } from 'pg';
+import axios from 'axios';
+import { z } from 'zod';
 import Logger from '../util/logger';
 import { getAllBooks, getBookById, getBooksByStatus, postBook } from '../db/books';
 import { success } from '../util/response';
-import Book from '../db/model/book';
 import { query, transaction } from '../db/config';
 import { ErrorWithStatus } from '../util/errorhandler';
 import BookSearchResult from '../db/model/booksearchresult';
@@ -48,21 +49,33 @@ const fetchByStatus = async (req: Request, res: Response, next: NextFunction) =>
 
 const addOne = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
-  const { isbn, title, author, publisher, pages, year, status, score, start_date, end_date } =
-    req.body;
-  const book: Book = {
+  const {
     isbn,
     title,
     author,
     publisher,
+    image_url,
     pages,
     year,
-    submitter: username,
-  };
+    status,
+    score,
+    start_date,
+    end_date,
+  } = req.body;
 
   try {
     await transaction(async (client) => {
-      const bookId = await postBook(client, book);
+      const bookId = await postBook(client, {
+        isbn,
+        title,
+        author,
+        publisher,
+        image_url,
+        pages,
+        year,
+        submitter: username,
+      });
+
       const addBookToUserListQuery: QueryConfig = {
         text: `INSERT INTO user_book_list (book_id, username, status, score, start_date, end_date)
              VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -81,20 +94,32 @@ const addOne = async (req: Request, res: Response, next: NextFunction) => {
 const updateOne = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
   const { bookId } = req.params;
-  const { isbn, title, author, publisher, pages, year, status, score, start_date, end_date } =
-    req.body;
+  const {
+    isbn,
+    title,
+    author,
+    publisher,
+    image_url,
+    pages,
+    year,
+    status,
+    score,
+    start_date,
+    end_date,
+  } = req.body;
 
   const updateQuery: QueryConfig = {
     text: `UPDATE books
            SET title=$1,
                author=$2,
                publisher=$3,
-               pages=$4,
-               isbn=$5,
-               year=$6
-           WHERE book_id = $7
-             AND submitter = $8`,
-    values: [title, author, publisher, pages, isbn, year, bookId, username],
+               image_url=$4,
+               pages=$5,
+               isbn=$6,
+               year=$7
+           WHERE book_id = $8
+             AND submitter = $9`,
+    values: [title, author, publisher, image_url, pages, isbn, year, bookId, username],
   };
 
   const updateUserListQuery: QueryConfig = {
@@ -194,4 +219,77 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export { fetchOne, fetchAll, fetchByStatus, addOne, updateOne, deleteOne, search };
+const fetchImages = async (req: Request, res: Response, next: NextFunction) => {
+  const query = req.query.query as string;
+
+  try {
+    const responses = (await Promise.allSettled([
+      fetchFinnaImages(query),
+      fetchOpenLibraryImages(query),
+    ])) as { status: 'fulfilled' | 'rejected'; value: string[] }[];
+
+    const images: string[] = responses
+      .filter((response) => response.status === 'fulfilled')
+      .map((response) => response.value)
+      .flat();
+
+    if (images.length === 0) {
+      next(new ErrorWithStatus(422, 'book_list_error', 'No images for this query'));
+      return;
+    }
+
+    res.status(200).json(success(images));
+  } catch (error) {
+    console.error(error);
+    next(new ErrorWithStatus(500, 'book_list_error', 'Failed to fetch images'));
+  }
+};
+
+const finnaImagesSchema = z.object({
+  resultCount: z.number(),
+  records: z.array(z.object({ images: z.array(z.string()) })),
+});
+const FINNA_SEARCH_URL = 'https://api.finna.fi/api/v1/search';
+const FINNA_BASE_URL = 'https://finna.fi';
+
+const fetchFinnaImages = async (query: string): Promise<string[]> => {
+  const response = await axios.get(FINNA_SEARCH_URL, {
+    params: {
+      lookfor: query,
+      field: ['images'],
+      filter: ['format:0/Book/'],
+      limit: 100,
+    },
+  });
+  const { records } = finnaImagesSchema.parse(response.data);
+
+  return records
+    .filter((result) => result.images.length > 0)
+    .map((result) => result.images)
+    .flatMap((images) => {
+      return images.map((image) => `${FINNA_BASE_URL}${image}`);
+    });
+};
+
+const openLibraryImageSchema = z.object({
+  numFound: z.number(),
+  docs: z.array(z.object({ cover_i: z.number().optional() })),
+});
+const OPENLIBRARY_SEARCH_URL = 'https://openlibrary.org/search.json';
+
+const fetchOpenLibraryImages = async (query: string): Promise<string[]> => {
+  const response = await axios.get(OPENLIBRARY_SEARCH_URL, {
+    params: {
+      q: query,
+      limit: 50,
+      fields: ['cover_i'],
+    },
+  });
+  const { docs } = openLibraryImageSchema.parse(response.data);
+
+  return docs
+    .filter((item) => item.cover_i !== undefined)
+    .map(({ cover_i }) => `https://covers.openlibrary.org/b/id/${cover_i}-L.jpg`);
+};
+
+export { fetchOne, fetchAll, fetchByStatus, addOne, updateOne, deleteOne, search, fetchImages };

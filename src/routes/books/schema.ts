@@ -37,3 +37,9 @@ export const fetchByStatusSchema = z.object({
     status: z.string().refine((status) => isBookStatus(status), errorMessages.LIST_STATUS_INVALID),
   }),
 });
+
+export const fetchImagesSchema = z.object({
+  query: z.object({
+    query: z.string({ invalid_type_error: errorMessages.SEARCH_QUERY_TYPE_ERROR }),
+  }),
+});

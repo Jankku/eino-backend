@@ -11,6 +11,7 @@ const getAllBooks = async (username: string): Promise<DbBook[]> => {
                   b.title,
                   b.author,
                   b.publisher,
+                  b.image_url,
                   b.pages,
                   b.year,
                   ubl.status,
@@ -37,6 +38,7 @@ const getBookById = async (bookId: string, username: string): Promise<DbBook[]> 
                   b.title,
                   b.author,
                   b.publisher,
+                  b.image_url,
                   b.pages,
                   b.year,
                   ubl.status,
@@ -62,6 +64,7 @@ const getBooksByStatus = async (username: string, status: BookStatus): Promise<D
                   b.title,
                   b.author,
                   b.publisher,
+                  b.image_url,
                   b.pages,
                   b.year,
                   ubl.status,
@@ -83,10 +86,10 @@ const getBooksByStatus = async (username: string, status: BookStatus): Promise<D
 
 const postBook = async (client: PoolClient, b: Book): Promise<string> => {
   const insertBookQuery: QueryConfig = {
-    text: `INSERT INTO books (isbn, title, author, publisher, pages, year, submitter)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
+    text: `INSERT INTO books (isbn, title, author, publisher, image_url, pages, year, submitter)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
            RETURNING book_id`,
-    values: [b.isbn, b.title, b.author, b.publisher, b.pages, b.year, b.submitter],
+    values: [b.isbn, b.title, b.author, b.publisher, b.image_url, b.pages, b.year, b.submitter],
   };
   const { rows } = await client.query(insertBookQuery);
   return rows[0].book_id;

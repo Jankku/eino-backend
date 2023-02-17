@@ -14,11 +14,17 @@ export const listIdSchema = z.string({
   invalid_type_error: errorMessages.LIST_ID_TYPE_ERROR,
 });
 
+const coverUrlSchema = z.union([
+  z.string().url().startsWith('https').nullable().default(null),
+  z.literal(''),
+]);
+
 export const bookSchema = z.object({
   isbn: z.string().min(0).max(255),
   title: z.string().min(0).max(255),
   author: z.string().min(0).max(255),
   publisher: z.string().min(0).max(255),
+  image_url: coverUrlSchema,
   pages: z.number().nonnegative(),
   year: z.number().nonnegative(),
   status: z.string().refine((status) => isBookStatus(status), {
