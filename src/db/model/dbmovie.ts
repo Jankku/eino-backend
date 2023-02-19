@@ -6,6 +6,7 @@ type DbMovie = {
   studio: string;
   director: string;
   writer: string;
+  image_url: string;
   duration: number;
   year: number;
   status: MovieStatus;

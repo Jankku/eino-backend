@@ -41,6 +41,7 @@ export const movieSchema = z.object({
   studio: z.string().min(0).max(255),
   director: z.string().min(0).max(255),
   writer: z.string().min(0).max(255),
+  image_url: coverUrlSchema,
   duration: z.number().nonnegative(),
   year: z.number().nonnegative(),
   status: z.string().refine((status) => isMovieStatus(status), {

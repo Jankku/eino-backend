@@ -1,7 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
 import { QueryConfig } from 'pg';
-import axios from 'axios';
-import { z } from 'zod';
 import Logger from '../util/logger';
 import { getAllBooks, getBookById, getBooksByStatus, postBook } from '../db/books';
 import { success } from '../util/response';
@@ -9,6 +7,8 @@ import { query, transaction } from '../db/config';
 import { ErrorWithStatus } from '../util/errorhandler';
 import BookSearchResult from '../db/model/booksearchresult';
 import BookStatus from '../db/model/bookstatus';
+import { fetchFinnaImages } from './third-party/finna';
+import { fetchOpenLibraryImages } from './third-party/openlibrary';
 
 const fetchOne = async (req: Request, res: Response, next: NextFunction) => {
   const { bookId } = req.params;
@@ -224,7 +224,7 @@ const fetchImages = async (req: Request, res: Response, next: NextFunction) => {
 
   try {
     const responses = (await Promise.allSettled([
-      fetchFinnaImages(query),
+      fetchFinnaImages(query, 'book'),
       fetchOpenLibraryImages(query),
     ])) as { status: 'fulfilled' | 'rejected'; value: string[] }[];
 
@@ -240,56 +240,8 @@ const fetchImages = async (req: Request, res: Response, next: NextFunction) => {
 
     res.status(200).json(success(images));
   } catch (error) {
-    console.error(error);
     next(new ErrorWithStatus(500, 'book_list_error', 'Failed to fetch images'));
   }
-};
-
-const finnaImagesSchema = z.object({
-  resultCount: z.number(),
-  records: z.array(z.object({ images: z.array(z.string()) })),
-});
-const FINNA_SEARCH_URL = 'https://api.finna.fi/api/v1/search';
-const FINNA_BASE_URL = 'https://finna.fi';
-
-const fetchFinnaImages = async (query: string): Promise<string[]> => {
-  const response = await axios.get(FINNA_SEARCH_URL, {
-    params: {
-      lookfor: query,
-      field: ['images'],
-      filter: ['format:0/Book/'],
-      limit: 100,
-    },
-  });
-  const { records } = finnaImagesSchema.parse(response.data);
-
-  return records
-    .filter((result) => result.images.length > 0)
-    .map((result) => result.images)
-    .flatMap((images) => {
-      return images.map((image) => `${FINNA_BASE_URL}${image}`);
-    });
-};
-
-const openLibraryImageSchema = z.object({
-  numFound: z.number(),
-  docs: z.array(z.object({ cover_i: z.number().optional() })),
-});
-const OPENLIBRARY_SEARCH_URL = 'https://openlibrary.org/search.json';
-
-const fetchOpenLibraryImages = async (query: string): Promise<string[]> => {
-  const response = await axios.get(OPENLIBRARY_SEARCH_URL, {
-    params: {
-      q: query,
-      limit: 50,
-      fields: ['cover_i'],
-    },
-  });
-  const { docs } = openLibraryImageSchema.parse(response.data);
-
-  return docs
-    .filter((item) => item.cover_i !== undefined)
-    .map(({ cover_i }) => `https://covers.openlibrary.org/b/id/${cover_i}-L.jpg`);
 };
 
 export { fetchOne, fetchAll, fetchByStatus, addOne, updateOne, deleteOne, search, fetchImages };

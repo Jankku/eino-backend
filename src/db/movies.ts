@@ -11,6 +11,7 @@ const getAllMovies = async (username: string): Promise<DbMovie[]> => {
                   m.studio,
                   m.director,
                   m.writer,
+                  m.image_url,
                   m.duration,
                   m.year,
                   uml.status,
@@ -36,6 +37,7 @@ const getMovieById = async (movieId: string, username: string): Promise<DbMovie[
                   m.studio,
                   m.director,
                   m.writer,
+                  m.image_url,
                   m.duration,
                   m.year,
                   uml.status,
@@ -61,6 +63,7 @@ const getMoviesByStatus = async (username: string, status: MovieStatus): Promise
                   m.studio,
                   m.director,
                   m.writer,
+                  m.image_url,
                   m.duration,
                   m.year,
                   uml.status,
@@ -82,10 +85,10 @@ const getMoviesByStatus = async (username: string, status: MovieStatus): Promise
 
 const postMovie = async (client: PoolClient, m: Movie): Promise<string> => {
   const insertMovieQuery: QueryConfig = {
-    text: `INSERT INTO movies (title, studio, director, writer, duration, year, submitter)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
+    text: `INSERT INTO movies (title, studio, director, writer, image_url, duration, year, submitter)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
            RETURNING movie_id`,
-    values: [m.title, m.studio, m.director, m.writer, m.duration, m.year, m.submitter],
+    values: [m.title, m.studio, m.director, m.writer, m.image_url, m.duration, m.year, m.submitter],
   };
   const { rows } = await client.query(insertMovieQuery);
   return rows[0].movie_id;

@@ -3,11 +3,12 @@ import { QueryConfig } from 'pg';
 import Logger from '../util/logger';
 import { getAllMovies, getMovieById, getMoviesByStatus, postMovie } from '../db/movies';
 import { success } from '../util/response';
-import Movie from '../db/model/movie';
 import { query, transaction } from '../db/config';
 import MovieStatus from '../db/model/moviestatus';
 import { ErrorWithStatus } from '../util/errorhandler';
 import MovieSearchResult from '../db/model/moviesearchresult';
+import { fetchTmdbImages } from './third-party/tmdb';
+import { fetchFinnaImages } from './third-party/finna';
 
 const fetchOne = async (req: Request, res: Response, next: NextFunction) => {
   const { movieId } = req.params;
@@ -49,21 +50,32 @@ const fetchByStatus = async (req: Request, res: Response, next: NextFunction) =>
 
 const addOne = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
-  const { title, studio, director, writer, duration, year, status, score, start_date, end_date } =
-    req.body;
-  const movie: Movie = {
+  const {
     title,
     studio,
     director,
     writer,
+    image_url,
     duration,
     year,
-    submitter: username,
-  };
+    status,
+    score,
+    start_date,
+    end_date,
+  } = req.body;
 
   try {
     await transaction(async (client) => {
-      const movieId = await postMovie(client, movie);
+      const movieId = await postMovie(client, {
+        title,
+        studio,
+        director,
+        writer,
+        image_url,
+        duration,
+        year,
+        submitter: username,
+      });
       const addMovieToUserListQuery: QueryConfig = {
         text: `INSERT INTO user_movie_list (movie_id, username, status, score, start_date, end_date)
              VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -84,8 +96,19 @@ const addOne = async (req: Request, res: Response, next: NextFunction) => {
 const updateOne = async (req: Request, res: Response, next: NextFunction) => {
   const { movieId } = req.params;
   const { username } = res.locals;
-  const { title, studio, director, writer, duration, year, status, score, start_date, end_date } =
-    req.body;
+  const {
+    title,
+    studio,
+    director,
+    writer,
+    image_url,
+    duration,
+    year,
+    status,
+    score,
+    start_date,
+    end_date,
+  } = req.body;
 
   const updateMovieQuery: QueryConfig = {
     text: `
@@ -94,12 +117,13 @@ const updateOne = async (req: Request, res: Response, next: NextFunction) => {
             studio   = $2,
             director = $3,
             writer   = $4,
-            duration = $5,
-            year     = $6
-        WHERE movie_id = $7
-          AND submitter = $8
+            image_url = $5,
+            duration = $6,
+            year     = $7
+        WHERE movie_id = $8
+          AND submitter = $9
         RETURNING movie_id, title, studio, director, writer, duration, year`,
-    values: [title, studio, director, writer, duration, year, movieId, username],
+    values: [title, studio, director, writer, image_url, duration, year, movieId, username],
   };
 
   const updateUserListQuery: QueryConfig = {
@@ -200,4 +224,32 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export { fetchOne, fetchAll, fetchByStatus, addOne, updateOne, deleteOne, search };
+const fetchImages = async (req: Request, res: Response, next: NextFunction) => {
+  const query = req.query.query as string;
+
+  try {
+    const responses = (await Promise.allSettled([
+      fetchTmdbImages(query),
+      fetchFinnaImages(query, 'video'),
+    ])) as {
+      status: 'fulfilled' | 'rejected';
+      value: string[];
+    }[];
+
+    const images: string[] = responses
+      .filter((response) => response.status === 'fulfilled')
+      .map((response) => response.value)
+      .flat();
+
+    if (images.length === 0) {
+      next(new ErrorWithStatus(422, 'movie_list_error', 'No images for this query'));
+      return;
+    }
+
+    res.status(200).json(success(images));
+  } catch (error) {
+    next(new ErrorWithStatus(500, 'movie_list_error', 'Failed to fetch images'));
+  }
+};
+
+export { fetchOne, fetchAll, fetchByStatus, addOne, updateOne, deleteOne, search, fetchImages };

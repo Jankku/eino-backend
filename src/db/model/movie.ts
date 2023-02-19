@@ -3,6 +3,7 @@ type Movie = {
   studio: string;
   director: string;
   writer: string;
+  image_url: string;
   duration: number;
   year: number;
   submitter: string;
