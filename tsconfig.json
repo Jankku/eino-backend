@@ -1,8 +1,8 @@
 {
   "extends": "./node_modules/@tsconfig/node18/tsconfig.json",
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "migrations/**/*"],
   "compilerOptions": {
-    "rootDir": "./src",
+    "rootDir": ".",
     "outDir": "./dist",
     "removeComments": true,
     "importHelpers": true

@@ -1,21 +1,21 @@
 services:
-    app:
-        container_name: app
-        build: .
-        ports:
-            - "5000:5000"
-        working_dir: /usr/src/eino
-        restart: unless-stopped
-        environment:
-            NODE_ENV: production
-        env_file: .env
-        depends_on:
-            - database
-    database:
-        container_name: database
-        image: postgres:14
-        restart: unless-stopped
-        env_file: .env
-        volumes:
-            - ./database-data:/var/lib/postgresql/data/
-            - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+  app:
+    container_name: app
+    build: .
+    ports:
+      - '127.0.0.1:5000:5000'
+    working_dir: /usr/src/eino
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+    env_file: .env
+    entrypoint: '/bin/bash docker-entrypoint.sh'
+    depends_on:
+      - database
+  database:
+    container_name: database
+    image: postgres:14
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./database-data:/var/lib/postgresql/data/
