@@ -8,7 +8,7 @@ const tmdbSearchSchema = z.object({
 export const fetchTmdbImages = async (query: string): Promise<string[]> => {
   const response = await axios.get('https://api.themoviedb.org/3/search/movie', {
     params: {
-      query: encodeURIComponent(query),
+      query,
       api_key: process.env.TMDB_API_KEY,
     },
   });
