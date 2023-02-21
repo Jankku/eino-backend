@@ -15,21 +15,46 @@ You can find the API documentation on [wiki](https://github.com/Jankku/eino-back
 
 ## Get started
 
-You need PostgreSQL 14 database so make sure to install it.
+Eino uses Docker Compose, so getting it up and running is simple.
 
-Rename `.env.example` to `.env` and fill the fields.
+Clone repository.
+```
+$ git clone https://github.com/Jankku/eino-backend
+```
 
-After that do the following:
+Navigate to the folder.
+```
+$ cd eino-backend/
+```
 
-```bash
-# Install dependencies
-$ npm install
+Rename `.env.example` to `.env`.
+```
+$ mv .env.example .env
+```
 
-# Run development
-$ npm run dev
+Fill `.env` file with these env variables:
 
-# Or build production build
-$ npm run build
+```
+# 5000 is default port
+PORT=
+DATABASE_URL=postgresql://<username>:<password>@database:5432/eino
+POSTGRES_USER=<username>
+POSTGRES_PASSWORD=<password>
+POSTGRES_DB=eino
+
+ACCESS_TOKEN_SECRET=<long secret here>
+REFRESH_TOKEN_SECRET=<long secret here>
+# number in seconds, or a string time span (https://github.com/vercel/ms)
+ACCESS_TOKEN_VALIDITY=3600
+REFRESH_TOKEN_VALIDITY=1d
+
+# Required for searching movie posters
+TMDB_API_KEY=
+```
+
+Start the containers.
+```
+$ docker compose up -d
 ```
 
 ## License
