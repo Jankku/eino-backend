@@ -1,4 +1,4 @@
-FROM node:lts AS build
+FROM node:lts-slim AS build
 WORKDIR /usr/src/eino
 COPY package*.json tsconfig.json ./
 RUN apt-get update \
@@ -9,7 +9,7 @@ COPY src ./src
 COPY migrations ./migrations
 RUN npm run build
 
-FROM node:lts
+FROM node:lts-slim
 WORKDIR /usr/src/eino
 COPY package*.json docker-entrypoint.sh ./
 RUN apt-get update \
