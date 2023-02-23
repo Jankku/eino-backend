@@ -14,6 +14,16 @@ const getShare = async (id: string): Promise<DbShare> => {
   return rows[0];
 };
 
+const getSharesByUsername = async (username: string): Promise<DbShare[]> => {
+  const getShareQuery: QueryConfig = {
+    text: `SELECT share_id, created_on FROM shares
+            WHERE username = $1;`,
+    values: [username],
+  };
+  const { rows }: DbShareQueryResult = await pool.query(getShareQuery);
+  return rows;
+};
+
 const postShare = async (id: string, username: string): Promise<string> => {
   const postShareQuery: QueryConfig = {
     text: `INSERT INTO shares (share_id, username)
@@ -27,4 +37,4 @@ const postShare = async (id: string, username: string): Promise<string> => {
   return rows[0].share_id;
 };
 
-export { getShare, postShare };
+export { getShare, getSharesByUsername, postShare };

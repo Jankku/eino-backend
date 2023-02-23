@@ -2,6 +2,7 @@ import Logger from '../util/logger';
 import { query } from './config';
 import User from './model/user';
 import { QueryConfig } from 'pg';
+import * as bcrypt from 'bcrypt';
 
 const getUserByUsername = async (username: string): Promise<User | undefined> => {
   const getUserQuery: QueryConfig = {
@@ -13,6 +14,14 @@ const getUserByUsername = async (username: string): Promise<User | undefined> =>
 
   const { rows }: { rows: User[] } = await query(getUserQuery);
   return rows[0];
+};
+
+const isPasswordCorrect = async (username: string, password: string): Promise<boolean> => {
+  const user = await getUserByUsername(username);
+  if (user === undefined) return false;
+
+  const isCorrect = await bcrypt.compare(password, user.password);
+  return isCorrect;
 };
 
 const isUserUnique = async (username: string): Promise<boolean> => {
@@ -44,4 +53,4 @@ const deleteAllUsers = () => {
   }
 };
 
-export { getUserByUsername, isUserUnique, deleteAllUsers };
+export { getUserByUsername, isPasswordCorrect, isUserUnique, deleteAllUsers };

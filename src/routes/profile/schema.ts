@@ -6,3 +6,9 @@ export const deleteAccountSchema = z.object({
     password: passwordSchema,
   }),
 });
+
+export const getProfileSchema = z.object({
+  body: z.object({
+    password: passwordSchema,
+  }),
+});

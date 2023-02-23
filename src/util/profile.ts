@@ -1,4 +1,4 @@
-import { ItemScore } from '../services/profile';
+import { ItemScore } from '../db/profile';
 
 /**
  * Fills array gaps so that there are ItemScore objects which have score
