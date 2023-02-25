@@ -4,7 +4,6 @@ services:
     image: ghcr.io/jankku/eino-backend:master
     ports:
       - '127.0.0.1:5000:5000'
-    working_dir: /usr/src/eino
     restart: unless-stopped
     environment:
       NODE_ENV: production
