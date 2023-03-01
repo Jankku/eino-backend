@@ -27,29 +27,36 @@ Navigate to the folder.
 $ cd eino-backend/
 ```
 
-Rename `.env.example` to `.env`.
+Create `.env` file.
 ```
-$ mv .env.example .env
+$ touch .env
 ```
 
 Fill `.env` file with these env variables:
 
 ```
-# 5000 is default port
-PORT=
+# Database connection 
 DATABASE_URL=postgresql://<username>:<password>@database:5432/eino
+
+# Credentials for docker postgres
+# Make sure the credentials are the same as in DATABASE_URL
 POSTGRES_USER=<username>
 POSTGRES_PASSWORD=<password>
 POSTGRES_DB=eino
 
-ACCESS_TOKEN_SECRET=<long secret here>
-REFRESH_TOKEN_SECRET=<long secret here>
-# number in seconds, or a string time span (https://github.com/vercel/ms)
-ACCESS_TOKEN_VALIDITY=3600
-REFRESH_TOKEN_VALIDITY=1d
+# 5000 is default app port
+PORT=5000
 
 # Required for searching movie posters
 TMDB_API_KEY=
+
+# Execute jwtsecret.sh script to fill these, or manually input a long secret
+ACCESS_TOKEN_SECRET=
+REFRESH_TOKEN_SECRET=
+
+# number in seconds, or a string time span (https://github.com/vercel/ms)
+ACCESS_TOKEN_VALIDITY=3600
+REFRESH_TOKEN_VALIDITY=1d
 ```
 
 Start the containers.
