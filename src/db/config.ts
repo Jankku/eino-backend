@@ -12,7 +12,13 @@ const pool = new Pool({
   idleTimeoutMillis: 10_000,
 });
 
-pool.on('error', (error: Error) => {
+(async () => {
+  const client = await pool.connect();
+  Logger.info('Connected to database');
+  client.release();
+})();
+
+pool.on('error', (error) => {
   Logger.error(error.stack);
 });
 
