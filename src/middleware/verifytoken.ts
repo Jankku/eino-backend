@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { z, ZodError } from 'zod';
+import config from '../config';
 import JwtPayload from '../model/jwtpayload';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { formatZodErrors } from '../util/zod';
@@ -25,7 +26,7 @@ const tokenSchema = z.object({
 const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   try {
     const accessToken = tokenSchema.parse(req).headers.authorization;
-    const { username } = jwt.verify(accessToken, `${process.env.ACCESS_TOKEN_SECRET}`, {
+    const { username } = jwt.verify(accessToken, config.ACCESS_TOKEN_SECRET, {
       audience: 'eino',
       issuer: 'eino-backend',
     }) as JwtPayload;

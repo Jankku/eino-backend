@@ -1,17 +1,15 @@
 import Pool from 'pg-pool';
 import { PoolClient, QueryConfig, types } from 'pg';
 import Logger from '../util/logger';
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-require('dotenv').config();
+import config from '../config';
 
 types.setTypeParser(types.builtins.INT8, (value: string) => parseInt(value));
 types.setTypeParser(types.builtins.FLOAT8, (value: string) => parseFloat(value));
 types.setTypeParser(types.builtins.NUMERIC, (value: string) => parseFloat(value));
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  idleTimeoutMillis: 30000,
+  connectionString: config.DATABASE_URL,
+  idleTimeoutMillis: 10_000,
 });
 
 pool.on('error', (error: Error) => {

@@ -11,9 +11,9 @@ import bookRouter from './routes/books';
 import movieRouter from './routes/movies';
 import profileRouter from './routes/profile';
 import shareRouter from './routes/share';
+import config from './config';
 
 const app = express();
-const port = process.env.PORT || 5000;
 
 app.use(express.json());
 app.use(helmet());
@@ -29,7 +29,7 @@ createShareDir();
 
 app.use(errorHandler);
 
-app.listen(port, () => Logger.info(`Server Listening to port ${port}`));
+app.listen(config.PORT, () => Logger.info(`Server Listening to port ${config.PORT}`));
 
 process.on('uncaughtException', (error) => {
   Logger.error('uncaughtException', error);

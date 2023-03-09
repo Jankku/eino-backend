@@ -9,6 +9,7 @@ import { generateAccessToken, generatePasswordHash, generateRefreshToken } from 
 import { ErrorWithStatus } from '../util/errorhandler';
 import { QueryConfig } from 'pg';
 import JwtPayload from '../model/jwtpayload';
+import config from '../config';
 
 const register = async (req: Request, res: Response, next: NextFunction) => {
   const { username, password } = req.body;
@@ -68,7 +69,7 @@ const generateNewAccessToken = async (req: Request, res: Response, next: NextFun
   const { refreshToken } = req.body;
 
   try {
-    const { userId, username } = jwt.verify(refreshToken, `${process.env.REFRESH_TOKEN_SECRET}`, {
+    const { userId, username } = jwt.verify(refreshToken, config.REFRESH_TOKEN_SECRET, {
       audience: 'eino',
       issuer: 'eino-backend',
     }) as JwtPayload;

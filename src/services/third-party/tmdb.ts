@@ -1,15 +1,18 @@
 import axios from 'axios';
 import { z } from 'zod';
+import config from '../../config';
 
 const tmdbSearchSchema = z.object({
   results: z.array(z.object({ poster_path: z.string().nullish() })),
 });
 
 export const fetchTmdbImages = async (query: string): Promise<string[]> => {
+  if (!config.TMDB_API_KEY) return Promise.resolve([]);
+
   const response = await axios.get('https://api.themoviedb.org/3/search/movie', {
     params: {
       query,
-      api_key: process.env.TMDB_API_KEY,
+      api_key: config.TMDB_API_KEY,
     },
   });
   const { results } = tmdbSearchSchema.parse(response.data);
