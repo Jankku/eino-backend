@@ -131,7 +131,7 @@ const generateShareImage = async (req: Request, res: Response, next: NextFunctio
     // Bottom-right date
     ctx.fillStyle = '#b2b2b2';
     ctx.font = '10pt Roboto';
-    const date = DateTime.now().toISODate();
+    const date = String(DateTime.now().toISODate());
     const dateWidth = ctx.measureText(date).width;
     const dateX = canvasWidth - dateWidth - 20;
     const dateY = canvasHeight - 30;
