@@ -5,10 +5,10 @@ import { getAllBooks, getBookById, getBooksByStatus, postBook } from '../db/book
 import { success } from '../util/response';
 import { query, transaction } from '../db/config';
 import { ErrorWithStatus } from '../util/errorhandler';
-import BookSearchResult from '../db/model/booksearchresult';
 import BookStatus from '../db/model/bookstatus';
 import { fetchFinnaImages } from './third-party/finna';
 import { fetchOpenLibraryImages } from './third-party/openlibrary';
+import DbBook from '../db/model/dbbook';
 
 const fetchOne = async (req: Request, res: Response, next: NextFunction) => {
   const { bookId } = req.params;
@@ -171,11 +171,23 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
     const queryString = String(req.query.query).trim();
     const queryAsArray = queryString.split(' ');
     const { username } = res.locals;
-    const resultArray: BookSearchResult[] = [];
+    const resultArray: DbBook[] = [];
 
     for (const queryPart of queryAsArray) {
       const accurateSearchQuery: QueryConfig = {
-        text: `SELECT b.book_id, b.title, b.author, b.publisher, ubl.score
+        text: `SELECT b.book_id,
+                  b.isbn,
+                  b.title,
+                  b.author,
+                  b.publisher,
+                  b.image_url,
+                  b.pages,
+                  b.year,
+                  ubl.status,
+                  ubl.score,
+                  ubl.start_date,
+                  ubl.end_date,
+                  ubl.created_on
                FROM books b INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
                WHERE document @@ to_tsquery('english', $2)
                  AND submitter = $1
@@ -194,7 +206,19 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
 
     if (resultArray.length === 0) {
       const lessAccurateSearchQuery: QueryConfig = {
-        text: `SELECT b.book_id, b.title, b.author, b.publisher, ubl.score
+        text: `SELECT b.book_id,
+                  b.isbn,
+                  b.title,
+                  b.author,
+                  b.publisher,
+                  b.image_url,
+                  b.pages,
+                  b.year,
+                  ubl.status,
+                  ubl.score,
+                  ubl.start_date,
+                  ubl.end_date,
+                  ubl.created_on
                FROM books b INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
                WHERE submitter = $1 AND (
                   title ILIKE $2

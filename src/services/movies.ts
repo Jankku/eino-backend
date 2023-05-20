@@ -6,9 +6,9 @@ import { success } from '../util/response';
 import { query, transaction } from '../db/config';
 import MovieStatus from '../db/model/moviestatus';
 import { ErrorWithStatus } from '../util/errorhandler';
-import MovieSearchResult from '../db/model/moviesearchresult';
 import { fetchTmdbImages } from './third-party/tmdb';
 import { fetchFinnaImages } from './third-party/finna';
+import DbMovie from '../db/model/dbmovie';
 
 const fetchOne = async (req: Request, res: Response, next: NextFunction) => {
   const { movieId } = req.params;
@@ -175,11 +175,23 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
     const queryString = String(req.query.query).trim();
     const queryAsArray = queryString.split(' ');
     const { username } = res.locals;
-    const resultArray: MovieSearchResult[] = [];
+    const resultArray: DbMovie[] = [];
 
     for (const queryPart of queryAsArray) {
       const accurateSearchQuery: QueryConfig = {
-        text: `SELECT m.movie_id, m.title, m.studio, m.director, m.writer, uml.score
+        text: `SELECT m.movie_id,
+                  m.title,
+                  m.studio,
+                  m.director,
+                  m.writer,
+                  m.image_url,
+                  m.duration,
+                  m.year,
+                  uml.status,
+                  uml.score,
+                  uml.start_date,
+                  uml.end_date,
+                  uml.created_on
                FROM movies m INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
                WHERE document @@ to_tsquery('english', $2)
                  AND submitter = $1
@@ -198,7 +210,19 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
 
     if (resultArray.length === 0) {
       const lessAccurateSearchQuery: QueryConfig = {
-        text: `SELECT m.movie_id, m.title, m.studio, m.director, m.writer, uml.score
+        text: `SELECT m.movie_id,
+                  m.title,
+                  m.studio,
+                  m.director,
+                  m.writer,
+                  m.image_url,
+                  m.duration,
+                  m.year,
+                  uml.status,
+                  uml.score,
+                  uml.start_date,
+                  uml.end_date,
+                  uml.created_on
                FROM movies m INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
                WHERE submitter = $1 AND (
                 title ILIKE $2
