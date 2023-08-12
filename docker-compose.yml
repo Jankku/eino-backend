@@ -8,7 +8,7 @@ services:
     environment:
       NODE_ENV: production
     env_file: .env
-    entrypoint: '/bin/bash docker-entrypoint.sh'
+    entrypoint: '/bin/ash docker-entrypoint.sh'
     depends_on:
       - database
   database:
