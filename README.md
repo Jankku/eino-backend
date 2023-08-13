@@ -11,7 +11,7 @@ Eino
 
 ## Documentation
 
-You can find the API documentation on [wiki](https://github.com/Jankku/eino-backend/wiki).
+You can find the Swagger API documentation [here](https://eino.jankku.fi/api/v1/docs/).
 
 ## Get started
 
