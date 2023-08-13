@@ -201,11 +201,11 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
 
       const { rows } = await query(accurateSearchQuery);
       // Push only unique results
-      rows.forEach((row) => {
+      for (const row of rows) {
         if (!resultArray.some((item) => item.movie_id === row.movie_id)) {
           resultArray.push(row);
         }
-      });
+      }
     }
 
     if (resultArray.length === 0) {
@@ -235,15 +235,15 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
 
       const { rows } = await query(lessAccurateSearchQuery);
       // Push only unique results
-      rows.forEach((row) => {
+      for (const row of rows) {
         if (!resultArray.some((item) => item.movie_id === row.movie_id)) {
           resultArray.push(row);
         }
-      });
+      }
     }
 
     res.status(200).json(success(resultArray));
-  } catch (error) {
+  } catch {
     next(new ErrorWithStatus(500, 'movie_list_error', 'Search failed'));
   }
 };
@@ -262,8 +262,7 @@ const fetchImages = async (req: Request, res: Response, next: NextFunction) => {
 
     const images: string[] = responses
       .filter((response) => response.status === 'fulfilled')
-      .map((response) => response.value)
-      .flat();
+      .flatMap((response) => response.value);
 
     if (images.length === 0) {
       next(new ErrorWithStatus(422, 'movie_list_error', 'No images for this query'));
@@ -271,7 +270,7 @@ const fetchImages = async (req: Request, res: Response, next: NextFunction) => {
     }
 
     res.status(200).json(success(images));
-  } catch (error) {
+  } catch {
     next(new ErrorWithStatus(500, 'movie_list_error', 'Failed to fetch images'));
   }
 };

@@ -1,3 +1,1 @@
-import shareRouter from './router';
-
-export default shareRouter;
+export { default } from './router';

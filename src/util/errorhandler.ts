@@ -16,9 +16,9 @@ const errorHandler = (
   req: Request,
   res: Response,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  next: NextFunction
+  next: NextFunction,
 ) => {
-  if (errors instanceof Array) {
+  if (Array.isArray(errors)) {
     res.status(422).json({ errors });
   } else if (errors instanceof ErrorWithStatus) {
     const { status, name, message } = errors;

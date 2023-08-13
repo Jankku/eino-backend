@@ -3,7 +3,7 @@ import { QueryConfig } from 'pg';
 import { query } from '../db/config';
 import { isPasswordCorrect } from '../db/users';
 import { ErrorWithStatus } from '../util/errorhandler';
-import * as fs from 'fs/promises';
+import * as fs from 'node:fs/promises';
 import { success } from '../util/response';
 import Logger from '../util/logger';
 import { registerFont, createCanvas } from 'canvas';
@@ -67,7 +67,7 @@ const deleteAccount = async (req: Request, res: Response, next: NextFunction) =>
     res
       .status(200)
       .json(success([{ name: 'account_deleted', message: 'Account successfully deleted' }]));
-  } catch (error) {
+  } catch {
     next(new ErrorWithStatus(422, 'profile_error', "Couldn't delete account"));
   }
 };
@@ -161,7 +161,7 @@ const generateShareImage = async (req: Request, res: Response, next: NextFunctio
 
       ctx.fillStyle = bodyTextColor;
       ctx.font = listItemFont;
-      bookTitles.forEach((title, i) => {
+      for (const [i, title] of bookTitles.entries()) {
         ctx.fillText(`${i + 1}. ${title}`, bookListX, bookListY);
         bookListY += listItemPadding;
 
@@ -169,7 +169,7 @@ const generateShareImage = async (req: Request, res: Response, next: NextFunctio
         if (titleWidth > maxTitleWidth) {
           maxTitleWidth = titleWidth;
         }
-      });
+      }
     }
 
     // Movie list
@@ -191,10 +191,10 @@ const generateShareImage = async (req: Request, res: Response, next: NextFunctio
 
       ctx.fillStyle = bodyTextColor;
       ctx.font = listItemFont;
-      movieTitles.forEach((title, i) => {
+      for (const [i, title] of movieTitles.entries()) {
         ctx.fillText(`${i + 1}. ${title}`, movieListX, movieListY);
         movieListY += listItemPadding;
-      });
+      }
     }
 
     const imageBuffer = canvas.toBuffer('image/png');
@@ -217,7 +217,7 @@ const exportUserData = async (req: Request, res: Response, next: NextFunction) =
 
   if (!password || password === undefined) {
     next(
-      new ErrorWithStatus(422, 'profile_export_error', 'Send user password in the request body')
+      new ErrorWithStatus(422, 'profile_export_error', 'Send user password in the request body'),
     );
     return;
   }

@@ -1,3 +1,1 @@
-import authRouter from './router';
-
-export default authRouter;
+export { default } from './router';

@@ -1,6 +1,6 @@
-import crypto from 'crypto';
-import path from 'path';
-import * as fs from 'fs/promises';
+import crypto from 'node:crypto';
+import path from 'node:path';
+import * as fs from 'node:fs/promises';
 
 const SHARE_PATH = './share/';
 const IMAGE_EXTENSION = '.png';
@@ -8,8 +8,8 @@ const IMAGE_EXTENSION = '.png';
 const createShareDir = async () => {
   try {
     await fs.mkdir(SHARE_PATH, { recursive: true });
-  } catch (error) {
-    throw Error('Failed to create share directory');
+  } catch {
+    throw new Error('Failed to create share directory');
   }
 };
 

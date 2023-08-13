@@ -1,3 +1,1 @@
-import profileRouter from './router';
-
-export default profileRouter;
+export { default } from './router';

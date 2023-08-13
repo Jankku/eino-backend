@@ -1,3 +1,1 @@
-import bookRouter from './router';
-
-export default bookRouter;
+export { default } from './router';

@@ -18,10 +18,10 @@ const fillAndSortResponse = async (array: ItemScore[]) =>
     const resultArray: ItemScore[] = [];
     const foundNumbers: number[] = [];
 
-    array.forEach((item) => {
+    for (const item of array) {
       resultArray.push(item);
       foundNumbers.push(item.score);
-    });
+    }
 
     for (let i = 0; i <= 10; i++) {
       if (!foundNumbers.includes(i)) {

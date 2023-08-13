@@ -9,7 +9,7 @@ const tmdbSearchSchema = z.object({
 });
 
 export const fetchTmdbImages = async (query: string): Promise<string[]> => {
-  if (!config.TMDB_API_KEY) return Promise.resolve([]);
+  if (!config.TMDB_API_KEY) return [];
 
   return cachified({
     cache: cache,

@@ -6,6 +6,7 @@ module.exports = {
     'plugin:security/recommended',
     'plugin:import/recommended',
     'plugin:import/typescript',
+    'plugin:unicorn/recommended',
     'prettier',
   ],
   plugins: ['@typescript-eslint', 'security', 'import'],
@@ -15,5 +16,8 @@ module.exports = {
   },
   rules: {
     'security/detect-non-literal-fs-filename': 0,
+    'unicorn/prevent-abbreviations': 0,
+    'unicorn/no-null': 0,
+    'unicorn/prefer-top-level-await': 0,
   },
 };

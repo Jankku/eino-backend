@@ -1,3 +1,1 @@
-import movieRouter from './router';
-
-export default movieRouter;
+export { default } from './router';
