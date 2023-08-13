@@ -12,6 +12,7 @@ import movieRouter from './routes/movies';
 import profileRouter from './routes/profile';
 import shareRouter from './routes/share';
 import config from './config';
+import routerV1 from './routes/router-v1';
 
 const app = express();
 
@@ -24,6 +25,8 @@ app.use('/api/list/books', verifyToken, bookRouter);
 app.use('/api/list/movies', verifyToken, movieRouter);
 app.use('/api/profile', verifyToken, profileRouter);
 app.use('/api/share', shareRouter);
+
+app.use('/api/v1', routerV1);
 
 createShareDir();
 
