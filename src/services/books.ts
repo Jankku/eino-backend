@@ -256,11 +256,6 @@ const fetchImages = async (req: Request, res: Response, next: NextFunction) => {
       .filter((response) => response.status === 'fulfilled')
       .flatMap((response) => response.value);
 
-    if (images.length === 0) {
-      next(new ErrorWithStatus(422, 'book_list_error', 'No images for this query'));
-      return;
-    }
-
     res.status(200).json(success(images));
   } catch {
     next(new ErrorWithStatus(500, 'book_list_error', 'Failed to fetch images'));
