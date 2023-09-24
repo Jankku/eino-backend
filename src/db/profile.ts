@@ -67,12 +67,12 @@ const fillBookStatuses = (rows: StatusRow[]): StatusRow[] => {
 const getBookDataV2 = async (username: string): Promise<BookDataV2> => {
   const bookDataQuery: QueryConfig = {
     text: `SELECT * FROM
-            (SELECT ubl.status, coalesce(count(*), 0) AS count
+            (SELECT ubl.status, COALESCE(count(*), 0) AS count
               FROM books b
               INNER JOIN user_book_list ubl ON b.book_id=ubl.book_id
               WHERE b.submitter = $1
-              GROUP BY ubl.status) AS count,
-            (SELECT coalesce(sum(b.pages), 0) as pages_read, coalesce(round(avg(ubl.score), 1), 0) AS average
+              GROUP BY ubl.status) count,
+            (SELECT COALESCE(sum(b.pages), 0) AS pages_read, COALESCE(round(avg(ubl.score), 1), 0) AS average
               FROM books b
               INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
               WHERE submitter = $1 AND ubl.status != 'planned') pages_and_avg_score`,
@@ -87,8 +87,8 @@ const getBookDataV2 = async (username: string): Promise<BookDataV2> => {
 
   return {
     count,
-    pages_read: rows[0].pages_read,
-    score_average: rows[0].average,
+    pages_read: rows?.[0]?.pages_read || 0,
+    score_average: rows?.[0]?.average || 0,
   };
 };
 
@@ -133,12 +133,12 @@ const fillMovieStatuses = (rows: StatusRow[]): StatusRow[] => {
 const getMovieDataV2 = async (username: string): Promise<MovieDataV2> => {
   const movieDataQuery: QueryConfig = {
     text: `SELECT * FROM
-            (SELECT uml.status, coalesce(count(*), 0) AS count
+            (SELECT uml.status, COALESCE(count(*), 0) AS count
               FROM movies m
               LEFT JOIN user_movie_list uml ON m.movie_id=uml.movie_id
               WHERE m.submitter = $1
-              GROUP BY uml.status) AS count,
-            (SELECT coalesce(sum(m.duration) / 60, 0) as watch_time, coalesce(round(avg(uml.score), 1), 0) AS average
+              GROUP BY uml.status) count,
+            (SELECT COALESCE(sum(m.duration) / 60, 0) AS watch_time, COALESCE(round(avg(uml.score), 1), 0) AS average
               FROM movies m
               INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
               WHERE submitter = $1 AND uml.status != 'planned') watch_time_and_avg_score`,
@@ -156,8 +156,8 @@ const getMovieDataV2 = async (username: string): Promise<MovieDataV2> => {
 
   return {
     count,
-    watch_time: rows[0].watch_time,
-    score_average: rows[0].average,
+    watch_time: rows?.[0]?.watch_time || 0,
+    score_average: rows?.[0]?.average || 0,
   };
 };
 
