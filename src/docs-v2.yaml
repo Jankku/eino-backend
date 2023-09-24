@@ -1,0 +1,975 @@
+openapi: 3.1.0
+info:
+  title: Eino
+  description: Eino API docs
+  license:
+    name: MIT
+    url: https://github.com/Jankku/eino-backend/blob/master/LICENSE.md
+  version: 1.0.0
+servers:
+  - url: https://eino.jankku.fi/api/{version}
+    variables:
+      version:
+        default: v2
+    description: Production server
+  - url: http://localhost:5000/api/{version}
+    variables:
+      version:
+        default: v2
+    description: Localhost
+tags:
+  - name: docs
+    description: Docs endpoints
+  - name: auth
+    description: Auth endpoints
+  - name: books
+    description: Book endpoints
+  - name: movies
+    description: Movie endpoints
+  - name: profile
+    description: Profile endpoints
+  - name: share
+    description: Public profile share endpoints
+paths:
+  /docs.json:
+    get:
+      tags:
+        - docs
+      summary: Get API docs as JSON
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema: {}
+  /auth/register:
+    post:
+      tags:
+        - auth
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  $ref: '#/components/schemas/Username'
+                password:
+                  type: string
+                  $ref: '#/components/schemas/Password'
+                password2:
+                  type: string
+                  $ref: '#/components/schemas/Password'
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '422':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/login:
+    post:
+      tags:
+        - auth
+      summary: Login a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  $ref: '#/components/schemas/Username'
+                password:
+                  type: string
+                  $ref: '#/components/schemas/Password'
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+        '422':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/refreshtoken:
+    post:
+      tags:
+        - auth
+      summary: Get new access token using refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Access token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+        '422':
+          description: JWT error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /profile:
+    get:
+      tags:
+        - profile
+      summary: Get user profile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+  /profile/share:
+    get:
+      tags:
+        - profile
+      summary: Share user profile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        share_id:
+                          type: string
+  /profile/export:
+    post:
+      tags:
+        - profile
+      summary: Export profile data
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportProfileResponse'
+  /profile/deleteaccount:
+    post:
+      tags:
+        - profile
+      summary: Delete user account
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+                  $ref: '#/components/schemas/Password'
+      responses:
+        '200':
+          description: Account successfully deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '422':
+          description: API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /list/books/{status}:
+    get:
+      parameters:
+        - name: status
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [all, completed, reading, on-hold, dropped, planned]
+      tags:
+        - books
+      summary: Get books by status
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookResponse'
+        '401':
+          description: Invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /list/books/book/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      tags:
+        - books
+      summary: Get book by ID
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookResponse'
+        '401':
+          description: Invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /list/books/search:
+    get:
+      tags:
+        - books
+      summary: Search books
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookResponse'
+  /list/books/images:
+    get:
+      tags:
+        - books
+      summary: Get book covers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResult'
+  /list/books/add:
+    post:
+      tags:
+        - books
+      summary: Add new book to the list
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddBookRequest'
+      responses:
+        '201':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '422':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /list/books/update/{id}:
+    put:
+      tags:
+        - books
+      summary: Update an existing book
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddBookRequest'
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookResponse'
+  /list/books/delete/{id}:
+    delete:
+      tags:
+        - books
+      summary: Delete book
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Book deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+  /list/movies/{status}:
+    get:
+      parameters:
+        - name: status
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [all, completed, watching, on-hold, dropped, planned]
+      tags:
+        - movies
+      summary: Get movies by status
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieResponse'
+        '401':
+          description: Invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /list/movies/movie/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      tags:
+        - movies
+      summary: Get movie by ID
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieResponse'
+        '401':
+          description: Invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /list/movies/search:
+    get:
+      tags:
+        - movies
+      summary: Search movies
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieResponse'
+  /list/movies/images:
+    get:
+      tags:
+        - movies
+      summary: Get movie posters
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResult'
+  /list/movies/add:
+    post:
+      tags:
+        - movies
+      summary: Add new movie to the list
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddMovieRequest'
+      responses:
+        '201':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '422':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /list/movies/update/{id}:
+    put:
+      tags:
+        - movies
+      summary: Update an existing movie
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddMovieRequest'
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieResponse'
+  /list/movies/delete/{id}:
+    delete:
+      tags:
+        - movies
+      summary: Delete movie
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Movie deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+  /share/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      tags:
+        - share
+      summary: Get shared image by ID
+      responses:
+        '200':
+          description: Successful response
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+components:
+  schemas:
+    Username:
+      type: string
+      minLength: 3
+      maxLength: 255
+    Password:
+      type: string
+      minLength: 8
+      maxLength: 255
+    AddBookRequest:
+      type: object
+      required:
+        - isbn
+        - title
+        - author
+        - publisher
+        - pages
+        - year
+        - status
+        - score
+        - start_date
+        - end_date
+      properties:
+        isbn:
+          type: string
+        title:
+          type: string
+        author:
+          type: string
+        publisher:
+          type: string
+        image_url:
+          type: string
+          format: uri
+          default: 'https://example.com/image.jpg'
+        pages:
+          type: integer
+        year:
+          type: integer
+        status:
+          type: string
+          enum: [completed, reading, on-hold, dropped, planned]
+          default: reading
+        score:
+          type: integer
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+    AddMovieRequest:
+      type: object
+      required:
+        - title
+        - studio
+        - director
+        - writer
+        - duration
+        - year
+        - status
+        - score
+        - start_date
+        - end_date
+      properties:
+        title:
+          type: string
+        studio:
+          type: string
+        director:
+          type: string
+        writer:
+          type: string
+        image_url:
+          type: string
+          format: uri
+          default: 'https://example.com/image.jpg'
+        duration:
+          type: integer
+        year:
+          type: integer
+        status:
+          type: string
+          enum: [completed, watching, on-hold, dropped, planned]
+          default: watching
+        score:
+          type: integer
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+    Book:
+      type: object
+      properties:
+        book_id:
+          type: string
+          format: uuid
+        isbn:
+          type: string
+        title:
+          type: string
+        author:
+          type: string
+        publisher:
+          type: string
+        image_url:
+          type: string
+          format: uri
+        pages:
+          type: integer
+          minimum: 0
+        year:
+          type: integer
+        status:
+          type: string
+          enum: [completed, reading, on-hold, dropped, planned]
+        score:
+          type: integer
+          minimum: 0
+          maximum: 10
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+        created_on:
+          type: string
+          format: date-time
+    Movie:
+      type: object
+      properties:
+        movie_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        studio:
+          type: string
+        director:
+          type: string
+        writer:
+          type: string
+        image_url:
+          type: string
+          format: uri
+        duration:
+          type: integer
+          minimum: 0
+        year:
+          type: integer
+        status:
+          type: string
+          enum: [completed, watching, on-hold, dropped, planned]
+        score:
+          type: integer
+          minimum: 0
+          maximum: 10
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+        created_on:
+          type: string
+          format: date-time
+    BookResponse:
+      type: object
+      required:
+        - results
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Book'
+    MovieResponse:
+      type: object
+      required:
+        - results
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Movie'
+    ExportProfileResponse:
+      type: object
+      properties:
+        profile:
+          $ref: '#/components/schemas/Profile'
+        books:
+          type: array
+          items:
+            $ref: '#/components/schemas/Book'
+        movies:
+          type: array
+          items:
+            $ref: '#/components/schemas/Movie'
+        shares:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProfileShare'
+    Profile:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        registration_date:
+          type: string
+          format: date-time
+        stats:
+          type: object
+          properties:
+            book:
+              type: object
+              properties:
+                count:
+                  type: object
+                  $ref: '#/components/schemas/ProfileBookCount'
+                pages_read:
+                  type: integer
+                score_average:
+                  type: number
+                score_distribution:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      score:
+                        type: integer
+                      count:
+                        type: integer
+            movie:
+              type: object
+              properties:
+                count:
+                  type: object
+                  $ref: '#/components/schemas/ProfileMovieCount'
+                watch_time:
+                  type: integer
+                score_average:
+                  type: number
+                score_distribution:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      score:
+                        type: integer
+                      count:
+                        type: integer
+    ProfileBookCount:
+      type: object
+      properties:
+        all:
+          type: integer
+        reading:
+          type: integer
+        completed:
+          type: integer
+        on-hold:
+          type: integer
+        dropped:
+          type: integer
+        planned:
+          type: integer
+    ProfileMovieCount:
+      type: object
+      properties:
+        all:
+          type: integer
+        watching:
+          type: integer
+        completed:
+          type: integer
+        on-hold:
+          type: integer
+        dropped:
+          type: integer
+        planned:
+          type: integer
+    ProfileShare:
+      type: object
+      properties:
+        share_id:
+          type: string
+        created_on:
+          type: string
+          format: date-time
+    ImageResult:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: string
+            format: uri
+    ApiResult:
+      type: object
+      required:
+        - results
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              message:
+                type: string
+    ApiError:
+      type: object
+      required:
+        - errors
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              message:
+                type: string
+  requestBodies:
+    Book:
+      description: Book
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Book'
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Bearer token authorization
+      name: Authorization
+      in: header

@@ -11,16 +11,14 @@ import {
   updateOneSchema,
 } from './schema';
 
-const router = express.Router();
+export const bookRouter = express.Router();
 
-router.get('/search', validateSchema(searchSchema), books.search);
-router.get('/book/:bookId', validateSchema(fetchOneSchema), books.fetchOne);
-router.post('/add', validateSchema(addOneSchema), books.addOne);
-router.put('/update/:bookId', validateSchema(updateOneSchema), books.updateOne);
-router.delete('/delete/:bookId', validateSchema(deleteOneSchema), books.deleteOne);
-router.get('/images', validateSchema(fetchImagesSchema), books.fetchImages);
+bookRouter.get('/search', validateSchema(searchSchema), books.search);
+bookRouter.get('/book/:bookId', validateSchema(fetchOneSchema), books.fetchOne);
+bookRouter.post('/add', validateSchema(addOneSchema), books.addOne);
+bookRouter.put('/update/:bookId', validateSchema(updateOneSchema), books.updateOne);
+bookRouter.delete('/delete/:bookId', validateSchema(deleteOneSchema), books.deleteOne);
+bookRouter.get('/images', validateSchema(fetchImagesSchema), books.fetchImages);
 
-router.get('/all', books.fetchAll);
-router.get('/:status', validateSchema(fetchByStatusSchema), books.fetchByStatus);
-
-export default router;
+bookRouter.get('/all', books.fetchAll);
+bookRouter.get('/:status', validateSchema(fetchByStatusSchema), books.fetchByStatus);

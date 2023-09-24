@@ -12,12 +12,38 @@ import { getAllMovies, getTop10MovieTitles } from '../db/movies';
 import { generateShareId, getFontPath, getShareItemPath } from '../util/share';
 import { getSharesByUsername, postShare } from '../db/share';
 import { DateTime } from 'luxon';
-import { getProfileData } from '../db/profile';
+import { getProfileData, getProfileDataV2 } from '../db/profile';
 
 const getProfile = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
   try {
     const data = await getProfileData(username);
+
+    res.status(200).json({
+      user_id: data.userInfo.user_id,
+      username: username,
+      registration_date: data.userInfo.registration_date,
+      stats: {
+        book: {
+          ...data.bookData,
+          score_distribution: data.bookScores,
+        },
+        movie: {
+          ...data.movieData,
+          score_distribution: data.movieScores,
+        },
+      },
+    });
+  } catch (error) {
+    Logger.error((error as Error).stack);
+    next(new ErrorWithStatus(422, 'profile_error', "Couldn't fetch profile"));
+  }
+};
+
+const getProfileV2 = async (req: Request, res: Response, next: NextFunction) => {
+  const { username } = res.locals;
+  try {
+    const data = await getProfileDataV2(username);
 
     res.status(200).json({
       user_id: data.userInfo.user_id,
@@ -262,4 +288,4 @@ const exportUserData = async (req: Request, res: Response, next: NextFunction) =
   }
 };
 
-export { getProfile, generateShareImage, deleteAccount, exportUserData };
+export { getProfile, getProfileV2, generateShareImage, deleteAccount, exportUserData };

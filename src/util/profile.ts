@@ -1,7 +1,7 @@
-import { ItemScore } from '../db/profile';
+import { ItemScoreRow } from '../db/profile';
 
 /**
- * Fills array gaps so that there are ItemScore objects which have score
+ * Fills array gaps so that there are ItemScoreRow objects which have score
  * from 0 to 10. Lastly it sorts the array by the score property.
  * @example
  * [
@@ -13,9 +13,9 @@ import { ItemScore } from '../db/profile';
  * ]
  * @param array Initial book/movie score array
  */
-const fillAndSortResponse = async (array: ItemScore[]) =>
-  new Promise<Array<ItemScore>>((resolve) => {
-    const resultArray: ItemScore[] = [];
+const fillAndSortResponse = async (array: ItemScoreRow[]) =>
+  new Promise<Array<ItemScoreRow>>((resolve) => {
+    const resultArray: ItemScoreRow[] = [];
     const foundNumbers: number[] = [];
 
     for (const item of array) {

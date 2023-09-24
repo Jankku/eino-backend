@@ -11,16 +11,14 @@ import {
   updateOneSchema,
 } from './schema';
 
-const router = express.Router();
+export const movieRouter = express.Router();
 
-router.get('/search', validateSchema(searchSchema), movies.search);
-router.get('/movie/:movieId', validateSchema(fetchOneSchema), movies.fetchOne);
-router.post('/add', validateSchema(addOneSchema), movies.addOne);
-router.put('/update/:movieId', validateSchema(updateOneSchema), movies.updateOne);
-router.delete('/delete/:movieId', validateSchema(deleteOneSchema), movies.deleteOne);
-router.get('/images', validateSchema(fetchImagesSchema), movies.fetchImages);
+movieRouter.get('/search', validateSchema(searchSchema), movies.search);
+movieRouter.get('/movie/:movieId', validateSchema(fetchOneSchema), movies.fetchOne);
+movieRouter.post('/add', validateSchema(addOneSchema), movies.addOne);
+movieRouter.put('/update/:movieId', validateSchema(updateOneSchema), movies.updateOne);
+movieRouter.delete('/delete/:movieId', validateSchema(deleteOneSchema), movies.deleteOne);
+movieRouter.get('/images', validateSchema(fetchImagesSchema), movies.fetchImages);
 
-router.get('/all', movies.fetchAll);
-router.get('/:status', validateSchema(fetchByStatusSchema), movies.fetchByStatus);
-
-export default router;
+movieRouter.get('/all', movies.fetchAll);
+movieRouter.get('/:status', validateSchema(fetchByStatusSchema), movies.fetchByStatus);
