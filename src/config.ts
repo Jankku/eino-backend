@@ -10,7 +10,7 @@ const configSchema = z.object({
     .string()
     .refine(
       (value) => value.startsWith('postgres://') || value.startsWith('postgresql://'),
-      "Must start with 'postgres://' or 'postgresql://'"
+      "Must start with 'postgres://' or 'postgresql://'",
     ),
   POSTGRES_USER: nonEmptyString,
   POSTGRES_PASSWORD: nonEmptyString,
@@ -30,4 +30,4 @@ if (!result.success) {
   throw new Error('Invalid configuration');
 }
 
-export default result.data;
+export const config = result.data;

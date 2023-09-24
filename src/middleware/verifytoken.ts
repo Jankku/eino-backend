@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { z, ZodError } from 'zod';
-import config from '../config';
+import { config } from '../config';
 import JwtPayload from '../model/jwtpayload';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { formatZodErrors } from '../util/zod';

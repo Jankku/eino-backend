@@ -9,7 +9,7 @@ import { generateAccessToken, generatePasswordHash, generateRefreshToken } from 
 import { ErrorWithStatus } from '../util/errorhandler';
 import { QueryConfig } from 'pg';
 import JwtPayload from '../model/jwtpayload';
-import config from '../config';
+import { config } from '../config';
 
 const register = async (req: Request, res: Response, next: NextFunction) => {
   const { username, password } = req.body;
@@ -30,8 +30,8 @@ const register = async (req: Request, res: Response, next: NextFunction) => {
       new ErrorWithStatus(
         500,
         'authentication_error',
-        'Unknown error while trying to register user'
-      )
+        'Unknown error while trying to register user',
+      ),
     );
   }
 };
@@ -60,7 +60,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
   } catch (error) {
     Logger.error((error as Error).stack);
     next(
-      new ErrorWithStatus(500, 'authentication_error', 'Unknown error while trying to log-in user')
+      new ErrorWithStatus(500, 'authentication_error', 'Unknown error while trying to log-in user'),
     );
   }
 };

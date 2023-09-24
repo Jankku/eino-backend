@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import * as bcrypt from 'bcrypt';
-import config from '../config';
+import { config } from '../config';
 
 const { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, ACCESS_TOKEN_VALIDITY, REFRESH_TOKEN_VALIDITY } =
   config;

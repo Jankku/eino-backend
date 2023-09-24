@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { z } from 'zod';
-import config from '../../config';
+import { config } from '../../config';
 import { cachified } from 'cachified';
 import { cache, cacheSchema, getCacheKey } from '../../util/cache';
 
