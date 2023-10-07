@@ -5,7 +5,7 @@ info:
   license:
     name: MIT
     url: https://github.com/Jankku/eino-backend/blob/master/LICENSE.md
-  version: 1.0.0
+  version: 1.1.0
 servers:
   - url: https://eino.jankku.fi/api/{version}
     variables:
@@ -138,18 +138,29 @@ paths:
               properties:
                 refreshToken:
                   type: string
+  /auth/passwordstrength:
+    post:
+      tags:
+        - auth
+      summary: Check password strength
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
       responses:
         '200':
-          description: Access token refreshed successfully
+          description: Password strength check successful
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  accessToken:
-                    type: string
-        '422':
-          description: JWT error
+                $ref: '#/components/schemas/PasswordStrength'
+        '500':
+          description: Password strength check failed
           content:
             application/json:
               schema:
@@ -925,6 +936,22 @@ components:
             properties:
               name:
                 type: string
+              message:
+                type: string
+    PasswordStrength:
+      type: object
+      required:
+        - results
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              score:
+                type: integer
+                minimum: 0
+                maximum: 4
               message:
                 type: string
   requestBodies:

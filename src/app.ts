@@ -14,6 +14,10 @@ import { shareRouter } from './routes/share';
 import { config } from './config';
 import { routerV1 } from './routes/router-v1';
 import { routerV2 } from './routes/router-v2';
+import { initZxcvbn } from './util/auth';
+
+initZxcvbn();
+createShareDir();
 
 const app = express();
 
@@ -30,8 +34,6 @@ app.use('/api/share', shareRouter);
 
 app.use('/api/v1', routerV1);
 app.use('/api/v2', routerV2);
-
-createShareDir();
 
 app.use(errorHandler);
 

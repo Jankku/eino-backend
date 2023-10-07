@@ -5,7 +5,12 @@ import { getUserByUsername } from '../db/users';
 import { query } from '../db/config';
 import { success } from '../util/response';
 import Logger from '../util/logger';
-import { generateAccessToken, generatePasswordHash, generateRefreshToken } from '../util/auth';
+import {
+  generateAccessToken,
+  generatePasswordHash,
+  generateRefreshToken,
+  getPasswordStrength,
+} from '../util/auth';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { QueryConfig } from 'pg';
 import JwtPayload from '../model/jwtpayload';
@@ -21,7 +26,6 @@ const register = async (req: Request, res: Response, next: NextFunction) => {
              VALUES ($1, $2)`,
       values: [username, hashedPassword],
     };
-
     await query(registerQuery);
     res.status(200).json(success([{ name: 'user_registered', message: username }]));
   } catch (error) {
@@ -81,4 +85,22 @@ const generateNewAccessToken = async (req: Request, res: Response, next: NextFun
   }
 };
 
-export { register, login, generateNewAccessToken };
+const passwordStrength = async (req: Request, res: Response, next: NextFunction) => {
+  const { password } = req.body;
+
+  try {
+    const { isStrong, score, error } = getPasswordStrength({ password });
+    if (!isStrong) {
+      res.status(200).json(success([{ message: error, score }]));
+      return;
+    }
+
+    res.status(200).json(success([{ message: 'Password is strong', score }]));
+  } catch {
+    next(
+      new ErrorWithStatus(500, 'password_strength_error', 'Unknown error while checking password'),
+    );
+  }
+};
+
+export { register, login, generateNewAccessToken, passwordStrength };
