@@ -1,5 +1,5 @@
 FROM node:lts-alpine AS build
-WORKDIR /usr/src/eino
+WORKDIR /home/node/eino
 RUN apk add --no-cache build-base g++ cairo-dev jpeg-dev pango-dev
 COPY package*.json tsconfig.json ./
 COPY src ./src
@@ -7,9 +7,10 @@ COPY migrations ./migrations
 RUN npm ci --build-from-source && npm run build
 
 FROM node:lts-alpine
-WORKDIR /usr/src/eino
-RUN apk add --no-cache cairo jpeg pango
-COPY package*.json docker-entrypoint.sh ./
-COPY --from=build /usr/src/eino/node_modules ./node_modules
-COPY --from=build /usr/src/eino/src ./src
-COPY --from=build /usr/src/eino/dist ./dist
+WORKDIR /home/node/eino
+RUN apk add --no-cache cairo jpeg pango && chown -R node:node /home/node/eino
+COPY --chown=node:node package*.json docker-entrypoint.sh ./
+COPY --chown=node:node --from=build /home/node/eino/node_modules ./node_modules
+COPY --chown=node:node --from=build /home/node/eino/src ./src
+COPY --chown=node:node --from=build /home/node/eino/dist ./dist
+USER node
