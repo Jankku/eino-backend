@@ -12,8 +12,9 @@ import { readFileSync } from 'node:fs';
 export const routerV1 = express.Router();
 
 const swaggerDocs = yaml.parse(readFileSync('./src/docs-v1.yaml', 'utf8'));
-routerV1.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
-routerV1.use('/docs.json', (_, res) => {
+routerV1.use('/docs', swaggerUi.serveFiles(swaggerDocs));
+routerV1.get('/docs', swaggerUi.setup(swaggerDocs, { customSiteTitle: 'Eino API Docs v1' }));
+routerV1.get('/docs.json', (_, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerDocs);
 });
