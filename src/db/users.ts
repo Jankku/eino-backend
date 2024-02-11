@@ -35,6 +35,34 @@ const isUserUnique = async (username: string): Promise<boolean> => {
   }
 };
 
+type UserItemCount = {
+  username: string;
+  book_count: number;
+  movie_count: number;
+};
+
+const getItemCountByUsername = async (username: string): Promise<UserItemCount> => {
+  return await db.one({
+    text: `SELECT 
+      $1 AS username, 
+      COALESCE(b.book_count, 0) AS book_count,
+      COALESCE(m.movie_count, 0) AS movie_count
+    FROM 
+      (
+        SELECT COUNT(*) AS book_count 
+        FROM books 
+        WHERE submitter = $1
+      ) b
+    LEFT JOIN 
+      (
+        SELECT COUNT(*) AS movie_count 
+        FROM movies 
+        WHERE submitter = $1
+      ) m ON TRUE;`,
+    values: [username],
+  });
+};
+
 // Used only for tests
 const deleteAllUsers = () => {
   try {
@@ -47,4 +75,10 @@ const deleteAllUsers = () => {
   }
 };
 
-export { getUserByUsername, isPasswordCorrect, isUserUnique, deleteAllUsers };
+export {
+  getUserByUsername,
+  isPasswordCorrect,
+  isUserUnique,
+  deleteAllUsers,
+  getItemCountByUsername,
+};

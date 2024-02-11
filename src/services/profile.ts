@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { db, pgp } from '../db/config';
-import { isPasswordCorrect } from '../db/users';
+import { getItemCountByUsername, isPasswordCorrect } from '../db/users';
 import { ErrorWithStatus } from '../util/errorhandler';
 import * as fs from 'node:fs/promises';
 import { success } from '../util/response';
@@ -21,6 +21,7 @@ import {
   moviesCs,
   moviesListCs,
 } from '../util/profile';
+import { config } from '../config';
 
 const getProfile = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
@@ -301,6 +302,24 @@ const importUserData = async (req: Request, res: Response, next: NextFunction) =
   try {
     const { username } = res.locals;
     const { body } = importProfileSchema.parse(req);
+
+    const { book_count, movie_count } = await getItemCountByUsername(username);
+
+    const itemLimit = config.USER_INDIVIDUAL_LIST_ITEM_LIMIT;
+
+    if (
+      body.books.length + book_count > itemLimit ||
+      body.movies.length + movie_count > itemLimit
+    ) {
+      next(
+        new ErrorWithStatus(
+          422,
+          'profile_import_error',
+          `Item count exceeds the maximum of ${itemLimit} items per list`,
+        ),
+      );
+      return;
+    }
 
     const bookHashMap = Object.fromEntries(
       body.books.map((book) => [calculateBookHash(book), book]),
