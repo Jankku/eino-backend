@@ -1,6 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { QueryConfig } from 'pg';
-import { query } from '../db/config';
+import { db, pgp } from '../db/config';
 import { isPasswordCorrect } from '../db/users';
 import { ErrorWithStatus } from '../util/errorhandler';
 import * as fs from 'node:fs/promises';
@@ -13,11 +12,20 @@ import { generateShareId, getFontPath, getShareItemPath } from '../util/share';
 import { getSharesByUsername, postShare } from '../db/share';
 import { DateTime } from 'luxon';
 import { getProfileData, getProfileDataV2 } from '../db/profile';
+import { importProfileSchema } from '../routes/profile/schema';
+import {
+  booksCs,
+  booksListCs,
+  calculateBookHash,
+  calculateMovieHash,
+  moviesCs,
+  moviesListCs,
+} from '../util/profile';
 
 const getProfile = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
   try {
-    const data = await getProfileData(username);
+    const data = await db.task(async (t) => await getProfileData(t, username));
 
     res.status(200).json({
       user_id: data.userInfo.user_id,
@@ -43,8 +51,7 @@ const getProfile = async (req: Request, res: Response, next: NextFunction) => {
 const getProfileV2 = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
   try {
-    const data = await getProfileDataV2(username);
-
+    const data = await db.task(async (t) => await getProfileDataV2(t, username));
     res.status(200).json({
       user_id: data.userInfo.user_id,
       username: username,
@@ -82,11 +89,10 @@ const deleteAccount = async (req: Request, res: Response, next: NextFunction) =>
   }
 
   try {
-    const deleteAccountQuery: QueryConfig = {
+    await db.none({
       text: `DELETE FROM users WHERE username = $1`,
       values: [username],
-    };
-    await query(deleteAccountQuery);
+    });
     const shareImagePath = getShareItemPath(username);
     await fs.rm(shareImagePath, { force: true });
 
@@ -255,14 +261,17 @@ const exportUserData = async (req: Request, res: Response, next: NextFunction) =
   }
 
   try {
-    const [books, movies, profile, shares] = await Promise.all([
-      getAllBooks(username),
-      getAllMovies(username),
-      getProfileData(username),
-      getSharesByUsername(username),
-    ]);
+    const [books, movies, profile, shares] = await db.task('export-user-data', async (t) => {
+      return Promise.all([
+        getAllBooks(username, t),
+        getAllMovies(username, t),
+        getProfileDataV2(t, username),
+        getSharesByUsername(username, t),
+      ]);
+    });
 
     res.status(200).json({
+      version: 2,
       profile: {
         user_id: profile.userInfo.user_id,
         username: username,
@@ -288,4 +297,63 @@ const exportUserData = async (req: Request, res: Response, next: NextFunction) =
   }
 };
 
-export { getProfile, getProfileV2, generateShareImage, deleteAccount, exportUserData };
+const importUserData = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { username } = res.locals;
+    const { body } = importProfileSchema.parse(req);
+
+    const bookHashMap = Object.fromEntries(
+      body.books.map((book) => [calculateBookHash(book), book]),
+    );
+    const movieHashMap = Object.fromEntries(
+      body.movies.map((movie) => [calculateMovieHash(movie), movie]),
+    );
+
+    const mapBooks = body.books.map((book) => ({ ...book, submitter: username }));
+    const mapMovies = body.movies.map((movie) => ({ ...movie, submitter: username }));
+
+    await db.tx('import-profile', async (t) => {
+      // Insert books to books table
+      const newBooks = await t.many(pgp.helpers.insert(mapBooks, booksCs) + ' RETURNING *');
+
+      // Map inserted books to be compatible with user_book_list table
+      const bookListItems = newBooks.map((book) => ({
+        ...bookHashMap[calculateBookHash(book)],
+        book_id: book.book_id,
+        username,
+      }));
+
+      // Insert mapped books to user_book_list table
+      const insertBookList = pgp.helpers.insert(bookListItems, booksListCs);
+      await t.none(insertBookList);
+
+      // Insert movies to movies table
+      const newMovies = await t.many(pgp.helpers.insert(mapMovies, moviesCs) + ' RETURNING *');
+
+      // Map inserted movies to be compatible with user_movie_list table
+      const movieListItems = newMovies.map((movie) => ({
+        ...movieHashMap[calculateMovieHash(movie)],
+        movie_id: movie.movie_id,
+        username,
+      }));
+
+      // Insert mapped movies to user_movie_list table
+      const insertMovieList = pgp.helpers.insert(movieListItems, moviesListCs);
+      await t.none(insertMovieList);
+    });
+
+    return res.status(200).json(success([{ name: 'import_success', message: 'Profile imported' }]));
+  } catch (error) {
+    Logger.error(error);
+    next(new ErrorWithStatus(500, 'profile_import_error', "Couldn't import user data"));
+  }
+};
+
+export {
+  getProfile,
+  getProfileV2,
+  generateShareImage,
+  deleteAccount,
+  exportUserData,
+  importUserData,
+};

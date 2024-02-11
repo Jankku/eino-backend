@@ -1,19 +1,12 @@
-import BookStatus from './bookstatus';
+import z from 'zod';
+import { bookSchema } from './book';
+import { dateStringSchema, fixedStringSchema } from '../../model/zodschema';
 
-type DbBook = {
-  book_id: string;
-  isbn: string;
-  title: string;
-  author: string;
-  publisher: string;
-  image_url: string;
-  pages: number;
-  year: number;
-  status: BookStatus;
-  score: number;
-  start_date: string;
-  end_date: string;
-  created_on: string;
-};
+export const dbBookSchema = bookSchema.extend({
+  book_id: fixedStringSchema,
+  created_on: dateStringSchema,
+});
+
+type DbBook = z.infer<typeof dbBookSchema>;
 
 export default DbBook;

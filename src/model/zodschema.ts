@@ -1,57 +1,32 @@
 import { z } from 'zod';
-import { isBookStatus } from '../db/model/bookstatus';
-import { isMovieStatus } from '../db/model/moviestatus';
 import errorMessages from '../util/errormessages';
 
-export const dateSchema = z.optional(
-  z.preprocess((arg) => {
-    if (typeof arg == 'string' || arg instanceof Date) return new Date(arg);
-  }, z.date())
-);
+export const dateStringSchema = z.string().refine((arg) => {
+  if (!arg) return false;
+  return !Number.isNaN(new Date(arg).getTime());
+});
+
+export const dateSchema = z.preprocess((arg) => {
+  if (typeof arg == 'string' || arg instanceof Date) return new Date(arg);
+}, z.date());
+
+export const fixedStringSchema = z.string().min(0).max(255);
+
+export const fixedNonEmptyStringSchema = z.string().min(1).max(255);
+
+export const positiveNumberSchema = z.number().nonnegative();
 
 export const listIdSchema = z.string({
   required_error: errorMessages.LIST_ID_REQUIRED,
   invalid_type_error: errorMessages.LIST_ID_TYPE_ERROR,
 });
 
-const coverUrlSchema = z.union([
+export const scoreSchema = z.number().min(0).max(10);
+
+export const coverUrlSchema = z.union([
   z.string().url().startsWith('https').nullable().default(null),
   z.literal(''),
 ]);
-
-export const bookSchema = z.object({
-  isbn: z.string().min(0).max(255),
-  title: z.string().min(0).max(255),
-  author: z.string().min(0).max(255),
-  publisher: z.string().min(0).max(255),
-  image_url: coverUrlSchema,
-  pages: z.number().nonnegative(),
-  year: z.number().nonnegative(),
-  status: z.string().refine((status) => isBookStatus(status), {
-    params: { name: 'invalid_status' },
-    message: errorMessages.LIST_STATUS_INVALID,
-  }),
-  score: z.number().nonnegative().max(10),
-  start_date: dateSchema,
-  end_date: dateSchema,
-});
-
-export const movieSchema = z.object({
-  title: z.string().min(0).max(255),
-  studio: z.string().min(0).max(255),
-  director: z.string().min(0).max(255),
-  writer: z.string().min(0).max(255),
-  image_url: coverUrlSchema,
-  duration: z.number().nonnegative(),
-  year: z.number().nonnegative(),
-  status: z.string().refine((status) => isMovieStatus(status), {
-    params: { name: 'invalid_status' },
-    message: errorMessages.LIST_STATUS_INVALID,
-  }),
-  score: z.number().min(0).max(10),
-  start_date: dateSchema,
-  end_date: dateSchema,
-});
 
 export const usernameSchema = z
   .string({

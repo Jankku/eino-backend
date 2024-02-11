@@ -1,23 +1,20 @@
-import { QueryConfig } from 'pg';
 import { fillAndSortResponse } from '../util/profile';
-import { query } from './config';
 import { movieStatuses } from './model/moviestatus';
 import { bookStatuses } from './model/bookstatus';
+import { ITask } from 'pg-promise';
 
 type UserInfo = {
   user_id: string;
   registration_date: string;
 };
 
-const getUserInfo = async (username: string): Promise<UserInfo> => {
-  const usernameQuery: QueryConfig = {
+const getUserInfo = async (client: ITask<unknown>, username: string): Promise<UserInfo> => {
+  return await client.one({
     text: `SELECT user_id, created_on as registration_date
            FROM users
            WHERE username = $1`,
     values: [username],
-  };
-  const { rows }: { rows: UserInfo[] } = await query(usernameQuery);
-  return rows[0];
+  });
 };
 
 type BookData = {
@@ -26,8 +23,8 @@ type BookData = {
   score_average: number;
 };
 
-const getBookData = async (username: string): Promise<BookData> => {
-  const bookDataQuery: QueryConfig = {
+const getBookData = async (client: ITask<unknown>, username: string): Promise<BookData> => {
+  const pagesAndAvgScore = await client.one({
     text: `SELECT * FROM
             (SELECT count(*) FROM books WHERE submitter = $1) count,
             (SELECT coalesce(sum(b.pages), 0) as pages_read, coalesce(round(avg(ubl.score), 1), 0) AS average
@@ -35,13 +32,11 @@ const getBookData = async (username: string): Promise<BookData> => {
             INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
             WHERE submitter = $1 AND ubl.status != 'planned') pages_and_avg_score`,
     values: [username],
-  };
-
-  const pagesAndAvgScore = await query(bookDataQuery);
+  });
   const response: BookData = {
-    count: pagesAndAvgScore.rows[0].count,
-    pages_read: pagesAndAvgScore.rows[0].pages_read,
-    score_average: pagesAndAvgScore.rows[0].average,
+    count: pagesAndAvgScore.count,
+    pages_read: pagesAndAvgScore.pages_read,
+    score_average: pagesAndAvgScore.average,
   };
   return response;
 };
@@ -64,8 +59,8 @@ const fillBookStatuses = (rows: StatusRow[]): StatusRow[] => {
   });
 };
 
-const getBookDataV2 = async (username: string): Promise<BookDataV2> => {
-  const bookDataQuery: QueryConfig = {
+const getBookDataV2 = async (client: ITask<unknown>, username: string): Promise<BookDataV2> => {
+  const rows = await client.any({
     text: `SELECT * FROM
             (SELECT ubl.status, COALESCE(count(*), 0) AS count
               FROM books b
@@ -77,9 +72,7 @@ const getBookDataV2 = async (username: string): Promise<BookDataV2> => {
               INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
               WHERE submitter = $1 AND ubl.status != 'planned') pages_and_avg_score`,
     values: [username],
-  };
-
-  const { rows } = await query(bookDataQuery);
+  });
 
   const totalBookCount = rows.reduce((acc, curr) => acc + curr.count, 0);
   const statuses = [...fillBookStatuses(rows), { status: 'all', count: totalBookCount }];
@@ -98,23 +91,20 @@ type MovieData = {
   score_average: number;
 };
 
-const getMovieData = async (username: string): Promise<MovieData> => {
-  const movieDataQuery: QueryConfig = {
+const getMovieData = async (client: ITask<unknown>, username: string): Promise<MovieData> => {
+  const movieData = await client.any({
     text: `SELECT * FROM
             (SELECT count(*) FROM movies WHERE submitter = $1) count,
             (SELECT coalesce(sum(m.duration) / 60, 0) as watch_time, coalesce(round(avg(uml.score), 1), 0) AS average
             FROM movies m INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
             WHERE submitter = $1 AND uml.status != 'planned') watch_time_and_avg_score`,
     values: [username],
+  });
+  return {
+    count: movieData[0].count,
+    watch_time: movieData[0].watch_time,
+    score_average: movieData[0].average,
   };
-
-  const movieData = await query(movieDataQuery);
-  const response: MovieData = {
-    count: movieData.rows[0].count,
-    watch_time: movieData.rows[0].watch_time,
-    score_average: movieData.rows[0].average,
-  };
-  return response;
 };
 
 type MovieDataV2 = {
@@ -130,8 +120,8 @@ const fillMovieStatuses = (rows: StatusRow[]): StatusRow[] => {
   });
 };
 
-const getMovieDataV2 = async (username: string): Promise<MovieDataV2> => {
-  const movieDataQuery: QueryConfig = {
+const getMovieDataV2 = async (client: ITask<unknown>, username: string): Promise<MovieDataV2> => {
+  const rows = await client.any({
     text: `SELECT * FROM
             (SELECT uml.status, COALESCE(count(*), 0) AS count
               FROM movies m
@@ -143,9 +133,7 @@ const getMovieDataV2 = async (username: string): Promise<MovieDataV2> => {
               INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
               WHERE submitter = $1 AND uml.status != 'planned') watch_time_and_avg_score`,
     values: [username],
-  };
-
-  const { rows } = await query(movieDataQuery);
+  });
 
   const totalMovieCount = rows.reduce((acc, curr) => acc + curr.count, 0);
   const statuses: StatusRow[] = [
@@ -166,30 +154,30 @@ type ItemScoreRow = {
   count: number;
 };
 
-const getBookScores = async (username: string): Promise<ItemScoreRow[]> => {
-  const scoreQuery: QueryConfig = {
+const getBookScores = async (client: ITask<unknown>, username: string): Promise<ItemScoreRow[]> => {
+  const rows = await client.any({
     text: `SELECT ubl.score, count(ubl.score)
            FROM books b
                     INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
            WHERE submitter = $1 AND ubl.status != 'planned'
            GROUP BY ubl.score;`,
     values: [username],
-  };
-  const { rows }: { rows: ItemScoreRow[] } = await query(scoreQuery);
+  });
   return await fillAndSortResponse(rows);
 };
 
-const getMovieScores = async (username: string): Promise<ItemScoreRow[]> => {
-  const scoreQuery: QueryConfig = {
+const getMovieScores = async (
+  client: ITask<unknown>,
+  username: string,
+): Promise<ItemScoreRow[]> => {
+  const rows = await client.any({
     text: `SELECT uml.score, count(uml.score)
            FROM movies m
                     INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
            WHERE submitter = $1 AND uml.status != 'planned'
            GROUP BY uml.score;`,
     values: [username],
-  };
-
-  const { rows }: { rows: ItemScoreRow[] } = await query(scoreQuery);
+  });
   return await fillAndSortResponse(rows);
 };
 
@@ -201,13 +189,13 @@ type ProfileData = {
   movieScores: ItemScoreRow[];
 };
 
-const getProfileData = async (username: string): Promise<ProfileData> => {
+const getProfileData = async (client: ITask<unknown>, username: string): Promise<ProfileData> => {
   const [userInfo, bookData, movieData, bookScores, movieScores] = await Promise.all([
-    getUserInfo(username),
-    getBookData(username),
-    getMovieData(username),
-    getBookScores(username),
-    getMovieScores(username),
+    getUserInfo(client, username),
+    getBookData(client, username),
+    getMovieData(client, username),
+    getBookScores(client, username),
+    getMovieScores(client, username),
   ]);
   return {
     userInfo,
@@ -226,13 +214,16 @@ type ProfileDataV2 = {
   movieScores: ItemScoreRow[];
 };
 
-const getProfileDataV2 = async (username: string): Promise<ProfileDataV2> => {
+const getProfileDataV2 = async (
+  client: ITask<unknown>,
+  username: string,
+): Promise<ProfileDataV2> => {
   const [userInfo, bookData, movieData, bookScores, movieScores] = await Promise.all([
-    getUserInfo(username),
-    getBookDataV2(username),
-    getMovieDataV2(username),
-    getBookScores(username),
-    getMovieScores(username),
+    getUserInfo(client, username),
+    getBookDataV2(client, username),
+    getMovieDataV2(client, username),
+    getBookScores(client, username),
+    getMovieScores(client, username),
   ]);
   return {
     userInfo,
@@ -243,4 +234,4 @@ const getProfileDataV2 = async (username: string): Promise<ProfileDataV2> => {
   };
 };
 
-export { getProfileData, getProfileDataV2, ItemScoreRow };
+export { getProfileData, getProfileDataV2, ItemScoreRow, BookDataV2, MovieDataV2 };

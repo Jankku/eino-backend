@@ -4,7 +4,7 @@ import cors from 'cors';
 import Logger from './util/logger';
 import { errorHandler } from './util/errorhandler';
 import verifyToken from './middleware/verifytoken';
-import { pool } from './db/config';
+import { db } from './db/config';
 import { createShareDir } from './util/share';
 import { authRouter } from './routes/auth';
 import { bookRouter } from './routes/books';
@@ -21,7 +21,7 @@ createShareDir();
 
 const app = express();
 
-app.use(express.json());
+app.use(express.json({ limit: config.JSON_BODY_SIZE_LIMIT }));
 app.use(helmet());
 app.use(cors({ allowedHeaders: ['Content-Type', 'Authorization'] }));
 
@@ -41,7 +41,7 @@ app.listen(config.PORT, () => Logger.info(`Server Listening to port ${config.POR
 
 process.on('uncaughtException', (error) => {
   Logger.error('uncaughtException', error);
-  pool.end(() => Logger.info('Pool has ended'));
+  db.$pool.end(() => Logger.info('Pool has ended'));
   process.exit(1);
 });
 

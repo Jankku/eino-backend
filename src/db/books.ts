@@ -1,11 +1,12 @@
-import { PoolClient, QueryConfig } from 'pg';
-import { query } from './config';
+import { db } from './config';
 import Book from './model/book';
 import BookStatus from './model/bookstatus';
 import DbBook from './model/dbbook';
+import { ITask } from 'pg-promise';
 
-const getAllBooks = async (username: string): Promise<DbBook[]> => {
-  const getBooksQuery: QueryConfig = {
+const getAllBooks = async (username: string, client?: ITask<unknown>): Promise<DbBook[]> => {
+  const c = client || db;
+  return await c.any({
     text: `SELECT b.book_id,
                   b.isbn,
                   b.title,
@@ -26,13 +27,11 @@ const getAllBooks = async (username: string): Promise<DbBook[]> => {
              AND b.submitter = $1
            ORDER BY b.title`,
     values: [username],
-  };
-  const { rows } = await query(getBooksQuery);
-  return rows;
+  });
 };
 
 const getBookById = async (bookId: string, username: string): Promise<DbBook[]> => {
-  const getBookQuery: QueryConfig = {
+  return await db.any({
     text: `SELECT b.book_id,
                   b.isbn,
                   b.title,
@@ -52,13 +51,11 @@ const getBookById = async (bookId: string, username: string): Promise<DbBook[]> 
              AND ubl.book_id = $1
              AND b.submitter = $2`,
     values: [bookId, username],
-  };
-  const { rows } = await query(getBookQuery);
-  return rows;
+  });
 };
 
 const getBooksByStatus = async (username: string, status: BookStatus): Promise<DbBook[]> => {
-  const getBooksByStatusQuery: QueryConfig = {
+  return await db.any({
     text: `SELECT b.book_id,
                   b.isbn,
                   b.title,
@@ -79,25 +76,36 @@ const getBooksByStatus = async (username: string, status: BookStatus): Promise<D
              AND ubl.status = $2
            ORDER BY b.title`,
     values: [username, status],
-  };
-  const { rows } = await query(getBooksByStatusQuery);
-  return rows;
+  });
 };
 
-const postBook = async (client: PoolClient, b: Book): Promise<string> => {
-  const insertBookQuery: QueryConfig = {
+const postBook = async (client: ITask<unknown>, b: Book, submitter: string): Promise<string> => {
+  const result = await client.one({
     text: `INSERT INTO books (isbn, title, author, publisher, image_url, pages, year, submitter)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
            RETURNING book_id`,
-    values: [b.isbn, b.title, b.author, b.publisher, b.image_url, b.pages, b.year, b.submitter],
-  };
-  const { rows } = await client.query(insertBookQuery);
-  return rows[0].book_id;
+    values: [b.isbn, b.title, b.author, b.publisher, b.image_url, b.pages, b.year, submitter],
+  });
+  return result.book_id;
+};
+
+const postBookToUserList = async (
+  client: ITask<unknown>,
+  bookId: string,
+  b: Book,
+  username: string,
+): Promise<void> => {
+  await client.none({
+    text: `INSERT INTO user_book_list (book_id, username, status, score, start_date, end_date)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+    values: [bookId, username, b.status, b.score, b.start_date, b.end_date],
+  });
 };
 
 const getTop10BookTitles = async (username: string): Promise<string[]> => {
-  const getTopBooksQuery: QueryConfig = {
-    text: `SELECT CASE
+  return await db.map(
+    {
+      text: `SELECT CASE
                 WHEN char_length(b.title) > 25
                   THEN concat(left(b.title, 22), '...')
                   ELSE b.title
@@ -110,10 +118,18 @@ const getTop10BookTitles = async (username: string): Promise<string[]> => {
             ORDER BY ubl.score DESC,
                       ubl.end_date DESC
             LIMIT 10;`,
-    values: [username],
-  };
-  const { rows }: { rows: { title: string }[] } = await query(getTopBooksQuery);
-  return rows.map(({ title }) => title);
+      values: [username],
+    },
+    undefined,
+    (row) => row.title,
+  );
 };
 
-export { getAllBooks, getBookById, getBooksByStatus, postBook, getTop10BookTitles };
+export {
+  getAllBooks,
+  getBookById,
+  getBooksByStatus,
+  postBook,
+  postBookToUserList,
+  getTop10BookTitles,
+};

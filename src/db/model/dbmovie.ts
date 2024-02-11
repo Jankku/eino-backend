@@ -1,19 +1,12 @@
-import MovieStatus from './moviestatus';
+import z from 'zod';
+import { dateStringSchema, fixedStringSchema } from '../../model/zodschema';
+import { movieSchema } from './movie';
 
-type DbMovie = {
-  movie_id: string;
-  title: string;
-  studio: string;
-  director: string;
-  writer: string;
-  image_url: string;
-  duration: number;
-  year: number;
-  status: MovieStatus;
-  score: number;
-  start_date: string;
-  end_date: string;
-  created_on: string;
-};
+export const dbMovieSchema = movieSchema.extend({
+  movie_id: fixedStringSchema,
+  created_on: dateStringSchema,
+});
+
+type DbMovie = z.infer<typeof dbMovieSchema>;
 
 export default DbMovie;

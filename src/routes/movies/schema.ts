@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { isMovieStatus } from '../../db/model/moviestatus';
-import { listIdSchema, movieSchema } from '../../model/zodschema';
+import { listIdSchema } from '../../model/zodschema';
 import errorMessages from '../../util/errormessages';
+import { movieSchema } from '../../db/model/movie';
 
 export const searchSchema = z.object({
   query: z.object({

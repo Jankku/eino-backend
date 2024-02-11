@@ -2,7 +2,7 @@ import * as bcrypt from 'bcrypt';
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { getUserByUsername } from '../db/users';
-import { query } from '../db/config';
+import { db } from '../db/config';
 import { success } from '../util/response';
 import Logger from '../util/logger';
 import {
@@ -12,7 +12,6 @@ import {
   getPasswordStrength,
 } from '../util/auth';
 import { ErrorWithStatus } from '../util/errorhandler';
-import { QueryConfig } from 'pg';
 import JwtPayload from '../model/jwtpayload';
 import { config } from '../config';
 
@@ -21,12 +20,11 @@ const register = async (req: Request, res: Response, next: NextFunction) => {
 
   try {
     const hashedPassword = await generatePasswordHash(password);
-    const registerQuery: QueryConfig = {
+    await db.none({
       text: `INSERT INTO users (username, password)
              VALUES ($1, $2)`,
       values: [username, hashedPassword],
-    };
-    await query(registerQuery);
+    });
     res.status(200).json(success([{ name: 'user_registered', message: username }]));
   } catch (error) {
     Logger.error((error as Error).stack);

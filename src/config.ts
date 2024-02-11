@@ -21,6 +21,7 @@ const configSchema = z.object({
   ACCESS_TOKEN_VALIDITY: nonEmptyString,
   REFRESH_TOKEN_SECRET: nonEmptyString,
   REFRESH_TOKEN_VALIDITY: nonEmptyString,
+  JSON_BODY_SIZE_LIMIT: z.optional(nonEmptyString).default('10mb'),
 });
 
 const result = configSchema.safeParse(process.env);

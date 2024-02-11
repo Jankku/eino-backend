@@ -6,8 +6,9 @@ import {
   generateShareImage,
   exportUserData,
   getProfileV2,
+  importUserData,
 } from '../../services/profile';
-import { deleteAccountSchema, getProfileSchema } from './schema';
+import { deleteAccountSchema, getProfileSchema, importProfileSchema } from './schema';
 
 export const profileRouter = express.Router();
 
@@ -21,4 +22,5 @@ export const profileRouterV2 = express.Router();
 profileRouterV2.get('/', getProfileV2);
 profileRouterV2.get('/share', generateShareImage);
 profileRouterV2.post('/export', validateSchema(getProfileSchema), exportUserData);
+profileRouterV2.post('/import', validateSchema(importProfileSchema), importUserData);
 profileRouterV2.post('/deleteaccount', validateSchema(deleteAccountSchema), deleteAccount);
