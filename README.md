@@ -11,7 +11,7 @@ Eino
 
 ## Documentation
 
-You can find the Swagger API documentation [here](https://eino.jankku.fi/api/v1/docs/).
+You can find the Swagger API documentation [here](https://eino.jankku.fi/api/v2/docs/).
 
 ## Get started
 
@@ -57,6 +57,12 @@ REFRESH_TOKEN_SECRET=
 # number in seconds, or a string time span (https://github.com/vercel/ms)
 ACCESS_TOKEN_VALIDITY=3600
 REFRESH_TOKEN_VALIDITY=1d
+
+# Maximum size for JSON request bodies
+JSON_BODY_SIZE_LIMIT=10mb
+
+# Book and movie lists have an individual limit
+USER_INDIVIDUAL_LIST_ITEM_LIMIT=100000
 ```
 
 Start the containers.
