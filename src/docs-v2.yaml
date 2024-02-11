@@ -240,6 +240,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ExportProfileResponse'
+  /profile/import:
+    post:
+      tags:
+        - profile
+      summary: Import profile data
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportProfileResponse'
+      responses:
+        '200':
+          description: Profile imported successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '422':
+          description: Item count exceeds the limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
   /profile/deleteaccount:
     post:
       tags:
@@ -846,6 +872,8 @@ components:
     ExportProfileResponse:
       type: object
       properties:
+        version:
+          type: integer
         profile:
           $ref: '#/components/schemas/Profile'
         books:

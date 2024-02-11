@@ -830,6 +830,8 @@ components:
     ExportProfileResponse:
       type: object
       properties:
+        version:
+          type: integer
         profile:
           $ref: '#/components/schemas/Profile'
         books:
@@ -862,7 +864,8 @@ components:
               type: object
               properties:
                 count:
-                  type: integer
+                  type: object
+                  $ref: '#/components/schemas/ProfileBookCount'
                 pages_read:
                   type: integer
                 score_average:
@@ -880,7 +883,8 @@ components:
           type: object
           properties:
             count:
-              type: integer
+              type: object
+              $ref: '#/components/schemas/ProfileMovieCount'
             watch_time:
               type: integer
             score_average:
@@ -894,6 +898,36 @@ components:
                     type: integer
                   count:
                     type: integer
+    ProfileBookCount:
+      type: object
+      properties:
+        all:
+          type: integer
+        reading:
+          type: integer
+        completed:
+          type: integer
+        on-hold:
+          type: integer
+        dropped:
+          type: integer
+        planned:
+          type: integer
+    ProfileMovieCount:
+      type: object
+      properties:
+        all:
+          type: integer
+        watching:
+          type: integer
+        completed:
+          type: integer
+        on-hold:
+          type: integer
+        dropped:
+          type: integer
+        planned:
+          type: integer
     ProfileShare:
       type: object
       properties:
