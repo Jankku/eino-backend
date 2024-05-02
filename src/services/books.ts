@@ -18,7 +18,7 @@ import { bookSchema } from '../db/model/book';
 
 const fetchOne = async (req: Request, res: Response, next: NextFunction) => {
   const { bookId } = req.params;
-  const { username } = res.locals;
+  const username: string = res.locals.username;
 
   try {
     const book = await getBookById(bookId, username);
@@ -29,7 +29,7 @@ const fetchOne = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const fetchAll = async (req: Request, res: Response, next: NextFunction) => {
-  const { username } = res.locals;
+  const username: string = res.locals.username;
 
   try {
     const books = await getAllBooks(username);
@@ -41,7 +41,7 @@ const fetchAll = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const fetchByStatus = async (req: Request, res: Response, next: NextFunction) => {
-  const { username } = res.locals;
+  const username: string = res.locals.username;
   const status = req.params.status as BookStatus;
 
   try {
@@ -54,7 +54,7 @@ const fetchByStatus = async (req: Request, res: Response, next: NextFunction) =>
 };
 
 const addOne = async (req: Request, res: Response, next: NextFunction) => {
-  const { username } = res.locals;
+  const username: string = res.locals.username;
   const book = bookSchema.parse(req.body);
 
   try {
@@ -71,7 +71,7 @@ const addOne = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const updateOne = async (req: Request, res: Response, next: NextFunction) => {
-  const { username } = res.locals;
+  const username: string = res.locals.username;
   const { bookId } = req.params;
   const {
     isbn,
@@ -122,7 +122,7 @@ const updateOne = async (req: Request, res: Response, next: NextFunction) => {
 
 const deleteOne = async (req: Request, res: Response, next: NextFunction) => {
   const { bookId } = req.params;
-  const { username } = res.locals;
+  const username: string = res.locals.username;
 
   try {
     await db.none({
@@ -143,7 +143,7 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const queryString = String(req.query.query).trim();
     const queryAsArray = queryString.split(' ');
-    const { username } = res.locals;
+    const username: string = res.locals.username;
     const resultArray: DbBook[] = [];
 
     for (const queryPart of queryAsArray) {

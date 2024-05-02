@@ -13,6 +13,8 @@ const errorMessages = {
   LIST_ID_REQUIRED: 'Id required',
   LIST_ID_TYPE_ERROR: 'Id must be a string',
   SEARCH_QUERY_TYPE_ERROR: 'Query must be a string',
+  EMAIL_INVALID: 'Invalid email',
+  OTP_INVALID: 'Invalid one-time password',
 };
 
 export default errorMessages;

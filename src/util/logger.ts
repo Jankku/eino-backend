@@ -1,13 +1,14 @@
 import { createLogger, format, transports } from 'winston';
+import { config } from '../config';
 
 const Logger = createLogger({
-  level: 'info',
+  level: config.NODE_ENV === 'development' ? 'debug' : 'info',
   defaultMeta: { service: 'eino' },
   format: format.combine(
     format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
     format.errors({ stack: true }),
     format.splat(),
-    format.json()
+    format.json(),
   ),
   transports: [
     new transports.Console({
@@ -16,7 +17,6 @@ const Logger = createLogger({
   ],
 });
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
 Logger.on('error', () => {});
 
 export default Logger;

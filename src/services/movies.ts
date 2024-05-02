@@ -18,7 +18,7 @@ import { movieSchema } from '../db/model/movie';
 
 const fetchOne = async (req: Request, res: Response, next: NextFunction) => {
   const { movieId } = req.params;
-  const { username } = res.locals;
+  const username: string = res.locals.username;
 
   try {
     const movie = await getMovieById(movieId, username);
@@ -30,7 +30,7 @@ const fetchOne = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const fetchAll = async (_req: Request, res: Response, next: NextFunction) => {
-  const { username } = res.locals;
+  const username: string = res.locals.username;
 
   try {
     const movies = await getAllMovies(username);
@@ -42,7 +42,7 @@ const fetchAll = async (_req: Request, res: Response, next: NextFunction) => {
 };
 
 const fetchByStatus = async (req: Request, res: Response, next: NextFunction) => {
-  const { username } = res.locals;
+  const username: string = res.locals.username;
   const status = req.params.status as MovieStatus;
 
   try {
@@ -55,7 +55,7 @@ const fetchByStatus = async (req: Request, res: Response, next: NextFunction) =>
 };
 
 const addOne = async (req: Request, res: Response, next: NextFunction) => {
-  const { username } = res.locals;
+  const username: string = res.locals.username;
   const movie = movieSchema.parse(req.body);
 
   try {
@@ -75,7 +75,7 @@ const addOne = async (req: Request, res: Response, next: NextFunction) => {
 
 const updateOne = async (req: Request, res: Response, next: NextFunction) => {
   const { movieId } = req.params;
-  const { username } = res.locals;
+  const username: string = res.locals.username;
   const {
     title,
     studio,
@@ -125,7 +125,7 @@ const updateOne = async (req: Request, res: Response, next: NextFunction) => {
 
 const deleteOne = async (req: Request, res: Response, next: NextFunction) => {
   const { movieId } = req.params;
-  const { username } = res.locals;
+  const username: string = res.locals.username;
 
   try {
     await db.none({
@@ -146,7 +146,7 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const queryString = String(req.query.query).trim();
     const queryAsArray = queryString.split(' ');
-    const { username } = res.locals;
+    const username: string = res.locals.username;
     const resultArray: DbMovie[] = [];
 
     for (const queryPart of queryAsArray) {

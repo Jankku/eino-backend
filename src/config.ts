@@ -1,11 +1,13 @@
 import { z } from 'zod';
 import dotenv from 'dotenv';
+import Logger from './util/logger';
 
 dotenv.config();
 
 const nonEmptyString = z.string().min(1);
 
 const configSchema = z.object({
+  NODE_ENV: z.optional(nonEmptyString).default('development'),
   DATABASE_URL: z
     .string()
     .refine(
@@ -28,7 +30,7 @@ const configSchema = z.object({
 const result = configSchema.safeParse(process.env);
 
 if (!result.success) {
-  console.error(result.error.issues);
+  Logger.error(result.error.issues);
   throw new Error('Invalid configuration');
 }
 

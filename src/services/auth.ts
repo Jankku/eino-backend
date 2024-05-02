@@ -10,20 +10,21 @@ import {
   generatePasswordHash,
   generateRefreshToken,
   getPasswordStrength,
+  updateLastLogin,
 } from '../util/auth';
 import { ErrorWithStatus } from '../util/errorhandler';
 import JwtPayload from '../model/jwtpayload';
 import { config } from '../config';
 
 const register = async (req: Request, res: Response, next: NextFunction) => {
-  const { username, password } = req.body;
+  const { username, password, email } = req.body;
 
   try {
     const hashedPassword = await generatePasswordHash(password);
     await db.none({
-      text: `INSERT INTO users (username, password)
-             VALUES ($1, $2)`,
-      values: [username, hashedPassword],
+      text: `INSERT INTO users (username, password, email)
+             VALUES ($1, $2, $3)`,
+      values: [username, hashedPassword, email],
     });
     res.status(200).json(success([{ name: 'user_registered', message: username }]));
   } catch (error) {
@@ -44,16 +45,13 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = await getUserByUsername(username);
 
-    if (user === undefined) {
+    const isCorrect = await bcrypt.compare(password, user.password);
+    if (!isCorrect) {
       next(new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password'));
       return;
     }
 
-    const result = await bcrypt.compare(password, user.password);
-    if (!result) {
-      next(new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password'));
-      return;
-    }
+    await updateLastLogin(user.user_id);
 
     const accessToken = generateAccessToken(user.user_id, username);
     const refreshToken = generateRefreshToken(user.user_id, username);
@@ -67,7 +65,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const generateNewAccessToken = async (req: Request, res: Response, next: NextFunction) => {
+const generateNewAccessToken = (req: Request, res: Response, next: NextFunction) => {
   const { refreshToken } = req.body;
 
   try {
@@ -83,7 +81,7 @@ const generateNewAccessToken = async (req: Request, res: Response, next: NextFun
   }
 };
 
-const passwordStrength = async (req: Request, res: Response, next: NextFunction) => {
+const passwordStrength = (req: Request, res: Response, next: NextFunction) => {
   const { password } = req.body;
 
   try {

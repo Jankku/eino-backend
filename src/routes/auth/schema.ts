@@ -10,6 +10,7 @@ export const registerSchema = z
       username: usernameSchema,
       password: passwordSchema,
       password2: passwordSchema,
+      email: z.optional(z.string().trim().max(255).email({ message: errorMessages.EMAIL_INVALID })),
     }),
   })
   .refine((data) => data.body.password === data.body.password2, {

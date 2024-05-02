@@ -3,7 +3,7 @@ import { db } from './config';
 import User from './model/user';
 import * as bcrypt from 'bcrypt';
 
-const getUserByUsername = async (username: string): Promise<User | undefined> => {
+const getUserByUsername = async (username: string): Promise<User> => {
   return await db.one({
     text: `SELECT *
            FROM users
@@ -12,10 +12,28 @@ const getUserByUsername = async (username: string): Promise<User | undefined> =>
   });
 };
 
+const updateEmailAddress = async (username: string, email: string | null): Promise<void> => {
+  await db.none({
+    text: `UPDATE users
+             SET email = $1, email_verified_on = NULL
+             WHERE username = $2`,
+    values: [email, username],
+  });
+};
+
+const isEmailVerified = async (email: string): Promise<boolean> => {
+  const result = await db.oneOrNone({
+    text: `SELECT email_verified_on
+           FROM users
+           WHERE email = $1`,
+    values: [email],
+  });
+  if (!result) return false;
+  return result.email_verified_on !== null;
+};
+
 const isPasswordCorrect = async (username: string, password: string): Promise<boolean> => {
   const user = await getUserByUsername(username);
-  if (user === undefined) return false;
-
   const isCorrect = await bcrypt.compare(password, user.password);
   return isCorrect;
 };
@@ -64,9 +82,9 @@ const getItemCountByUsername = async (username: string): Promise<UserItemCount> 
 };
 
 // Used only for tests
-const deleteAllUsers = () => {
+const deleteAllUsers = async () => {
   try {
-    db.none({
+    await db.none({
       text: `DELETE
              FROM users`,
     });
@@ -77,8 +95,10 @@ const deleteAllUsers = () => {
 
 export {
   getUserByUsername,
+  updateEmailAddress,
   isPasswordCorrect,
   isUserUnique,
+  isEmailVerified,
   deleteAllUsers,
   getItemCountByUsername,
 };

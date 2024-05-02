@@ -24,7 +24,7 @@ import {
 import { config } from '../config';
 
 const getProfile = async (req: Request, res: Response, next: NextFunction) => {
-  const { username } = res.locals;
+  const username: string = res.locals.username;
   try {
     const data = await db.task(async (t) => await getProfileData(t, username));
 
@@ -50,7 +50,7 @@ const getProfile = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const getProfileV2 = async (req: Request, res: Response, next: NextFunction) => {
-  const { username } = res.locals;
+  const username: string = res.locals.username;
   try {
     const data = await db.task(async (t) => await getProfileDataV2(t, username));
     res.status(200).json({
@@ -75,7 +75,7 @@ const getProfileV2 = async (req: Request, res: Response, next: NextFunction) => 
 };
 
 const deleteAccount = async (req: Request, res: Response, next: NextFunction) => {
-  const { username } = res.locals;
+  const username: string = res.locals.username;
   const { password } = req.body;
 
   if (!password || password === undefined) {
@@ -107,7 +107,7 @@ const deleteAccount = async (req: Request, res: Response, next: NextFunction) =>
 
 const generateShareImage = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { username } = res.locals;
+    const username: string = res.locals.username;
     const bookTitles = await getTop10BookTitles(username);
     const movieTitles = await getTop10MovieTitles(username);
 
@@ -245,7 +245,7 @@ const generateShareImage = async (req: Request, res: Response, next: NextFunctio
 };
 
 const exportUserData = async (req: Request, res: Response, next: NextFunction) => {
-  const { username } = res.locals;
+  const username: string = res.locals.username;
   const { password } = req.body;
 
   if (!password || password === undefined) {
@@ -300,7 +300,7 @@ const exportUserData = async (req: Request, res: Response, next: NextFunction) =
 
 const importUserData = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { username } = res.locals;
+    const username: string = res.locals.username;
     const { body } = importProfileSchema.parse(req);
 
     const { book_count, movie_count } = await getItemCountByUsername(username);
