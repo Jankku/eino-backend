@@ -12,7 +12,11 @@ import { generateShareId, getFontPath, getShareItemPath } from '../util/share';
 import { getSharesByUsername, postShare } from '../db/share';
 import { DateTime } from 'luxon';
 import { getProfileData, getProfileDataV2 } from '../db/profile';
-import { importProfileSchema } from '../routes/profile/schema';
+import {
+  deleteAccountSchema,
+  getProfileSchema,
+  importProfileSchema,
+} from '../routes/profile/schema';
 import {
   booksCs,
   booksListCs,
@@ -22,9 +26,15 @@ import {
   moviesListCs,
 } from '../util/profile';
 import { config } from '../config';
+import { TypedRequest } from '../util/zod';
 
-const getProfile = async (req: Request, res: Response, next: NextFunction) => {
+const getProfile = async (
+  _req: TypedRequest<typeof getProfileSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
   const username: string = res.locals.username;
+
   try {
     const data = await db.task(async (t) => await getProfileData(t, username));
 
@@ -49,7 +59,7 @@ const getProfile = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const getProfileV2 = async (req: Request, res: Response, next: NextFunction) => {
+const getProfileV2 = async (_req: Request, res: Response, next: NextFunction) => {
   const username: string = res.locals.username;
   try {
     const data = await db.task(async (t) => await getProfileDataV2(t, username));
@@ -74,7 +84,11 @@ const getProfileV2 = async (req: Request, res: Response, next: NextFunction) => 
   }
 };
 
-const deleteAccount = async (req: Request, res: Response, next: NextFunction) => {
+const deleteAccount = async (
+  req: TypedRequest<typeof deleteAccountSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
   const username: string = res.locals.username;
   const { password } = req.body;
 
@@ -105,7 +119,7 @@ const deleteAccount = async (req: Request, res: Response, next: NextFunction) =>
   }
 };
 
-const generateShareImage = async (req: Request, res: Response, next: NextFunction) => {
+const generateShareImage = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const username: string = res.locals.username;
     const bookTitles = await getTop10BookTitles(username);
@@ -244,7 +258,11 @@ const generateShareImage = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
-const exportUserData = async (req: Request, res: Response, next: NextFunction) => {
+const exportUserData = async (
+  req: TypedRequest<typeof getProfileSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
   const username: string = res.locals.username;
   const { password } = req.body;
 
@@ -298,10 +316,14 @@ const exportUserData = async (req: Request, res: Response, next: NextFunction) =
   }
 };
 
-const importUserData = async (req: Request, res: Response, next: NextFunction) => {
+const importUserData = async (
+  req: TypedRequest<typeof importProfileSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const username: string = res.locals.username;
-    const { body } = importProfileSchema.parse(req);
+    const { body } = req;
 
     const { book_count, movie_count } = await getItemCountByUsername(username);
 

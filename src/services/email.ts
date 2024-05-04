@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Response } from 'express';
 import { db } from '../db/config';
 import { success } from '../util/response';
 import { ErrorWithStatus } from '../util/errorhandler';
@@ -6,11 +6,17 @@ import { generateTOTP, validateTOTP } from '../util/totp';
 import { addVerification, deleteVerification, getVerification } from '../db/verification';
 import Logger from '../util/logger';
 import { getUserByUsername, isEmailVerified, updateEmailAddress } from '../db/users';
+import { TypedRequest } from '../util/zod';
+import { updateEmailSchema, verifyEmailSchema } from '../routes/email';
 
-const updateEmail = async (req: Request, res: Response, next: NextFunction) => {
+const updateEmail = async (
+  req: TypedRequest<typeof updateEmailSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const username: string = res.locals.username;
-    const email: string = req.body.email;
+    const { email } = req.body;
 
     if (email.length === 0) {
       await updateEmailAddress(username, null);
@@ -57,7 +63,11 @@ const updateEmail = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const verifyEmail = async (req: Request, res: Response, next: NextFunction) => {
+const verifyEmail = async (
+  req: TypedRequest<typeof verifyEmailSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const username: string = res.locals.username;
     const { otp } = req.body;

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isMovieStatus } from '../../db/model/moviestatus';
+import { movieStatusEnum } from '../../db/model/moviestatus';
 import { listIdSchema } from '../../model/zodschema';
 import errorMessages from '../../util/errormessages';
 import { movieSchema } from '../../db/model/movie';
@@ -35,7 +35,7 @@ export const deleteOneSchema = z.object({
 
 export const fetchByStatusSchema = z.object({
   params: z.object({
-    status: z.string().refine((status) => isMovieStatus(status), errorMessages.LIST_STATUS_INVALID),
+    status: movieStatusEnum,
   }),
 });
 

@@ -8,7 +8,7 @@ export const dateStringSchema = z.string().refine((arg) => {
 
 export const dateSchema = z.preprocess((arg) => {
   if (typeof arg == 'string' || arg instanceof Date) return new Date(arg);
-}, z.date());
+}, z.date()) as z.ZodType<Date | undefined>; // fix for preprocess
 
 export const fixedStringSchema = z.string().min(0).max(255);
 
@@ -24,8 +24,9 @@ export const listIdSchema = z.string({
 export const scoreSchema = z.number().min(0).max(10);
 
 export const coverUrlSchema = z.union([
-  z.string().url().startsWith('https').nullable().default(null),
+  z.string().url().startsWith('https'),
   z.literal(''),
+  z.null(),
 ]);
 
 export const usernameSchema = z

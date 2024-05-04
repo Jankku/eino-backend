@@ -1,5 +1,5 @@
 import * as bcrypt from 'bcrypt';
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { getUserByUsername } from '../db/users';
 import { db } from '../db/config';
@@ -15,8 +15,19 @@ import {
 import { ErrorWithStatus } from '../util/errorhandler';
 import JwtPayload from '../model/jwtpayload';
 import { config } from '../config';
+import { TypedRequest } from '../util/zod';
+import {
+  loginSchema,
+  passwordStrengthSchema,
+  refreshTokenSchema,
+  registerSchema,
+} from '../routes/auth';
 
-const register = async (req: Request, res: Response, next: NextFunction) => {
+const register = async (
+  req: TypedRequest<typeof registerSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
   const { username, password, email } = req.body;
 
   try {
@@ -39,7 +50,7 @@ const register = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const login = async (req: Request, res: Response, next: NextFunction) => {
+const login = async (req: TypedRequest<typeof loginSchema>, res: Response, next: NextFunction) => {
   const { username, password } = req.body;
 
   try {
@@ -65,7 +76,11 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const generateNewAccessToken = (req: Request, res: Response, next: NextFunction) => {
+const generateNewAccessToken = (
+  req: TypedRequest<typeof refreshTokenSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
   const { refreshToken } = req.body;
 
   try {
@@ -81,7 +96,11 @@ const generateNewAccessToken = (req: Request, res: Response, next: NextFunction)
   }
 };
 
-const passwordStrength = (req: Request, res: Response, next: NextFunction) => {
+const passwordStrength = (
+  req: TypedRequest<typeof passwordStrengthSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
   const { password } = req.body;
 
   try {
