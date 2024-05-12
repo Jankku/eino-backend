@@ -7,7 +7,7 @@
   "scripts": {
     "build": "rimraf dist && npx tsc",
     "start": "npm run build && node ./dist/src/app.js",
-    "dev": "nodemon",
+    "dev": "node -r ts-node/register --watch-path=src src/app.ts",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint --fix src/**/*.ts",
     "format": "prettier --write ./src",
@@ -75,7 +75,6 @@
     "eslint-plugin-unicorn": "^51.0.1",
     "husky": "^9.0.11",
     "mocha": "^10.3.0",
-    "nodemon": "^3.1.0",
     "pin-github-action": "^1.9.1",
     "prettier": "^3.2.5",
     "rimraf": "^5.0.5",
