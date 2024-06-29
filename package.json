@@ -4,6 +4,9 @@
   "description": "Book and movie tracker with web and Android clients",
   "private": true,
   "main": "./dist/app.js",
+  "engines": {
+    "node": ">=18.11.0"
+  },
   "scripts": {
     "build": "rimraf dist && npx tsc",
     "start": "npm run build && node ./dist/src/app.js",

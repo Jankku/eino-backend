@@ -70,9 +70,7 @@ const login = async (req: TypedRequest<typeof loginSchema>, res: Response, next:
     return res.status(200).json({ accessToken, refreshToken });
   } catch (error) {
     Logger.error((error as Error).stack);
-    next(
-      new ErrorWithStatus(500, 'authentication_error', 'Unknown error while trying to log-in user'),
-    );
+    next(new ErrorWithStatus(500, 'authentication_error', 'Incorrect username or password'));
   }
 };
 
