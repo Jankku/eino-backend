@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { z } from 'zod';
-import { cachified } from 'cachified';
+import { cachified } from '@epic-web/cachified';
 import { cache, cacheSchema, getCacheKey } from '../../util/cache';
 
 const finnaImagesSchema = z.object({
@@ -12,7 +12,7 @@ export type FinnaFilter = 'book' | 'video';
 
 export const fetchFinnaImages = async (
   query: string,
-  finnaFilter: FinnaFilter
+  finnaFilter: FinnaFilter,
 ): Promise<string[]> => {
   const isBookFilter = finnaFilter === 'book';
   const filters = isBookFilter ? ['format:0/Book/'] : ['format:1/Video/Feature/'];
