@@ -47,3 +47,6 @@ export const passwordSchema = z
   .max(255, {
     message: errorMessages.PASSWORD_LENGTH_INVALID,
   });
+
+export const sortOrderSchema = z.enum(['ascending', 'descending']).default('ascending');
+export type SortOrder = z.infer<typeof sortOrderSchema>;

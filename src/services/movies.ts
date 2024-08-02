@@ -14,7 +14,8 @@ import { ErrorWithStatus } from '../util/errorhandler';
 import { fetchTmdbImages } from './third-party/tmdb';
 import { fetchFinnaImages } from './third-party/finna';
 import DbMovie from '../db/model/dbmovie';
-import { movieSchema } from '../db/model/movie';
+import { movieSchema, movieSortSchema } from '../db/model/movie';
+import { itemSorter } from '../util/sort';
 
 const fetchOne = async (req: Request, res: Response, next: NextFunction) => {
   const { movieId } = req.params;
@@ -29,11 +30,18 @@ const fetchOne = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const fetchAll = async (_req: Request, res: Response, next: NextFunction) => {
+const fetchAll = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
 
   try {
-    const movies = await getAllMovies(username);
+    let movies = await getAllMovies(username);
+
+    const sortQuery = movieSortSchema.safeParse(req.query);
+    if (sortQuery.success) {
+      const { sort, order } = sortQuery.data;
+      movies = movies.toSorted((a, b) => itemSorter(a, b, sort, order));
+    }
+
     res.status(200).json(success(movies));
   } catch (error) {
     Logger.error((error as Error).stack);
@@ -46,7 +54,14 @@ const fetchByStatus = async (req: Request, res: Response, next: NextFunction) =>
   const status = req.params.status as MovieStatus;
 
   try {
-    const movies = await getMoviesByStatus(username, status);
+    let movies = await getMoviesByStatus(username, status);
+
+    const sortQuery = movieSortSchema.safeParse(req.query);
+    if (sortQuery.success) {
+      const { sort, order } = sortQuery.data;
+      movies = movies.toSorted((a, b) => itemSorter(a, b, sort, order));
+    }
+
     res.status(200).json(success(movies));
   } catch (error) {
     Logger.error((error as Error).stack);

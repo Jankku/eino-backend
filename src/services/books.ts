@@ -14,7 +14,8 @@ import BookStatus from '../db/model/bookstatus';
 import { fetchFinnaImages } from './third-party/finna';
 import { fetchOpenLibraryImages } from './third-party/openlibrary';
 import DbBook from '../db/model/dbbook';
-import { bookSchema } from '../db/model/book';
+import { bookSchema, bookSortSchema } from '../db/model/book';
+import { itemSorter } from '../util/sort';
 
 const fetchOne = async (req: Request, res: Response, next: NextFunction) => {
   const { bookId } = req.params;
@@ -32,7 +33,14 @@ const fetchAll = async (req: Request, res: Response, next: NextFunction) => {
   const { username } = res.locals;
 
   try {
-    const books = await getAllBooks(username);
+    let books = await getAllBooks(username);
+
+    const sortQuery = bookSortSchema.safeParse(req.query);
+    if (sortQuery.success) {
+      const { sort, order } = sortQuery.data;
+      books = books.toSorted((a, b) => itemSorter(a, b, sort, order));
+    }
+
     res.status(200).json(success(books));
   } catch (error) {
     Logger.error((error as Error).stack);
@@ -45,7 +53,14 @@ const fetchByStatus = async (req: Request, res: Response, next: NextFunction) =>
   const status = req.params.status as BookStatus;
 
   try {
-    const books = await getBooksByStatus(username, status);
+    let books = await getBooksByStatus(username, status);
+
+    const sortQuery = bookSortSchema.safeParse(req.query);
+    if (sortQuery.success) {
+      const { sort, order } = sortQuery.data;
+      books = books.toSorted((a, b) => itemSorter(a, b, sort, order));
+    }
+
     res.status(200).json(success(books));
   } catch (error) {
     Logger.error((error as Error).stack);
