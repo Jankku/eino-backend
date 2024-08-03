@@ -44,7 +44,7 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = await getUserByUsername(username);
 
-    if (user === undefined) {
+    if (!user) {
       next(new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password'));
       return;
     }

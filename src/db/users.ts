@@ -3,8 +3,8 @@ import { db } from './config';
 import User from './model/user';
 import * as bcrypt from 'bcrypt';
 
-const getUserByUsername = async (username: string): Promise<User | undefined> => {
-  return await db.one({
+const getUserByUsername = async (username: string): Promise<User | null | undefined> => {
+  return await db.oneOrNone({
     text: `SELECT *
            FROM users
            WHERE username = $1`,
@@ -14,7 +14,7 @@ const getUserByUsername = async (username: string): Promise<User | undefined> =>
 
 const isPasswordCorrect = async (username: string, password: string): Promise<boolean> => {
   const user = await getUserByUsername(username);
-  if (user === undefined) return false;
+  if (!user) return false;
 
   const isCorrect = await bcrypt.compare(password, user.password);
   return isCorrect;
