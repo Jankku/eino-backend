@@ -55,6 +55,10 @@ const login = async (req: TypedRequest<typeof loginSchema>, res: Response, next:
 
   try {
     const user = await getUserByUsername(username);
+    if (!user) {
+      next(new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password'));
+      return;
+    }
 
     const isCorrect = await bcrypt.compare(password, user.password);
     if (!isCorrect) {

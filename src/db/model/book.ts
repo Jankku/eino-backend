@@ -6,6 +6,7 @@ import {
   fixedStringSchema,
   positiveNumberSchema,
   scoreSchema,
+  sortOrderSchema,
 } from '../../model/zodschema';
 
 export const bookSchema = z.object({
@@ -20,6 +21,13 @@ export const bookSchema = z.object({
   score: scoreSchema,
   start_date: dateSchema,
   end_date: dateSchema,
+});
+
+const bookSortableKeySchema = bookSchema.omit({ image_url: true, isbn: true }).keyof();
+
+export const bookSortSchema = z.object({
+  sort: bookSortableKeySchema.default('title'),
+  order: sortOrderSchema,
 });
 
 type Book = z.infer<typeof bookSchema>;

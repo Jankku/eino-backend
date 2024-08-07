@@ -23,6 +23,8 @@ import {
   searchSchema,
   updateOneSchema,
 } from '../routes/books';
+import { bookSortSchema } from '../db/model/book';
+import { itemSorter } from '../util/sort';
 
 const fetchOne = async (
   req: TypedRequest<typeof fetchOneSchema>,
@@ -40,11 +42,18 @@ const fetchOne = async (
   }
 };
 
-const fetchAll = async (_req: Request, res: Response, next: NextFunction) => {
+const fetchAll = async (req: Request, res: Response, next: NextFunction) => {
   const username: string = res.locals.username;
 
   try {
-    const books = await getAllBooks(username);
+    let books = await getAllBooks(username);
+
+    const sortQuery = bookSortSchema.safeParse(req.query);
+    if (sortQuery.success) {
+      const { sort, order } = sortQuery.data;
+      books = books.toSorted((a, b) => itemSorter(a, b, sort, order));
+    }
+
     res.status(200).json(success(books));
   } catch (error) {
     Logger.error((error as Error).stack);
@@ -61,7 +70,14 @@ const fetchByStatus = async (
   const status = req.params.status;
 
   try {
-    const books = await getBooksByStatus(username, status);
+    let books = await getBooksByStatus(username, status);
+
+    const sortQuery = bookSortSchema.safeParse(req.query);
+    if (sortQuery.success) {
+      const { sort, order } = sortQuery.data;
+      books = books.toSorted((a, b) => itemSorter(a, b, sort, order));
+    }
+
     res.status(200).json(success(books));
   } catch (error) {
     Logger.error((error as Error).stack);

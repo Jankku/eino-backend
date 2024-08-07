@@ -73,7 +73,7 @@ const verifyEmail = async (
     const { otp } = req.body;
 
     const user = await getUserByUsername(username);
-    if (!user.email) {
+    if (!user || !user.email) {
       next(new ErrorWithStatus(422, 'email_error', "Couldn't verify email"));
       return;
     }

@@ -305,6 +305,16 @@ paths:
           schema:
             type: string
             enum: [all, completed, reading, on-hold, dropped, planned]
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [title, author, publisher, pages, year, status, score, start_date, end_date]
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [ascending, descending]
       tags:
         - books
       summary: Get books by status
@@ -482,6 +492,17 @@ paths:
           schema:
             type: string
             enum: [all, completed, watching, on-hold, dropped, planned]
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum:
+              [title, studio, director, writer, duration, year, status, score, start_date, end_date]
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [ascending, descending]
       tags:
         - movies
       summary: Get movies by status

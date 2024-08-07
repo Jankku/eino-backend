@@ -5,6 +5,7 @@ import {
   fixedStringSchema,
   positiveNumberSchema,
   scoreSchema,
+  sortOrderSchema,
 } from '../../model/zodschema';
 import { movieStatusEnum } from './moviestatus';
 
@@ -20,6 +21,13 @@ export const movieSchema = z.object({
   score: scoreSchema,
   start_date: dateSchema,
   end_date: dateSchema,
+});
+
+const movieSortableKeySchema = movieSchema.omit({ image_url: true }).keyof();
+
+export const movieSortSchema = z.object({
+  sort: movieSortableKeySchema.default('title'),
+  order: sortOrderSchema,
 });
 
 type Movie = z.infer<typeof movieSchema>;

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { z } from 'zod';
 import { config } from '../../config';
-import { cachified } from 'cachified';
+import { cachified } from '@epic-web/cachified';
 import { cache, cacheSchema, getCacheKey } from '../../util/cache';
 
 const tmdbSearchSchema = z.object({

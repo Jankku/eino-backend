@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { z } from 'zod';
-import { cachified } from 'cachified';
+import { cachified } from '@epic-web/cachified';
 import { cache, cacheSchema, getCacheKey } from '../../util/cache';
 
 const openLibraryImageSchema = z.object({

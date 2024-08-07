@@ -23,6 +23,8 @@ import {
   updateOneSchema,
 } from '../routes/movies';
 import { TypedRequest } from '../util/zod';
+import { movieSortSchema } from '../db/model/movie';
+import { itemSorter } from '../util/sort';
 
 const fetchOne = async (
   req: TypedRequest<typeof fetchOneSchema>,
@@ -41,11 +43,18 @@ const fetchOne = async (
   }
 };
 
-const fetchAll = async (_req: Request, res: Response, next: NextFunction) => {
+const fetchAll = async (req: Request, res: Response, next: NextFunction) => {
   const username: string = res.locals.username;
 
   try {
-    const movies = await getAllMovies(username);
+    let movies = await getAllMovies(username);
+
+    const sortQuery = movieSortSchema.safeParse(req.query);
+    if (sortQuery.success) {
+      const { sort, order } = sortQuery.data;
+      movies = movies.toSorted((a, b) => itemSorter(a, b, sort, order));
+    }
+
     res.status(200).json(success(movies));
   } catch (error) {
     Logger.error((error as Error).stack);
@@ -62,7 +71,14 @@ const fetchByStatus = async (
   const status = req.params.status;
 
   try {
-    const movies = await getMoviesByStatus(username, status);
+    let movies = await getMoviesByStatus(username, status);
+
+    const sortQuery = movieSortSchema.safeParse(req.query);
+    if (sortQuery.success) {
+      const { sort, order } = sortQuery.data;
+      movies = movies.toSorted((a, b) => itemSorter(a, b, sort, order));
+    }
+
     res.status(200).json(success(movies));
   } catch (error) {
     Logger.error((error as Error).stack);
