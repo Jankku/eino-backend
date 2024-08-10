@@ -14,8 +14,13 @@ import BookStatus from '../db/model/bookstatus';
 import { fetchFinnaImages } from './third-party/finna';
 import { fetchOpenLibraryImages } from './third-party/openlibrary';
 import DbBook from '../db/model/dbbook';
-import { bookSchema, bookSortSchema } from '../db/model/book';
-import { itemSorter } from '../util/sort';
+import {
+  bookSchema,
+  bookSortSchema,
+  bookNumberKeySchema,
+  bookStringKeySchema,
+} from '../db/model/book';
+import { getItemFilter, itemSorter } from '../util/sort';
 
 const fetchOne = async (req: Request, res: Response, next: NextFunction) => {
   const { bookId } = req.params;
@@ -35,10 +40,24 @@ const fetchAll = async (req: Request, res: Response, next: NextFunction) => {
   try {
     let books = await getAllBooks(username);
 
-    const sortQuery = bookSortSchema.safeParse(req.query);
-    if (sortQuery.success) {
-      const { sort, order } = sortQuery.data;
-      books = books.toSorted((a, b) => itemSorter(a, b, sort, order));
+    const queryParams = bookSortSchema.safeParse(req.query);
+    if (queryParams.success) {
+      const { sort, order, filter } = queryParams.data;
+
+      if (filter) {
+        const itemFilter = getItemFilter({
+          key: filter[0],
+          stringSchema: bookStringKeySchema,
+          numberSchema: bookNumberKeySchema,
+        });
+        if (itemFilter) {
+          books = books.filter((book) =>
+            itemFilter(book as unknown as Record<string, never>, filter),
+          );
+        }
+      }
+
+      books = books.toSorted((a, b) => itemSorter({ a, b, sort, order }));
     }
 
     res.status(200).json(success(books));
@@ -55,10 +74,24 @@ const fetchByStatus = async (req: Request, res: Response, next: NextFunction) =>
   try {
     let books = await getBooksByStatus(username, status);
 
-    const sortQuery = bookSortSchema.safeParse(req.query);
-    if (sortQuery.success) {
-      const { sort, order } = sortQuery.data;
-      books = books.toSorted((a, b) => itemSorter(a, b, sort, order));
+    const queryParams = bookSortSchema.safeParse(req.query);
+    if (queryParams.success) {
+      const { sort, order, filter } = queryParams.data;
+
+      if (filter) {
+        const itemFilter = getItemFilter({
+          key: filter[0],
+          stringSchema: bookStringKeySchema,
+          numberSchema: bookNumberKeySchema,
+        });
+        if (itemFilter) {
+          books = books.filter((book) =>
+            itemFilter(book as unknown as Record<string, never>, filter),
+          );
+        }
+      }
+
+      books = books.toSorted((a, b) => itemSorter({ a, b, sort, order }));
     }
 
     res.status(200).json(success(books));

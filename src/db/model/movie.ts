@@ -8,6 +8,7 @@ import {
   sortOrderSchema,
 } from '../../model/zodschema';
 import { movieStatusEnum } from './moviestatus';
+import { parseFilter } from '../../util/sort';
 
 export const movieSchema = z.object({
   title: fixedStringSchema,
@@ -25,7 +26,21 @@ export const movieSchema = z.object({
 
 const movieSortableKeySchema = movieSchema.omit({ image_url: true }).keyof();
 
+export const movieStringKeySchema = movieSortableKeySchema.exclude(['duration', 'year', 'score']);
+export const movieNumberKeySchema = movieSortableKeySchema.extract(['duration', 'year', 'score']);
+
 export const movieSortSchema = z.object({
+  filter: z.union([
+    z.string().transform((val) =>
+      parseFilter({
+        input: val,
+        filterableKeySchema: movieSortableKeySchema,
+        stringKeySchema: movieStringKeySchema,
+        numberKeySchema: movieNumberKeySchema,
+      }),
+    ),
+    z.void(),
+  ]),
   sort: movieSortableKeySchema.default('title'),
   order: sortOrderSchema,
 });

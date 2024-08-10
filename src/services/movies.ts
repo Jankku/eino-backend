@@ -14,8 +14,13 @@ import { ErrorWithStatus } from '../util/errorhandler';
 import { fetchTmdbImages } from './third-party/tmdb';
 import { fetchFinnaImages } from './third-party/finna';
 import DbMovie from '../db/model/dbmovie';
-import { movieSchema, movieSortSchema } from '../db/model/movie';
-import { itemSorter } from '../util/sort';
+import {
+  movieNumberKeySchema,
+  movieSchema,
+  movieSortSchema,
+  movieStringKeySchema,
+} from '../db/model/movie';
+import { getItemFilter, itemSorter } from '../util/sort';
 
 const fetchOne = async (req: Request, res: Response, next: NextFunction) => {
   const { movieId } = req.params;
@@ -36,10 +41,24 @@ const fetchAll = async (req: Request, res: Response, next: NextFunction) => {
   try {
     let movies = await getAllMovies(username);
 
-    const sortQuery = movieSortSchema.safeParse(req.query);
-    if (sortQuery.success) {
-      const { sort, order } = sortQuery.data;
-      movies = movies.toSorted((a, b) => itemSorter(a, b, sort, order));
+    const queryParams = movieSortSchema.safeParse(req.query);
+    if (queryParams.success) {
+      const { sort, order, filter } = queryParams.data;
+
+      if (filter) {
+        const itemFilter = getItemFilter({
+          key: filter[0],
+          stringSchema: movieStringKeySchema,
+          numberSchema: movieNumberKeySchema,
+        });
+        if (itemFilter) {
+          movies = movies.filter((book) =>
+            itemFilter(book as unknown as Record<string, never>, filter),
+          );
+        }
+      }
+
+      movies = movies.toSorted((a, b) => itemSorter({ a, b, sort, order }));
     }
 
     res.status(200).json(success(movies));
@@ -56,10 +75,24 @@ const fetchByStatus = async (req: Request, res: Response, next: NextFunction) =>
   try {
     let movies = await getMoviesByStatus(username, status);
 
-    const sortQuery = movieSortSchema.safeParse(req.query);
-    if (sortQuery.success) {
-      const { sort, order } = sortQuery.data;
-      movies = movies.toSorted((a, b) => itemSorter(a, b, sort, order));
+    const queryParams = movieSortSchema.safeParse(req.query);
+    if (queryParams.success) {
+      const { sort, order, filter } = queryParams.data;
+
+      if (filter) {
+        const itemFilter = getItemFilter({
+          key: filter[0],
+          stringSchema: movieStringKeySchema,
+          numberSchema: movieNumberKeySchema,
+        });
+        if (itemFilter) {
+          movies = movies.filter((book) =>
+            itemFilter(book as unknown as Record<string, never>, filter),
+          );
+        }
+      }
+
+      movies = movies.toSorted((a, b) => itemSorter({ a, b, sort, order }));
     }
 
     res.status(200).json(success(movies));
