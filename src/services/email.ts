@@ -8,6 +8,7 @@ import Logger from '../util/logger';
 import { getUserByUsername, isEmailVerified, updateEmailAddress } from '../db/users';
 import { TypedRequest } from '../util/zod';
 import { updateEmailSchema, verifyEmailSchema } from '../routes/email';
+import { config } from '../config';
 
 const updateEmail = async (
   req: TypedRequest<typeof updateEmailSchema>,
@@ -18,7 +19,7 @@ const updateEmail = async (
     const username: string = res.locals.username;
     const { email } = req.body;
 
-    if (email.length === 0) {
+    if (!email) {
       await updateEmailAddress(username, null);
       res
         .status(200)
@@ -31,6 +32,12 @@ const updateEmail = async (
       res
         .status(200)
         .json(success([{ name: 'email_already_verified', message: 'Email is already verified' }]));
+      return;
+    }
+
+    const verificationExists = await getVerification(email);
+    if (verificationExists) {
+      next(new ErrorWithStatus(422, 'email_error', 'Verification already pending'));
       return;
     }
 
@@ -47,8 +54,11 @@ const updateEmail = async (
       period,
     });
 
-    // send email
-    Logger.info(`Verification code for ${email}: ${otp}`);
+    if (config.NODE_ENV === 'production') {
+      // send email
+    } else {
+      Logger.info(`Verification code for ${email}: ${otp}`);
+    }
 
     res
       .status(200)
@@ -79,6 +89,10 @@ const verifyEmail = async (
     }
 
     const verificationConfig = await getVerification(user.email);
+    if (!verificationConfig) {
+      next(new ErrorWithStatus(422, 'email_error', 'No verification pending'));
+      return;
+    }
 
     const isValid = validateTOTP({ otp, ...verificationConfig });
 

@@ -22,8 +22,8 @@ const addVerification = async (v: Verification) => {
   });
 };
 
-const getVerification = async (target: string): Promise<DbVerification> => {
-  return await db.one({
+const getVerification = async (target: string): Promise<DbVerification | null> => {
+  return await db.oneOrNone({
     text: `SELECT * FROM verifications WHERE target = $1 ORDER by created_on DESC LIMIT 1`,
     values: [target],
   });

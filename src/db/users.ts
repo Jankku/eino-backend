@@ -55,6 +55,21 @@ const isUserUnique = async (username: string): Promise<boolean> => {
   }
 };
 
+const isEmailUnique = async (email: string): Promise<boolean> => {
+  try {
+    const result = await db.result({
+      text: `SELECT email
+           FROM users
+           WHERE email = $1`,
+      values: [email],
+    });
+    return result.rowCount === 0;
+  } catch (error) {
+    Logger.error((error as Error).stack);
+    return false;
+  }
+};
+
 type UserItemCount = {
   username: string;
   book_count: number;
@@ -100,6 +115,7 @@ export {
   updateEmailAddress,
   isPasswordCorrect,
   isUserUnique,
+  isEmailUnique,
   isEmailVerified,
   deleteAllUsers,
   getItemCountByUsername,

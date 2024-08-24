@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { isUserUnique } from '../../db/users';
-import { passwordSchema, usernameSchema } from '../../model/zodschema';
+import { isEmailUnique, isUserUnique } from '../../db/users';
+import { emailSchema, passwordSchema, usernameSchema } from '../../model/zodschema';
 import errorMessages from '../../util/errormessages';
 import { getPasswordStrength } from '../../util/auth';
 
@@ -10,13 +10,28 @@ export const registerSchema = z
       username: usernameSchema,
       password: passwordSchema,
       password2: passwordSchema,
-      email: z.optional(z.string().trim().max(255).email({ message: errorMessages.EMAIL_INVALID })),
+      email: emailSchema,
     }),
   })
   .refine((data) => data.body.password === data.body.password2, {
     params: { name: 'authentication_error' },
-    message: "Passwords don't match",
+    message: errorMessages.PASSWORDS_NO_MATCH,
   })
+  .refine(async (data) => await isUserUnique(data.body.username), {
+    params: { name: 'authentication_error' },
+    message: errorMessages.USER_EXISTS,
+  })
+  .refine(
+    async (data) => {
+      if (!data.body.email) return true;
+      if (!data.body.email.includes('@')) return false;
+      return await isEmailUnique(data.body.email);
+    },
+    {
+      params: { name: 'authentication_error' },
+      message: errorMessages.EMAIL_EXISTS,
+    },
+  )
   .superRefine(({ body }, ctx) => {
     const { isStrong, error } = getPasswordStrength({
       username: body.username,
@@ -25,10 +40,6 @@ export const registerSchema = z
     if (!isStrong) {
       ctx.addIssue({ code: 'custom', message: error, params: { name: 'authentication_error' } });
     }
-  })
-  .refine(async (data) => await isUserUnique(data.body.username), {
-    params: { name: 'user_exists' },
-    message: errorMessages.USER_EXISTS,
   });
 
 export const loginSchema = z.object({

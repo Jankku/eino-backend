@@ -66,6 +66,7 @@ const getProfileV2 = async (_req: Request, res: Response, next: NextFunction) =>
     res.status(200).json({
       user_id: data.userInfo.user_id,
       username: username,
+      email: data.userInfo.email,
       registration_date: data.userInfo.registration_date,
       stats: {
         book: {

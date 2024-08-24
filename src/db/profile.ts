@@ -5,12 +5,13 @@ import { ITask } from 'pg-promise';
 
 type UserInfo = {
   user_id: string;
+  email: string | null;
   registration_date: string;
 };
 
 const getUserInfo = async (client: ITask<unknown>, username: string): Promise<UserInfo> => {
   return await client.one({
-    text: `SELECT user_id, created_on as registration_date
+    text: `SELECT user_id, email, created_on as registration_date
            FROM users
            WHERE username = $1`,
     values: [username],

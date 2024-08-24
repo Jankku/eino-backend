@@ -49,5 +49,15 @@ export const passwordSchema = z
     message: errorMessages.PASSWORD_LENGTH_INVALID,
   });
 
+export const emailSchema = z
+  .string()
+  .trim()
+  .min(0)
+  .max(255, {
+    message: errorMessages.EMAIL_INVALID,
+  })
+  .nullable()
+  .transform((val) => (val === '' ? null : val));
+
 export const sortOrderSchema = z.enum(['ascending', 'descending']).default('ascending');
 export type SortOrder = z.infer<typeof sortOrderSchema>;
