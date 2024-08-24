@@ -8,6 +8,7 @@ import {
   scoreSchema,
   sortOrderSchema,
 } from '../../model/zodschema';
+import { parseFilter } from '../../util/sort';
 
 export const bookSchema = z.object({
   isbn: fixedStringSchema,
@@ -25,7 +26,21 @@ export const bookSchema = z.object({
 
 const bookSortableKeySchema = bookSchema.omit({ image_url: true, isbn: true }).keyof();
 
+export const bookStringKeySchema = bookSortableKeySchema.exclude(['pages', 'year', 'score']);
+export const bookNumberKeySchema = bookSortableKeySchema.extract(['pages', 'year', 'score']);
+
 export const bookSortSchema = z.object({
+  filter: z.union([
+    z.string().transform((val) =>
+      parseFilter({
+        input: val,
+        filterableKeySchema: bookSortableKeySchema,
+        stringKeySchema: bookStringKeySchema,
+        numberKeySchema: bookNumberKeySchema,
+      }),
+    ),
+    z.void(),
+  ]),
   sort: bookSortableKeySchema.default('title'),
   order: sortOrderSchema,
 });

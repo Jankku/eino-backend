@@ -23,8 +23,8 @@ import {
   searchSchema,
   updateOneSchema,
 } from '../routes/books';
-import { bookSortSchema } from '../db/model/book';
-import { itemSorter } from '../util/sort';
+import { bookSortSchema, bookNumberKeySchema, bookStringKeySchema } from '../db/model/book';
+import { itemSorter, getItemFilter } from '../util/sort';
 
 const fetchOne = async (
   req: TypedRequest<typeof fetchOneSchema>,
@@ -48,10 +48,24 @@ const fetchAll = async (req: Request, res: Response, next: NextFunction) => {
   try {
     let books = await getAllBooks(username);
 
-    const sortQuery = bookSortSchema.safeParse(req.query);
-    if (sortQuery.success) {
-      const { sort, order } = sortQuery.data;
-      books = books.toSorted((a, b) => itemSorter(a, b, sort, order));
+    const queryParams = bookSortSchema.safeParse(req.query);
+    if (queryParams.success) {
+      const { sort, order, filter } = queryParams.data;
+
+      if (filter) {
+        const itemFilter = getItemFilter({
+          key: filter[0],
+          stringSchema: bookStringKeySchema,
+          numberSchema: bookNumberKeySchema,
+        });
+        if (itemFilter) {
+          books = books.filter((book) =>
+            itemFilter(book as unknown as Record<string, never>, filter),
+          );
+        }
+      }
+
+      books = books.toSorted((a, b) => itemSorter({ a, b, sort, order }));
     }
 
     res.status(200).json(success(books));
@@ -72,10 +86,24 @@ const fetchByStatus = async (
   try {
     let books = await getBooksByStatus(username, status);
 
-    const sortQuery = bookSortSchema.safeParse(req.query);
-    if (sortQuery.success) {
-      const { sort, order } = sortQuery.data;
-      books = books.toSorted((a, b) => itemSorter(a, b, sort, order));
+    const queryParams = bookSortSchema.safeParse(req.query);
+    if (queryParams.success) {
+      const { sort, order, filter } = queryParams.data;
+
+      if (filter) {
+        const itemFilter = getItemFilter({
+          key: filter[0],
+          stringSchema: bookStringKeySchema,
+          numberSchema: bookNumberKeySchema,
+        });
+        if (itemFilter) {
+          books = books.filter((book) =>
+            itemFilter(book as unknown as Record<string, never>, filter),
+          );
+        }
+      }
+
+      books = books.toSorted((a, b) => itemSorter({ a, b, sort, order }));
     }
 
     res.status(200).json(success(books));

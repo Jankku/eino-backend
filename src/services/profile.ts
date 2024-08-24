@@ -327,17 +327,17 @@ const importUserData = async (
 
     const { book_count, movie_count } = await getItemCountByUsername(username);
 
-    const itemLimit = config.USER_INDIVIDUAL_LIST_ITEM_LIMIT;
+    const maxItemCount = config.USER_LIST_ITEM_MAX_COUNT;
 
     if (
-      body.books.length + book_count > itemLimit ||
-      body.movies.length + movie_count > itemLimit
+      body.books.length + book_count > maxItemCount ||
+      body.movies.length + movie_count > maxItemCount
     ) {
       next(
         new ErrorWithStatus(
           422,
           'profile_import_error',
-          `Item count exceeds the maximum of ${itemLimit} items per list`,
+          `Item count exceeds the maximum of ${maxItemCount} items per list`,
         ),
       );
       return;

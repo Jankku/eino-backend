@@ -22,7 +22,7 @@ createShareDir().catch((error) => Logger.error('Error creating share directory',
 
 const app = express();
 
-app.use(express.json({ limit: config.JSON_BODY_SIZE_LIMIT }));
+app.use(express.json({ limit: config.REQUEST_BODY_MAX_SIZE }));
 app.use(helmet());
 app.use(cors({ allowedHeaders: ['Content-Type', 'Authorization'] }));
 

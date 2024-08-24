@@ -23,8 +23,8 @@ const configSchema = z.object({
   ACCESS_TOKEN_VALIDITY: nonEmptyString,
   REFRESH_TOKEN_SECRET: nonEmptyString,
   REFRESH_TOKEN_VALIDITY: nonEmptyString,
-  JSON_BODY_SIZE_LIMIT: z.optional(nonEmptyString).default('10mb'),
-  USER_INDIVIDUAL_LIST_ITEM_LIMIT: z.coerce.number().positive().default(100_000),
+  REQUEST_BODY_MAX_SIZE: z.optional(nonEmptyString).default('10mb'),
+  USER_LIST_ITEM_MAX_COUNT: z.coerce.number().positive().default(100_000),
 });
 
 const result = configSchema.safeParse(process.env);

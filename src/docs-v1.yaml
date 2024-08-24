@@ -268,11 +268,18 @@ paths:
           schema:
             type: string
             enum: [title, author, publisher, pages, year, status, score, start_date, end_date]
+            default: title
         - name: order
           in: query
           schema:
             type: string
             enum: [ascending, descending]
+            default: ascending
+        - name: filter
+          in: query
+          schema:
+            type: string
+          description: "key:operator:value - 'score:>:5', 'status:=:completed', 'year:<:2020'"
       tags:
         - books
       summary: Get books by status
@@ -456,11 +463,18 @@ paths:
             type: string
             enum:
               [title, studio, director, writer, duration, year, status, score, start_date, end_date]
+            default: title
         - name: order
           in: query
           schema:
             type: string
             enum: [ascending, descending]
+            default: ascending
+        - name: filter
+          in: query
+          schema:
+            type: string
+          description: "key:operator:value - 'score:>:5', 'status:=:completed', 'year:<:2020'"
       tags:
         - movies
       summary: Get movies by status
