@@ -1,7 +1,7 @@
-import { NextFunction, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { success } from '../util/response';
 import { ErrorWithStatus } from '../util/errorhandler';
-import { generateTOTP, validateTOTP } from '../util/totp';
+import { generateOTP, generateTOTP, validateTOTP } from '../util/totp';
 import { addVerification, deleteVerification, getVerification } from '../db/verification';
 import Logger from '../util/logger';
 import {
@@ -13,6 +13,7 @@ import {
 import { TypedRequest } from '../util/zod';
 import { updateEmailSchema, verifyEmailSchema } from '../routes/email';
 import { config } from '../config';
+import { DateTime } from 'luxon';
 
 const updateEmail = async (
   req: TypedRequest<typeof updateEmailSchema>,
@@ -47,7 +48,7 @@ const updateEmail = async (
 
     await updateEmailAddress(username, email);
 
-    const { otp, secret, digits, period, algorithm, label } = await generateTOTP(email);
+    const { secret, digits, period, algorithm, label } = await generateTOTP(email);
 
     await addVerification({
       type: 'email',
@@ -56,12 +57,44 @@ const updateEmail = async (
       algorithm,
       digits,
       period,
+      expires_on: DateTime.now().plus({ minutes: 30 }).toJSDate(),
     });
+
+    res.status(200).json(success([{ name: 'email_updated', message: 'Email updated' }]));
+  } catch (error) {
+    Logger.error((error as Error).stack);
+    next(new ErrorWithStatus(422, 'email_error', "Couldn't update email"));
+  }
+};
+
+const sendConfirmationEmail = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const username: string = res.locals.username;
+
+    const user = await getUserByUsername(username);
+    if (!user || !user.email) {
+      next(new ErrorWithStatus(422, 'email_error', "Couldn't send confirmation email"));
+      return;
+    }
+
+    const isVerified = await isEmailVerified(user.email);
+    if (isVerified) {
+      next(new ErrorWithStatus(422, 'email_error', 'Email already verified'));
+      return;
+    }
+
+    const verification = await getVerification(user.email, 'email');
+    if (!verification) {
+      next(new ErrorWithStatus(422, 'email_error', "Couldn't send confirmation email"));
+      return;
+    }
+
+    const otp = generateOTP({ ...verification, label: user.email });
 
     if (config.NODE_ENV === 'production') {
       // send email
     } else {
-      Logger.info(`Verification code for ${email}: ${otp}`);
+      Logger.info(`Verification code for ${user.email}: ${otp}`);
     }
 
     res
@@ -73,7 +106,7 @@ const updateEmail = async (
       );
   } catch (error) {
     Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(422, 'email_error', "Couldn't update email"));
+    next(new ErrorWithStatus(422, 'email_error', "Couldn't send confirmation email"));
   }
 };
 
@@ -98,6 +131,15 @@ const verifyEmail = async (
       return;
     }
 
+    const diff = DateTime.fromISO(verificationConfig.expires_on!.toISOString(), {
+      zone: 'utc',
+    }).diffNow('minutes');
+    if (diff.minutes < 0) {
+      await deleteVerification(user.email, 'email');
+      next(new ErrorWithStatus(422, 'email_verification_error', 'Verification expired'));
+      return;
+    }
+
     const isValid = validateTOTP({ otp, ...verificationConfig });
     if (!isValid) {
       next(new ErrorWithStatus(422, 'email_verification_error', 'Invalid code'));
@@ -117,4 +159,4 @@ const verifyEmail = async (
   }
 };
 
-export { updateEmail, verifyEmail };
+export { updateEmail, verifyEmail, sendConfirmationEmail };

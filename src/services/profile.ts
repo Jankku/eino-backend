@@ -67,6 +67,7 @@ const getProfileV2 = async (_req: Request, res: Response, next: NextFunction) =>
       user_id: data.userInfo.user_id,
       username: username,
       email: data.userInfo.email,
+      email_verified_on: data.userInfo.email_verified_on,
       registration_date: data.userInfo.registration_date,
       totp_enabled_on: data.userInfo.totp_enabled_on,
       stats: {

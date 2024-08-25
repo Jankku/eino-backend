@@ -1,9 +1,30 @@
 import * as OTPAuth from 'otpauth';
 import crypto from 'node:crypto';
 
+type TOTPConfig = {
+  otp: string;
+  secret: string;
+  algorithm: string;
+  digits: number;
+  period: number;
+};
+
+type TOTPConfigWithLabel = Omit<TOTPConfig, 'otp'> & {
+  label: string;
+};
+
 const generateSecret = async () => {
   const rfc = await import('rfc4648');
   return rfc.base32.stringify(crypto.randomBytes(16));
+};
+
+const generateOTP = (config: TOTPConfigWithLabel) => {
+  const totp = new OTPAuth.TOTP({
+    ...config,
+    secret: OTPAuth.Secret.fromBase32(config.secret),
+    issuer: 'eino',
+  });
+  return totp.generate();
 };
 
 const generateTOTP = async (label: string) => {
@@ -21,14 +42,6 @@ const generateTOTP = async (label: string) => {
   return { otp, ...totp, secret: totp.secret.base32, totpUrl: totp.toString() };
 };
 
-type TOTPConfig = {
-  otp: string;
-  secret: string;
-  algorithm: string;
-  digits: number;
-  period: number;
-};
-
 const validateTOTP = (config: TOTPConfig) => {
   const totp = new OTPAuth.TOTP({
     ...config,
@@ -39,4 +52,4 @@ const validateTOTP = (config: TOTPConfig) => {
   return delta !== null;
 };
 
-export { generateTOTP, validateTOTP };
+export { generateOTP, generateTOTP, validateTOTP };
