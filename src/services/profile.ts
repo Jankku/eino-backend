@@ -68,6 +68,7 @@ const getProfileV2 = async (_req: Request, res: Response, next: NextFunction) =>
       username: username,
       email: data.userInfo.email,
       registration_date: data.userInfo.registration_date,
+      totp_enabled_on: data.userInfo.totp_enabled_on,
       stats: {
         book: {
           ...data.bookData,
@@ -291,11 +292,13 @@ const exportUserData = async (
     });
 
     res.status(200).json({
-      version: 2,
+      version: 3,
       profile: {
         user_id: profile.userInfo.user_id,
         username: username,
+        email: profile.userInfo.email,
         registration_date: profile.userInfo.registration_date,
+        totp_enabled_on: profile.userInfo.totp_enabled_on,
         stats: {
           book: {
             ...profile.bookData,

@@ -16,6 +16,7 @@ const errorMessages = {
   SEARCH_QUERY_TYPE_ERROR: 'Query must be a string',
   EMAIL_INVALID: 'Invalid email',
   EMAIL_EXISTS: 'Email already exists',
+  OTP_REQUIRED: 'One-time password required',
   OTP_INVALID: 'Invalid one-time password',
 };
 

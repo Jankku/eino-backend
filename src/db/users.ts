@@ -21,6 +21,29 @@ const updateEmailAddress = async (username: string, email: string | null): Promi
   });
 };
 
+const updateEmailVerifiedTimestamp = async (email: string): Promise<void> => {
+  await db.none({
+    text: `UPDATE users
+             SET email_verified_on = CURRENT_TIMESTAMP(0)
+             WHERE email = $1`,
+    values: [email],
+  });
+};
+
+const enableTOTP = async (username: string): Promise<void> => {
+  await db.none({
+    text: `UPDATE users SET totp_enabled_on = CURRENT_TIMESTAMP(0) WHERE username = $1`,
+    values: [username],
+  });
+};
+
+const disableTOTP = async (username: string): Promise<void> => {
+  await db.none({
+    text: `UPDATE users SET totp_enabled_on = NULL WHERE username = $1`,
+    values: [username],
+  });
+};
+
 const isEmailVerified = async (email: string): Promise<boolean> => {
   const result = await db.oneOrNone({
     text: `SELECT email_verified_on
@@ -117,6 +140,9 @@ export {
   isUserUnique,
   isEmailUnique,
   isEmailVerified,
+  updateEmailVerifiedTimestamp,
   deleteAllUsers,
   getItemCountByUsername,
+  enableTOTP,
+  disableTOTP,
 };

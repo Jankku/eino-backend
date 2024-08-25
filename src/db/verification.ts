@@ -2,7 +2,7 @@ import { db } from './config';
 
 type DbVerification = {
   id: string;
-  type: 'email';
+  type: 'email' | '2fa';
   target: string;
   secret: string;
   algorithm: string;
@@ -22,17 +22,20 @@ const addVerification = async (v: Verification) => {
   });
 };
 
-const getVerification = async (target: string): Promise<DbVerification | null> => {
+const getVerification = async (
+  target: string,
+  type: DbVerification['type'],
+): Promise<DbVerification | null> => {
   return await db.oneOrNone({
-    text: `SELECT * FROM verifications WHERE target = $1 ORDER by created_on DESC LIMIT 1`,
-    values: [target],
+    text: `SELECT * FROM verifications WHERE target = $1 AND type = $2 ORDER by created_on DESC LIMIT 1`,
+    values: [target, type],
   });
 };
 
-const deleteVerification = async (target: string) => {
+const deleteVerification = async (target: string, type: DbVerification['type']) => {
   await db.none({
-    text: `DELETE FROM verifications WHERE target = $1`,
-    values: [target],
+    text: `DELETE FROM verifications WHERE target = $1 AND type = $2`,
+    values: [target, type],
   });
 };
 

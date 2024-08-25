@@ -6,11 +6,11 @@ const generateSecret = async () => {
   return rfc.base32.stringify(crypto.randomBytes(16));
 };
 
-const generateTOTP = async (email: string) => {
+const generateTOTP = async (label: string) => {
   const secret = await generateSecret();
   const totp = new OTPAuth.TOTP({
     issuer: 'eino',
-    label: email,
+    label,
     algorithm: 'SHA1',
     digits: 6,
     period: 30, // 30 seconds
@@ -18,7 +18,7 @@ const generateTOTP = async (email: string) => {
   });
 
   const otp = totp.generate();
-  return { otp, ...totp, secret: totp.secret.base32 };
+  return { otp, ...totp, secret: totp.secret.base32, totpUrl: totp.toString() };
 };
 
 type TOTPConfig = {
@@ -34,13 +34,8 @@ const validateTOTP = (config: TOTPConfig) => {
     ...config,
     secret: OTPAuth.Secret.fromBase32(config.secret),
     issuer: 'eino',
-    label: 'email',
   });
-
-  const delta = totp.validate({ token: config.otp, window: 1 });
-
-  console.log('delta: ' + delta);
-
+  const delta = totp.validate({ token: config.otp, window: 2 });
   return delta !== null;
 };
 

@@ -1,11 +1,15 @@
 import { NextFunction, Response } from 'express';
-import { db } from '../db/config';
 import { success } from '../util/response';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { generateTOTP, validateTOTP } from '../util/totp';
 import { addVerification, deleteVerification, getVerification } from '../db/verification';
 import Logger from '../util/logger';
-import { getUserByUsername, isEmailVerified, updateEmailAddress } from '../db/users';
+import {
+  getUserByUsername,
+  isEmailVerified,
+  updateEmailAddress,
+  updateEmailVerifiedTimestamp,
+} from '../db/users';
 import { TypedRequest } from '../util/zod';
 import { updateEmailSchema, verifyEmailSchema } from '../routes/email';
 import { config } from '../config';
@@ -35,7 +39,7 @@ const updateEmail = async (
       return;
     }
 
-    const verificationExists = await getVerification(email);
+    const verificationExists = await getVerification(email, 'email');
     if (verificationExists) {
       next(new ErrorWithStatus(422, 'email_error', 'Verification already pending'));
       return;
@@ -84,38 +88,32 @@ const verifyEmail = async (
 
     const user = await getUserByUsername(username);
     if (!user || !user.email) {
-      next(new ErrorWithStatus(422, 'email_error', "Couldn't verify email"));
+      next(new ErrorWithStatus(422, 'email_verification_error', "Couldn't verify email"));
       return;
     }
 
-    const verificationConfig = await getVerification(user.email);
+    const verificationConfig = await getVerification(user.email, 'email');
     if (!verificationConfig) {
-      next(new ErrorWithStatus(422, 'email_error', 'No verification pending'));
+      next(new ErrorWithStatus(422, 'email_verification_error', 'No verification pending'));
       return;
     }
 
     const isValid = validateTOTP({ otp, ...verificationConfig });
-
     if (!isValid) {
-      next(new ErrorWithStatus(422, 'email_error', 'Invalid code'));
+      next(new ErrorWithStatus(422, 'email_verification_error', 'Invalid code'));
       return;
     }
 
-    await deleteVerification(user.email);
+    await deleteVerification(user.email, 'email');
 
-    await db.none({
-      text: `UPDATE users
-             SET email_verified_on = CURRENT_TIMESTAMP(0)
-             WHERE username = $1`,
-      values: [username],
-    });
+    await updateEmailVerifiedTimestamp(user.email);
 
     res
       .status(200)
       .json(success([{ name: 'email_verified', message: 'Email successfully verified' }]));
   } catch (error) {
     Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(422, 'email_error', "Couldn't verify email"));
+    next(new ErrorWithStatus(422, 'email_verification_error', "Couldn't verify email"));
   }
 };
 

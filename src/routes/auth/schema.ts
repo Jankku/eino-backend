@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { isEmailUnique, isUserUnique } from '../../db/users';
-import { emailSchema, passwordSchema, usernameSchema } from '../../model/zodschema';
+import { emailSchema, otpSchema, passwordSchema, usernameSchema } from '../../model/zodschema';
 import errorMessages from '../../util/errormessages';
 import { getPasswordStrength } from '../../util/auth';
 
@@ -46,6 +46,14 @@ export const loginSchema = z.object({
   body: z.object({
     username: usernameSchema,
     password: passwordSchema,
+    otp: otpSchema.optional(),
+  }),
+});
+
+export const loginConfigSchema = z.object({
+  body: z.object({
+    username: usernameSchema,
+    password: passwordSchema,
   }),
 });
 
@@ -66,5 +74,11 @@ export const passwordStrengthSchema = z.object({
       .max(255, {
         message: errorMessages.PASSWORD_LENGTH_INVALID,
       }),
+  }),
+});
+
+export const enable2FASchema = z.object({
+  body: z.object({
+    otp: otpSchema,
   }),
 });
