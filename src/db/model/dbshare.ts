@@ -1,5 +1,5 @@
 import z from 'zod';
-import { dateStringSchema, fixedNonEmptyStringSchema } from '../../model/zodschema';
+import { dateStringSchema, fixedNonEmptyStringSchema } from '../../util/zodschema';
 
 export const shareSchema = z.object({
   share_id: fixedNonEmptyStringSchema,

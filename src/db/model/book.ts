@@ -7,7 +7,7 @@ import {
   positiveNumberSchema,
   scoreSchema,
   sortOrderSchema,
-} from '../../model/zodschema';
+} from '../../util/zodschema';
 import { parseFilter } from '../../util/sort';
 
 export const bookSchema = z.object({

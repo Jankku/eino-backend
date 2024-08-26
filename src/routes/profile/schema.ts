@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { dateStringSchema, fixedNonEmptyStringSchema, passwordSchema } from '../../model/zodschema';
+import { dateStringSchema, fixedNonEmptyStringSchema, passwordSchema } from '../../util/zodschema';
 import { dbBookSchema } from '../../db/model/dbbook';
 import { dbMovieSchema } from '../../db/model/dbmovie';
 import { shareSchema } from '../../db/model/dbshare';

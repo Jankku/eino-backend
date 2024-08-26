@@ -12,7 +12,13 @@ const getUserByUsername = async (username: string): Promise<User | null | undefi
   });
 };
 
-const updateEmailAddress = async (username: string, email: string | null): Promise<void> => {
+const updateEmailAddress = async ({
+  username,
+  email,
+}: {
+  username: string;
+  email: string | null;
+}): Promise<void> => {
   await db.none({
     text: `UPDATE users
              SET email = $1, email_verified_on = NULL
@@ -42,6 +48,22 @@ const disableTOTP = async (username: string): Promise<void> => {
     text: `UPDATE users SET totp_enabled_on = NULL WHERE username = $1`,
     values: [username],
   });
+};
+
+const isEmailAlreadyUsed = async ({
+  username,
+  email,
+}: {
+  username: string;
+  email: string;
+}): Promise<boolean> => {
+  const result = await db.oneOrNone({
+    text: `SELECT email
+           FROM users
+           WHERE email = $1 AND username != $2`,
+    values: [email, username],
+  });
+  return result !== null;
 };
 
 const isEmailVerified = async (email: string): Promise<boolean> => {
@@ -138,6 +160,7 @@ export {
   updateEmailAddress,
   isPasswordCorrect,
   isUserUnique,
+  isEmailAlreadyUsed,
   isEmailUnique,
   isEmailVerified,
   updateEmailVerifiedTimestamp,

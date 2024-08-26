@@ -13,7 +13,6 @@ import {
   updateLastLogin,
 } from '../util/auth';
 import { ErrorWithStatus } from '../util/errorhandler';
-import JwtPayload from '../model/jwtpayload';
 import { config } from '../config';
 import { TypedRequest } from '../util/zod';
 import {
@@ -27,6 +26,7 @@ import {
 import { addVerification, deleteVerification, getVerification } from '../db/verification';
 import { generateTOTP, validateTOTP } from '../util/totp';
 import QRCode from 'qrcode';
+import { JwtPayload } from '../middleware/verifytoken';
 
 const register = async (
   req: TypedRequest<typeof registerSchema>,
@@ -77,7 +77,7 @@ const login = async (req: TypedRequest<typeof loginSchema>, res: Response, next:
         return;
       }
 
-      const verification = await getVerification(user.username, '2fa');
+      const verification = await getVerification({ target: user.username, type: '2fa' });
       if (!verification) {
         next(new ErrorWithStatus(422, 'authentication_error', "Couldn't verify OTP"));
         return;
@@ -187,9 +187,9 @@ const generate2FAUrl = async (req: Request, res: Response, next: NextFunction) =
       return;
     }
 
-    const verification = await getVerification(user.username, '2fa');
+    const verification = await getVerification({ target: user.username, type: '2fa' });
     if (verification) {
-      await deleteVerification(user.username, '2fa');
+      await deleteVerification({ target: user.username, type: '2fa' });
     }
 
     const { totpUrl, secret, digits, period, algorithm, label } = await generateTOTP(user.username);
@@ -239,7 +239,7 @@ const enable2FA = async (
       return;
     }
 
-    const verification = await getVerification(user.username, '2fa');
+    const verification = await getVerification({ target: user.username, type: '2fa' });
     if (!verification) {
       next(new ErrorWithStatus(422, '2fa_error', "Couldn't enable 2FA"));
       return;
@@ -279,7 +279,7 @@ const disable2FA = async (
       return;
     }
 
-    const verification = await getVerification(user.username, '2fa');
+    const verification = await getVerification({ target: user.username, type: '2fa' });
     if (!verification) {
       next(new ErrorWithStatus(422, '2fa_error', "Couldn't disable 2FA"));
       return;
@@ -290,7 +290,7 @@ const disable2FA = async (
       return;
     }
 
-    await deleteVerification(user.username, '2fa');
+    await deleteVerification({ target: user.username, type: '2fa' });
     await disableTOTP(user.username);
 
     res.status(200).json(success([{ name: '2fa_disabled', message: '2FA disabled' }]));

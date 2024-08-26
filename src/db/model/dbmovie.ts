@@ -1,5 +1,5 @@
 import z from 'zod';
-import { dateStringSchema, fixedStringSchema } from '../../model/zodschema';
+import { dateStringSchema, fixedStringSchema } from '../../util/zodschema';
 import { movieSchema } from './movie';
 
 export const dbMovieSchema = movieSchema.extend({

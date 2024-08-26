@@ -6,7 +6,7 @@ import {
   positiveNumberSchema,
   scoreSchema,
   sortOrderSchema,
-} from '../../model/zodschema';
+} from '../../util/zodschema';
 import { movieStatusEnum } from './moviestatus';
 import { parseFilter } from '../../util/sort';
 

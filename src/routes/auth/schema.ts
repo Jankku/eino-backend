@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { isEmailUnique, isUserUnique } from '../../db/users';
-import { emailSchema, otpSchema, passwordSchema, usernameSchema } from '../../model/zodschema';
+import { emailSchema, otpSchema, passwordSchema, usernameSchema } from '../../util/zodschema';
 import errorMessages from '../../util/errormessages';
 import { getPasswordStrength } from '../../util/auth';
 

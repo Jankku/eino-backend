@@ -6,6 +6,7 @@ import { addVerification, deleteVerification, getVerification } from '../db/veri
 import Logger from '../util/logger';
 import {
   getUserByUsername,
+  isEmailAlreadyUsed,
   isEmailVerified,
   updateEmailAddress,
   updateEmailVerifiedTimestamp,
@@ -14,6 +15,7 @@ import { TypedRequest } from '../util/zod';
 import { updateEmailSchema, verifyEmailSchema } from '../routes/email';
 import { config } from '../config';
 import { DateTime } from 'luxon';
+import { isVerificationExpired } from '../util/verification';
 
 const updateEmail = async (
   req: TypedRequest<typeof updateEmailSchema>,
@@ -25,10 +27,16 @@ const updateEmail = async (
     const { email } = req.body;
 
     if (!email) {
-      await updateEmailAddress(username, null);
+      await updateEmailAddress({ username, email: null });
       res
         .status(200)
         .json(success([{ name: 'email_removed', message: 'Email successfully removed' }]));
+      return;
+    }
+
+    const isEmailUsed = await isEmailAlreadyUsed({ username, email });
+    if (isEmailUsed) {
+      next(new ErrorWithStatus(422, 'email_error', 'Email already in use'));
       return;
     }
 
@@ -40,13 +48,13 @@ const updateEmail = async (
       return;
     }
 
-    const verificationExists = await getVerification(email, 'email');
+    const verificationExists = await getVerification({ target: email, type: 'email' });
     if (verificationExists) {
       next(new ErrorWithStatus(422, 'email_error', 'Verification already pending'));
       return;
     }
 
-    await updateEmailAddress(username, email);
+    await updateEmailAddress({ username, email });
 
     const { secret, digits, period, algorithm, label } = await generateTOTP(email);
 
@@ -83,7 +91,7 @@ const sendConfirmationEmail = async (req: Request, res: Response, next: NextFunc
       return;
     }
 
-    const verification = await getVerification(user.email, 'email');
+    const verification = await getVerification({ target: user.email, type: 'email' });
     if (!verification) {
       next(new ErrorWithStatus(422, 'email_error', "Couldn't send confirmation email"));
       return;
@@ -125,28 +133,25 @@ const verifyEmail = async (
       return;
     }
 
-    const verificationConfig = await getVerification(user.email, 'email');
-    if (!verificationConfig) {
+    const verification = await getVerification({ target: user.email, type: 'email' });
+    if (!verification) {
       next(new ErrorWithStatus(422, 'email_verification_error', 'No verification pending'));
       return;
     }
 
-    const diff = DateTime.fromISO(verificationConfig.expires_on!.toISOString(), {
-      zone: 'utc',
-    }).diffNow('minutes');
-    if (diff.minutes < 0) {
-      await deleteVerification(user.email, 'email');
+    if (isVerificationExpired(verification.expires_on)) {
+      await deleteVerification({ target: user.email, type: 'email' });
       next(new ErrorWithStatus(422, 'email_verification_error', 'Verification expired'));
       return;
     }
 
-    const isValid = validateTOTP({ otp, ...verificationConfig });
+    const isValid = validateTOTP({ otp, ...verification });
     if (!isValid) {
       next(new ErrorWithStatus(422, 'email_verification_error', 'Invalid code'));
       return;
     }
 
-    await deleteVerification(user.email, 'email');
+    await deleteVerification({ target: user.email, type: 'email' });
 
     await updateEmailVerifiedTimestamp(user.email);
 

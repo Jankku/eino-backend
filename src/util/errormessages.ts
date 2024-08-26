@@ -14,6 +14,7 @@ const errorMessages = {
   LIST_ID_REQUIRED: 'Id required',
   LIST_ID_TYPE_ERROR: 'Id must be a string',
   SEARCH_QUERY_TYPE_ERROR: 'Query must be a string',
+  EMAIL_REQUIRED: 'Email required',
   EMAIL_INVALID: 'Invalid email',
   EMAIL_EXISTS: 'Email already exists',
   OTP_REQUIRED: 'One-time password required',
