@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { isEmailUnique, isUserUnique } from '../../db/users';
-import { emailSchema, otpSchema, passwordSchema, usernameSchema } from '../../util/zodschema';
+import {
+  emailSchema,
+  optionalEmailSchema,
+  otpSchema,
+  passwordSchema,
+  usernameSchema,
+} from '../../util/zodschema';
 import errorMessages from '../../util/errormessages';
 import { getPasswordStrength } from '../../util/auth';
 
@@ -10,7 +16,7 @@ export const registerSchema = z
       username: usernameSchema,
       password: passwordSchema,
       password2: passwordSchema,
-      email: emailSchema,
+      email: optionalEmailSchema,
     }),
   })
   .refine((data) => data.body.password === data.body.password2, {
@@ -74,6 +80,20 @@ export const passwordStrengthSchema = z.object({
       .max(255, {
         message: errorMessages.PASSWORD_LENGTH_INVALID,
       }),
+  }),
+});
+
+export const forgotPasswordSchema = z.object({
+  body: z.object({
+    email: emailSchema,
+  }),
+});
+
+export const resetPasswordSchema = z.object({
+  body: z.object({
+    email: emailSchema,
+    newPassword: passwordSchema,
+    otp: otpSchema,
   }),
 });
 

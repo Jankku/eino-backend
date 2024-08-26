@@ -1,7 +1,13 @@
 import * as bcrypt from 'bcrypt';
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { disableTOTP, enableTOTP, getUserByUsername } from '../db/users';
+import {
+  disableTOTP,
+  enableTOTP,
+  getUserByEmail,
+  getUserByUsername,
+  updatePassword,
+} from '../db/users';
 import { db } from '../db/config';
 import { success } from '../util/response';
 import Logger from '../util/logger';
@@ -17,16 +23,20 @@ import { config } from '../config';
 import { TypedRequest } from '../util/zod';
 import {
   enable2FASchema,
+  forgotPasswordSchema,
   loginConfigSchema,
   loginSchema,
   passwordStrengthSchema,
   refreshTokenSchema,
   registerSchema,
+  resetPasswordSchema,
 } from '../routes/auth';
 import { addVerification, deleteVerification, getVerification } from '../db/verification';
 import { generateTOTP, validateTOTP } from '../util/totp';
 import QRCode from 'qrcode';
 import { JwtPayload } from '../middleware/verifytoken';
+import { DateTime } from 'luxon';
+import { isVerificationExpired } from '../util/verification';
 
 const register = async (
   req: TypedRequest<typeof registerSchema>,
@@ -42,6 +52,16 @@ const register = async (
              VALUES ($1, $2, $3)`,
       values: [username, hashedPassword, email],
     });
+
+    if (email) {
+      const totp = await generateTOTP({ label: email, period: 0 });
+      await addVerification({
+        ...totp,
+        type: 'email',
+        target: totp.label,
+      });
+    }
+
     res.status(200).json(success([{ name: 'user_registered', message: username }]));
   } catch (error) {
     Logger.error((error as Error).stack);
@@ -172,6 +192,116 @@ const passwordStrength = (
   }
 };
 
+const forgotPassword = async (
+  req: TypedRequest<typeof forgotPasswordSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
+  const { email } = req.body;
+
+  try {
+    const user = await getUserByEmail(email);
+    if (!user) {
+      next(new ErrorWithStatus(422, 'forget_password_error', 'Email not found'));
+      return;
+    }
+
+    if (!user.email_verified_on) {
+      next(new ErrorWithStatus(422, 'forget_password_error', 'Email not verified'));
+      return;
+    }
+
+    const verification = await getVerification({ target: email, type: 'password_reset' });
+    if (verification) {
+      await deleteVerification({ target: email, type: 'password_reset' });
+    }
+
+    const { otp, secret, algorithm, digits, period } = await generateTOTP({ label: email });
+
+    await addVerification({
+      type: 'password_reset',
+      target: email,
+      secret,
+      algorithm,
+      digits,
+      period,
+      expires_on: DateTime.now().plus({ minutes: 30 }).toJSDate(),
+    });
+
+    if (config.isProduction) {
+      // Send email
+    } else {
+      Logger.info(`Password reset otp for ${email}: ${otp}`);
+    }
+
+    res
+      .status(200)
+      .json(
+        success([
+          { name: 'password_reset_email_sent', message: 'Check your email for one-time password' },
+        ]),
+      );
+  } catch (error) {
+    Logger.error((error as Error).stack);
+    next(
+      new ErrorWithStatus(
+        500,
+        'forget_password_error',
+        'Unknown error while trying to reset password',
+      ),
+    );
+  }
+};
+
+const resetPassword = async (
+  req: TypedRequest<typeof resetPasswordSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
+  const { email, newPassword, otp } = req.body;
+
+  try {
+    const { isStrong, error } = getPasswordStrength({ password: newPassword });
+    if (!isStrong) {
+      next(new ErrorWithStatus(422, 'reset_password_error', error));
+      return;
+    }
+
+    const verification = await getVerification({ target: email, type: 'password_reset' });
+    if (!verification) {
+      next(new ErrorWithStatus(422, 'reset_password_error', 'No reset password request found'));
+      return;
+    }
+
+    if (verification.expires_on && isVerificationExpired(verification.expires_on)) {
+      await deleteVerification({ target: email, type: 'email' });
+      next(new ErrorWithStatus(422, 'reset_password_error', 'Verification expired'));
+      return;
+    }
+
+    if (!validateTOTP({ otp, ...verification })) {
+      next(new ErrorWithStatus(422, 'reset_password_error', 'Incorrect one-time password'));
+      return;
+    }
+
+    await updatePassword({ email, newPassword });
+    await deleteVerification({ target: email, type: 'password_reset' });
+
+    res
+      .status(200)
+      .json(success([{ name: 'password_reset_successful', message: 'Password reset successful' }]));
+  } catch (error) {
+    Logger.error((error as Error).stack);
+    next(
+      new ErrorWithStatus(
+        500,
+        'forget_password_error',
+        'Unknown error while trying to reset password',
+      ),
+    );
+  }
+};
+
 const generate2FAUrl = async (req: Request, res: Response, next: NextFunction) => {
   const username: string = res.locals.username;
 
@@ -192,7 +322,9 @@ const generate2FAUrl = async (req: Request, res: Response, next: NextFunction) =
       await deleteVerification({ target: user.username, type: '2fa' });
     }
 
-    const { totpUrl, secret, digits, period, algorithm, label } = await generateTOTP(user.username);
+    const { totpUrl, secret, digits, period, algorithm, label } = await generateTOTP({
+      label: user.username,
+    });
 
     await addVerification({
       type: '2fa',
@@ -306,6 +438,8 @@ export {
   loginConfig,
   generateNewAccessToken,
   passwordStrength,
+  forgotPassword,
+  resetPassword,
   generate2FAUrl,
   enable2FA,
   disable2FA,

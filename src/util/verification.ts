@@ -1,7 +1,6 @@
 import { DateTime } from 'luxon';
 
-export const isVerificationExpired = (date: Date | undefined) => {
-  if (!date) return true;
+export const isVerificationExpired = (date: Date) => {
   const diff = DateTime.fromISO(date.toISOString(), {
     zone: 'utc',
   }).diffNow();

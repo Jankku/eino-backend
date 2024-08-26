@@ -2,7 +2,7 @@ import { db } from './config';
 
 type DbVerification = {
   id: string;
-  type: 'email' | '2fa';
+  type: 'email' | '2fa' | 'password_reset';
   target: string;
   secret: string;
   algorithm: string;

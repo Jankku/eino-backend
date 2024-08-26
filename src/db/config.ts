@@ -26,7 +26,7 @@ pgp.pg.types.setTypeParser(20, (value: string) => Number.parseInt(value)); // IN
 pgp.pg.types.setTypeParser(701, (value: string) => Number.parseFloat(value)); // FLOAT8
 pgp.pg.types.setTypeParser(1700, (value: string) => Number.parseFloat(value)); // NUMERIC
 
-if (config.NODE_ENV === 'development') {
+if (!config.isProduction) {
   monitor.attach(options);
   monitor.setLog((msg, info) => {
     info.display = false;

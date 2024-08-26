@@ -22,7 +22,7 @@ const getSharesByUsername = async (
   });
 };
 
-const postShare = async (id: string, username: string): Promise<string> => {
+const createShare = async (id: string, username: string): Promise<string> => {
   const result = await db.one({
     text: `INSERT INTO shares (share_id, username)
            VALUES ($1, $2)
@@ -34,4 +34,4 @@ const postShare = async (id: string, username: string): Promise<string> => {
   return result.share_id;
 };
 
-export { getShare, getSharesByUsername, postShare };
+export { getShare, getSharesByUsername, createShare };

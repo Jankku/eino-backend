@@ -34,4 +34,4 @@ if (!result.success) {
   throw new Error('Invalid configuration');
 }
 
-export const config = result.data;
+export const config = { ...result.data, isProduction: result.data.NODE_ENV === 'production' };

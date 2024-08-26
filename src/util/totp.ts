@@ -9,7 +9,7 @@ type TOTPConfig = {
   period: number;
 };
 
-type TOTPConfigWithLabel = Omit<TOTPConfig, 'otp'> & {
+type TOTPConfigWithLabel = TOTPConfig & {
   label: string;
 };
 
@@ -18,26 +18,19 @@ const generateSecret = async () => {
   return rfc.base32.stringify(crypto.randomBytes(16));
 };
 
-const generateOTP = (config: TOTPConfigWithLabel) => {
-  const totp = new OTPAuth.TOTP({
-    ...config,
-    secret: OTPAuth.Secret.fromBase32(config.secret),
-    issuer: 'eino',
-  });
-  return totp.generate();
-};
-
-const generateTOTP = async (label: string) => {
+const generateTOTP = async (config: Partial<TOTPConfigWithLabel>) => {
   const secret = await generateSecret();
-  const totp = new OTPAuth.TOTP({
+  const defaults = {
     issuer: 'eino',
-    label,
     algorithm: 'SHA1',
     digits: 6,
     period: 30, // 30 seconds
     secret: OTPAuth.Secret.fromBase32(secret),
+  };
+  const totp = new OTPAuth.TOTP({
+    ...defaults,
+    ...config,
   });
-
   const otp = totp.generate();
   return { otp, ...totp, secret: totp.secret.base32, totpUrl: totp.toString() };
 };
@@ -52,4 +45,4 @@ const validateTOTP = (config: TOTPConfig) => {
   return delta !== null;
 };
 
-export { generateOTP, generateTOTP, validateTOTP };
+export { generateTOTP, validateTOTP };

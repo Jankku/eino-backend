@@ -2,7 +2,7 @@ import { createLogger, format, transports } from 'winston';
 import { config } from '../config';
 
 const Logger = createLogger({
-  level: config.NODE_ENV === 'development' ? 'debug' : 'info',
+  level: config.isProduction ? 'info' : 'debug',
   defaultMeta: { service: 'eino' },
   format: format.combine(
     format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),

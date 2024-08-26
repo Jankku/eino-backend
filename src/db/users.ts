@@ -1,3 +1,4 @@
+import { generatePasswordHash } from '../util/auth';
 import Logger from '../util/logger';
 import { db } from './config';
 import User from './model/user';
@@ -9,6 +10,15 @@ const getUserByUsername = async (username: string): Promise<User | null | undefi
            FROM users
            WHERE username = $1`,
     values: [username],
+  });
+};
+
+const getUserByEmail = async (email: string): Promise<User | null | undefined> => {
+  return await db.oneOrNone({
+    text: `SELECT *
+           FROM users
+           WHERE email = $1`,
+    values: [email],
   });
 };
 
@@ -75,6 +85,22 @@ const isEmailVerified = async (email: string): Promise<boolean> => {
   });
   if (!result) return false;
   return result.email_verified_on !== null;
+};
+
+const updatePassword = async ({
+  email,
+  newPassword,
+}: {
+  email: string;
+  newPassword: string;
+}): Promise<void> => {
+  const hashedPassword = await generatePasswordHash(newPassword);
+  await db.none({
+    text: `UPDATE users
+             SET password = $1
+             WHERE email = $2`,
+    values: [hashedPassword, email],
+  });
 };
 
 const isPasswordCorrect = async (username: string, password: string): Promise<boolean> => {
@@ -157,7 +183,9 @@ const deleteAllUsers = async () => {
 
 export {
   getUserByUsername,
+  getUserByEmail,
   updateEmailAddress,
+  updatePassword,
   isPasswordCorrect,
   isUserUnique,
   isEmailAlreadyUsed,

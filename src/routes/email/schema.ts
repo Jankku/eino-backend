@@ -1,10 +1,10 @@
 import { z } from 'zod';
 import errorMessages from '../../util/errormessages';
-import { emailSchema } from '../../util/zodschema';
+import { optionalEmailSchema } from '../../util/zodschema';
 
 export const updateEmailSchema = z.object({
   body: z.object({
-    email: emailSchema,
+    email: optionalEmailSchema,
   }),
 });
 

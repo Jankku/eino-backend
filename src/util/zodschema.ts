@@ -50,6 +50,16 @@ export const passwordSchema = z
   });
 
 export const emailSchema = z
+  .string({
+    required_error: errorMessages.EMAIL_REQUIRED,
+  })
+  .trim()
+  .email()
+  .max(255, {
+    message: errorMessages.EMAIL_INVALID,
+  });
+
+export const optionalEmailSchema = z
   .string()
   .trim()
   .min(0)

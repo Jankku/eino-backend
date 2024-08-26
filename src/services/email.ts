@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { success } from '../util/response';
 import { ErrorWithStatus } from '../util/errorhandler';
-import { generateOTP, generateTOTP, validateTOTP } from '../util/totp';
+import { generateTOTP, validateTOTP } from '../util/totp';
 import { addVerification, deleteVerification, getVerification } from '../db/verification';
 import Logger from '../util/logger';
 import {
@@ -56,15 +56,12 @@ const updateEmail = async (
 
     await updateEmailAddress({ username, email });
 
-    const { secret, digits, period, algorithm, label } = await generateTOTP(email);
+    const totp = await generateTOTP({ label: email });
 
     await addVerification({
+      ...totp,
       type: 'email',
-      target: label,
-      secret,
-      algorithm,
-      digits,
-      period,
+      target: totp.label,
       expires_on: DateTime.now().plus({ minutes: 30 }).toJSDate(),
     });
 
@@ -97,9 +94,9 @@ const sendConfirmationEmail = async (req: Request, res: Response, next: NextFunc
       return;
     }
 
-    const otp = generateOTP({ ...verification, label: user.email });
+    const { otp } = await generateTOTP({ ...verification, label: user.email, period: 0 });
 
-    if (config.NODE_ENV === 'production') {
+    if (config.isProduction) {
       // send email
     } else {
       Logger.info(`Verification code for ${user.email}: ${otp}`);
@@ -139,7 +136,7 @@ const verifyEmail = async (
       return;
     }
 
-    if (isVerificationExpired(verification.expires_on)) {
+    if (verification.expires_on && isVerificationExpired(verification.expires_on)) {
       await deleteVerification({ target: user.email, type: 'email' });
       next(new ErrorWithStatus(422, 'email_verification_error', 'Verification expired'));
       return;

@@ -9,7 +9,7 @@ import { registerFont, createCanvas } from 'canvas';
 import { getAllBooks, getTop10BookTitles } from '../db/books';
 import { getAllMovies, getTop10MovieTitles } from '../db/movies';
 import { generateShareId, getFontPath, getShareItemPath } from '../util/share';
-import { getSharesByUsername, postShare } from '../db/share';
+import { createShare, getSharesByUsername } from '../db/share';
 import { DateTime } from 'luxon';
 import { getProfileData, getProfileDataV2 } from '../db/profile';
 import {
@@ -251,7 +251,7 @@ const generateShareImage = async (_req: Request, res: Response, next: NextFuncti
     const shareImagePath = getShareItemPath(username);
     const shareId = generateShareId();
 
-    await postShare(shareId, username);
+    await createShare(shareId, username);
     await fs.writeFile(shareImagePath, imageBuffer);
 
     res.status(200).json(success([{ share_id: shareId }]));
