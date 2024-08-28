@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import {
   disableTOTP,
   enableTOTP,
+  getUserByCredential,
   getUserByEmail,
   getUserByUsername,
   updatePassword,
@@ -76,10 +77,10 @@ const register = async (
 };
 
 const login = async (req: TypedRequest<typeof loginSchema>, res: Response, next: NextFunction) => {
-  const { username, password, otp } = req.body;
+  const { username: usernameOrEmail, password, otp } = req.body;
 
   try {
-    const user = await getUserByUsername(username);
+    const user = await getUserByCredential(usernameOrEmail);
     if (!user) {
       next(new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password'));
       return;
@@ -93,26 +94,26 @@ const login = async (req: TypedRequest<typeof loginSchema>, res: Response, next:
 
     if (user.totp_enabled_on) {
       if (!otp) {
-        next(new ErrorWithStatus(422, 'authentication_error', 'OTP required'));
+        next(new ErrorWithStatus(422, 'authentication_error', 'One-time password required'));
         return;
       }
 
       const verification = await getVerification({ target: user.username, type: '2fa' });
       if (!verification) {
-        next(new ErrorWithStatus(422, 'authentication_error', "Couldn't verify OTP"));
+        next(new ErrorWithStatus(422, 'authentication_error', "Couldn't verify One-time password"));
         return;
       }
 
       if (!validateTOTP({ otp, ...verification })) {
-        next(new ErrorWithStatus(422, 'authentication_error', "Couldn't verify OTP"));
+        next(new ErrorWithStatus(422, 'authentication_error', "Couldn't verify One-time password"));
         return;
       }
     }
 
     await updateLastLogin(user.user_id);
 
-    const accessToken = generateAccessToken(user.user_id, username);
-    const refreshToken = generateRefreshToken(user.user_id, username);
+    const accessToken = generateAccessToken(user.user_id, user.username);
+    const refreshToken = generateRefreshToken(user.user_id, user.username);
 
     return res.status(200).json({ accessToken, refreshToken });
   } catch (error) {
@@ -126,10 +127,10 @@ const loginConfig = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const { username, password } = req.body;
+  const { username: usernameOrEmail, password } = req.body;
 
   try {
-    const user = await getUserByUsername(username);
+    const user = await getUserByCredential(usernameOrEmail);
     if (!user) {
       next(new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password'));
       return;
@@ -202,7 +203,7 @@ const forgotPassword = async (
   try {
     const user = await getUserByEmail(email);
     if (!user) {
-      next(new ErrorWithStatus(422, 'forget_password_error', 'Email not found'));
+      next(new ErrorWithStatus(422, 'forget_password_error', 'Account not found'));
       return;
     }
 

@@ -69,6 +69,8 @@ export const optionalEmailSchema = z
   .nullable()
   .transform((val) => (val === '' ? null : val));
 
+export const usernameOrEmailSchema = z.union([usernameSchema, emailSchema]);
+
 export const otpSchema = z
   .string({ required_error: errorMessages.OTP_REQUIRED })
   .min(6, errorMessages.OTP_INVALID)

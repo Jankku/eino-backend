@@ -4,6 +4,15 @@ import { db } from './config';
 import User from './model/user';
 import * as bcrypt from 'bcrypt';
 
+const getUserByIdentifier = async (usernameOrEmail: string): Promise<User | null | undefined> => {
+  return await db.oneOrNone({
+    text: `SELECT *
+           FROM users
+           WHERE username = $1 OR email = $1`,
+    values: [usernameOrEmail],
+  });
+};
+
 const getUserByUsername = async (username: string): Promise<User | null | undefined> => {
   return await db.oneOrNone({
     text: `SELECT *
@@ -182,6 +191,7 @@ const deleteAllUsers = async () => {
 };
 
 export {
+  getUserByIdentifier as getUserByCredential,
   getUserByUsername,
   getUserByEmail,
   updateEmailAddress,

@@ -5,6 +5,7 @@ import {
   optionalEmailSchema,
   otpSchema,
   passwordSchema,
+  usernameOrEmailSchema,
   usernameSchema,
 } from '../../util/zodschema';
 import errorMessages from '../../util/errormessages';
@@ -50,7 +51,7 @@ export const registerSchema = z
 
 export const loginSchema = z.object({
   body: z.object({
-    username: usernameSchema,
+    username: usernameOrEmailSchema,
     password: passwordSchema,
     otp: otpSchema.optional(),
   }),
