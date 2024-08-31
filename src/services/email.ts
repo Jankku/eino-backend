@@ -48,10 +48,14 @@ const updateEmail = async (
       return;
     }
 
-    const verificationExists = await getVerification({ target: email, type: 'email' });
-    if (verificationExists) {
-      next(new ErrorWithStatus(422, 'email_error', 'Verification already pending'));
-      return;
+    const verification = await getVerification({ target: email, type: 'email' });
+    if (verification) {
+      if (verification.expires_on && isVerificationExpired(verification.expires_on)) {
+        await deleteVerification({ target: email, type: 'email' });
+      } else {
+        next(new ErrorWithStatus(422, 'email_error', 'Verification already pending'));
+        return;
+      }
     }
 
     await updateEmailAddress({ username, email });
@@ -62,6 +66,7 @@ const updateEmail = async (
       ...totp,
       type: 'email',
       target: totp.label,
+      period: 0,
       expires_on: DateTime.now().plus({ minutes: 30 }).toJSDate(),
     });
 
@@ -94,7 +99,7 @@ const sendConfirmationEmail = async (req: Request, res: Response, next: NextFunc
       return;
     }
 
-    const { otp } = await generateTOTP({ ...verification, label: user.email, period: 0 });
+    const { otp } = await generateTOTP({ ...verification, label: user.email });
 
     if (config.isProduction) {
       // send email
