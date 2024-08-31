@@ -41,6 +41,7 @@
     "jsonwebtoken": "^9.0.2",
     "lru-cache": "^11.0.0",
     "luxon": "^3.5.0",
+    "mailtrap": "^3.4.0",
     "node-pg-migrate": "^7.6.1",
     "otpauth": "^9.2.2",
     "pg-monitor": "^2.1.0",

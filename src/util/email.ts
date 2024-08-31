@@ -1,5 +1,41 @@
-const generateEmailVerifyLink = (token: string): string => {
-  return `URL_HERE/?token=${token}`;
+/* eslint-disable @typescript-eslint/unbound-method */
+import { MailtrapClient, SendError, SendResponse } from 'mailtrap';
+import { config } from '../config';
+import Logger from './logger';
+
+export type EmailTemplate = {
+  subject: string;
+  text: string;
+  category: 'confirm_email' | 'reset_password';
 };
 
-export { generateEmailVerifyLink };
+const client = new MailtrapClient({
+  token: config.EMAIL_MAILTRAP_TOKEN || '',
+  testInboxId: config.EMAIL_MAILTRAP_TEST_INBOX_ID,
+});
+
+const emailFn = config.isProduction ? client.send : client.testing.send;
+
+export const sendEmail = async ({
+  recipient,
+  template,
+}: {
+  recipient: string;
+  template: EmailTemplate;
+}): Promise<SendResponse | SendError> => {
+  if (config.EMAIL_MAILTRAP_TOKEN && config.EMAIL_SENDER) {
+    try {
+      return await emailFn({
+        ...template,
+        from: { name: 'Eino', email: config.EMAIL_SENDER },
+        to: [{ email: recipient }],
+      });
+    } catch (error) {
+      Logger.info((error as Error).message);
+      return { success: false, errors: [] };
+    }
+  } else {
+    Logger.info(`Email to ${recipient}: ${template.subject}\n${template.text}`);
+    return new Promise((resolve) => resolve({ success: true, message_ids: [] }));
+  }
+};

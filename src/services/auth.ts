@@ -38,6 +38,8 @@ import QRCode from 'qrcode';
 import { JwtPayload } from '../middleware/verifytoken';
 import { DateTime } from 'luxon';
 import { isVerificationExpired } from '../util/verification';
+import { sendEmail } from '../util/email';
+import { resetPasswordTemplate } from '../util/emailtemplates';
 
 const register = async (
   req: TypedRequest<typeof registerSchema>,
@@ -202,7 +204,7 @@ const forgotPassword = async (
 
   try {
     const user = await getUserByEmail(email);
-    if (!user) {
+    if (!user || !user.email) {
       next(new ErrorWithStatus(422, 'forget_password_error', 'Account not found'));
       return;
     }
@@ -229,10 +231,14 @@ const forgotPassword = async (
       expires_on: DateTime.now().plus({ minutes: 30 }).toJSDate(),
     });
 
-    if (config.isProduction) {
-      // Send email
-    } else {
-      Logger.info(`Password reset otp for ${email}: ${otp}`);
+    const emailResponse = await sendEmail({
+      recipient: user.email,
+      template: resetPasswordTemplate(otp),
+    });
+
+    if (!emailResponse.success) {
+      next(new ErrorWithStatus(424, 'forget_password_error', "Couldn't send password reset email"));
+      return;
     }
 
     res

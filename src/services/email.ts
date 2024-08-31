@@ -13,9 +13,10 @@ import {
 } from '../db/users';
 import { TypedRequest } from '../util/zod';
 import { updateEmailSchema, verifyEmailSchema } from '../routes/email';
-import { config } from '../config';
 import { DateTime } from 'luxon';
 import { isVerificationExpired } from '../util/verification';
+import { sendEmail } from '../util/email';
+import { confirmEmailTemplate } from '../util/emailtemplates';
 
 const updateEmail = async (
   req: TypedRequest<typeof updateEmailSchema>,
@@ -101,10 +102,14 @@ const sendConfirmationEmail = async (req: Request, res: Response, next: NextFunc
 
     const { otp } = await generateTOTP({ ...verification, label: user.email });
 
-    if (config.isProduction) {
-      // send email
-    } else {
-      Logger.info(`Verification code for ${user.email}: ${otp}`);
+    const emailResponse = await sendEmail({
+      recipient: user.email,
+      template: confirmEmailTemplate(otp),
+    });
+
+    if (!emailResponse.success) {
+      next(new ErrorWithStatus(424, 'email_error', "Couldn't send confirmation email"));
+      return;
     }
 
     res
