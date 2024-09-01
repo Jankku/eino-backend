@@ -6,23 +6,42 @@ import * as zxcvbnCommon from '@zxcvbn-ts/language-common';
 import * as zxcvbnEn from '@zxcvbn-ts/language-en';
 import * as zxcvbnFi from '@zxcvbn-ts/language-fi';
 import { db } from '../db/config';
+import User from '../db/model/user';
 
 const { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, ACCESS_TOKEN_VALIDITY, REFRESH_TOKEN_VALIDITY } =
   config;
 
-const generateAccessToken = (userId: string, username: string): string =>
-  jwt.sign({ userId, username }, ACCESS_TOKEN_SECRET, {
-    expiresIn: ACCESS_TOKEN_VALIDITY,
-    audience: 'eino',
-    issuer: 'eino-backend',
-  });
+const generateAccessToken = (user: User): string =>
+  jwt.sign(
+    {
+      userId: user.user_id,
+      username: user.username,
+      email: user.email,
+      is2FAEnabled: user.totp_enabled_on ? true : false,
+    },
+    ACCESS_TOKEN_SECRET,
+    {
+      expiresIn: ACCESS_TOKEN_VALIDITY,
+      audience: 'eino',
+      issuer: 'eino-backend',
+    },
+  );
 
-const generateRefreshToken = (userId: string, username: string): string =>
-  jwt.sign({ userId, username }, REFRESH_TOKEN_SECRET, {
-    expiresIn: REFRESH_TOKEN_VALIDITY,
-    audience: 'eino',
-    issuer: 'eino-backend',
-  });
+const generateRefreshToken = (user: User): string =>
+  jwt.sign(
+    {
+      userId: user.user_id,
+      username: user.username,
+      email: user.email,
+      is2FAEnabled: user.totp_enabled_on ? true : false,
+    },
+    REFRESH_TOKEN_SECRET,
+    {
+      expiresIn: REFRESH_TOKEN_VALIDITY,
+      audience: 'eino',
+      issuer: 'eino-backend',
+    },
+  );
 
 const generatePasswordHash = (password: string): Promise<string> => bcrypt.hash(password, 12);
 

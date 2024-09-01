@@ -102,22 +102,23 @@ const login = async (req: TypedRequest<typeof loginSchema>, res: Response, next:
 
       const verification = await getVerification({ target: user.username, type: '2fa' });
       if (!verification) {
-        next(new ErrorWithStatus(422, 'authentication_error', "Couldn't verify One-time password"));
+        next(new ErrorWithStatus(422, 'authentication_error', "Couldn't verify one-time password"));
         return;
       }
 
       if (!validateTOTP({ otp, ...verification })) {
-        next(new ErrorWithStatus(422, 'authentication_error', "Couldn't verify One-time password"));
+        next(new ErrorWithStatus(422, 'authentication_error', "Couldn't verify one-time password"));
         return;
       }
     }
 
     await updateLastLogin(user.user_id);
 
-    const accessToken = generateAccessToken(user.user_id, user.username);
-    const refreshToken = generateRefreshToken(user.user_id, user.username);
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+    const twoFactorEnabled = user.totp_enabled_on ? true : false;
 
-    return res.status(200).json({ accessToken, refreshToken });
+    return res.status(200).json({ accessToken, refreshToken, twoFactorEnabled });
   } catch (error) {
     Logger.error((error as Error).stack);
     next(new ErrorWithStatus(500, 'authentication_error', 'Incorrect username or password'));
@@ -145,7 +146,7 @@ const loginConfig = async (
     }
 
     return res.status(200).json({
-      requireOtp: user.totp_enabled_on ? true : false,
+      is2FAEnabled: user.totp_enabled_on ? true : false,
     });
   } catch (error) {
     Logger.error((error as Error).stack);
@@ -153,7 +154,7 @@ const loginConfig = async (
   }
 };
 
-const generateNewAccessToken = (
+const generateNewAccessToken = async (
   req: TypedRequest<typeof refreshTokenSchema>,
   res: Response,
   next: NextFunction,
@@ -161,13 +162,19 @@ const generateNewAccessToken = (
   const { refreshToken } = req.body;
 
   try {
-    const { userId, username } = jwt.verify(refreshToken, config.REFRESH_TOKEN_SECRET, {
+    const { username } = jwt.verify(refreshToken, config.REFRESH_TOKEN_SECRET, {
       audience: 'eino',
       issuer: 'eino-backend',
     }) as JwtPayload;
 
-    const newAccessToken = generateAccessToken(userId, username);
-    return res.status(200).json({ accessToken: newAccessToken });
+    const user = await getUserByUsername(username);
+
+    if (!user) {
+      next(new ErrorWithStatus(422, 'jwt_refresh_error', 'Failed to refresh token'));
+      return;
+    }
+
+    return res.status(200).json({ accessToken: generateAccessToken(user) });
   } catch (error) {
     next(new ErrorWithStatus(422, 'jwt_refresh_error', (error as Error)?.message));
   }

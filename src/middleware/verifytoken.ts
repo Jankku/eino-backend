@@ -22,6 +22,7 @@ const tokenSchema = z.object({
 export type JwtPayload = {
   userId: string;
   username: string;
+  email?: string;
 };
 
 /**
