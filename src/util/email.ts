@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/unbound-method */
-import { MailtrapClient, SendError, SendResponse } from 'mailtrap';
+import { Mail, MailtrapClient, SendError, SendResponse } from 'mailtrap';
 import { config } from '../config';
 import Logger from './logger';
 
@@ -14,8 +13,6 @@ const client = new MailtrapClient({
   testInboxId: config.EMAIL_MAILTRAP_TEST_INBOX_ID,
 });
 
-const emailFn = config.isProduction ? client.send : client.testing.send;
-
 export const sendEmail = async ({
   recipient,
   template,
@@ -25,11 +22,17 @@ export const sendEmail = async ({
 }): Promise<SendResponse | SendError> => {
   if (config.EMAIL_MAILTRAP_TOKEN && config.EMAIL_SENDER) {
     try {
-      return await emailFn({
+      const mail: Mail = {
         ...template,
         from: { name: 'Eino', email: config.EMAIL_SENDER },
         to: [{ email: recipient }],
-      });
+      };
+
+      return config.isProduction
+        ? client.send(mail)
+        : config.EMAIL_MAILTRAP_TEST_INBOX_ID
+          ? client.testing.send(mail)
+          : { success: false, errors: [] };
     } catch (error) {
       Logger.info((error as Error).message);
       return { success: false, errors: [] };

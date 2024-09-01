@@ -37,7 +37,7 @@ const updateEmail = async (
 
     const isEmailUsed = await isEmailAlreadyUsed({ username, email });
     if (isEmailUsed) {
-      next(new ErrorWithStatus(422, 'email_error', 'Email already in use'));
+      next(new ErrorWithStatus(422, 'email_already_used', 'Email is already in use'));
       return;
     }
 
@@ -51,25 +51,10 @@ const updateEmail = async (
 
     const verification = await getVerification({ target: email, type: 'email' });
     if (verification) {
-      if (verification.expires_on && isVerificationExpired(verification.expires_on)) {
-        await deleteVerification({ target: email, type: 'email' });
-      } else {
-        next(new ErrorWithStatus(422, 'email_error', 'Verification already pending'));
-        return;
-      }
+      await deleteVerification({ target: email, type: 'email' });
     }
 
     await updateEmailAddress({ username, email });
-
-    const totp = await generateTOTP({ label: email });
-
-    await addVerification({
-      ...totp,
-      type: 'email',
-      target: totp.label,
-      period: 0,
-      expires_on: DateTime.now().plus({ minutes: 30 }).toJSDate(),
-    });
 
     res.status(200).json(success([{ name: 'email_updated', message: 'Email updated' }]));
   } catch (error) {
@@ -90,21 +75,22 @@ const sendConfirmationEmail = async (req: Request, res: Response, next: NextFunc
 
     const isVerified = await isEmailVerified(user.email);
     if (isVerified) {
-      next(new ErrorWithStatus(422, 'email_error', 'Email already verified'));
+      next(new ErrorWithStatus(422, 'email_already_verified', 'Email already verified'));
       return;
     }
 
-    const verification = await getVerification({ target: user.email, type: 'email' });
-    if (!verification) {
-      next(new ErrorWithStatus(422, 'email_error', "Couldn't send confirmation email"));
-      return;
-    }
+    const totp = await generateTOTP({ label: user.email, period: 0 });
 
-    const { otp } = await generateTOTP({ ...verification, label: user.email });
+    await addVerification({
+      ...totp,
+      type: 'email',
+      target: totp.label,
+      expires_on: DateTime.now().plus({ minutes: 30 }).toJSDate(),
+    });
 
     const emailResponse = await sendEmail({
       recipient: user.email,
-      template: confirmEmailTemplate(otp),
+      template: confirmEmailTemplate(totp.otp),
     });
 
     if (!emailResponse.success) {
@@ -142,13 +128,13 @@ const verifyEmail = async (
 
     const verification = await getVerification({ target: user.email, type: 'email' });
     if (!verification) {
-      next(new ErrorWithStatus(422, 'email_verification_error', 'No verification pending'));
+      next(new ErrorWithStatus(422, 'email_verification_not_found', 'No verification pending'));
       return;
     }
 
     if (verification.expires_on && isVerificationExpired(verification.expires_on)) {
       await deleteVerification({ target: user.email, type: 'email' });
-      next(new ErrorWithStatus(422, 'email_verification_error', 'Verification expired'));
+      next(new ErrorWithStatus(422, 'email_verification_expired', 'Verification expired'));
       return;
     }
 
