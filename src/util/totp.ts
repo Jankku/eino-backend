@@ -41,8 +41,8 @@ const validateTOTP = (config: TOTPConfig) => {
     secret: OTPAuth.Secret.fromBase32(config.secret),
     issuer: 'eino',
   });
-  const delta = totp.validate({ token: config.otp, window: 2 });
-  return delta !== null;
+  const delta = totp.validate({ token: config.otp, window: 1 });
+  return delta !== null && [-1, 0, 1].includes(delta);
 };
 
 export { generateTOTP, validateTOTP };

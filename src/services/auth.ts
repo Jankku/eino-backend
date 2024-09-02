@@ -4,7 +4,8 @@ import jwt from 'jsonwebtoken';
 import {
   disableTOTP,
   enableTOTP,
-  getUserByCredential,
+  findUserByCredential,
+  findUserByEmail,
   getUserByEmail,
   getUserByUsername,
   updatePassword,
@@ -32,7 +33,12 @@ import {
   registerSchema,
   resetPasswordSchema,
 } from '../routes/auth';
-import { addVerification, deleteVerification, getVerification } from '../db/verification';
+import {
+  addVerification,
+  deleteVerification,
+  findVerification,
+  getVerification,
+} from '../db/verification';
 import { generateTOTP, validateTOTP } from '../util/totp';
 import QRCode from 'qrcode';
 import { JwtPayload } from '../middleware/verifytoken';
@@ -82,7 +88,7 @@ const login = async (req: TypedRequest<typeof loginSchema>, res: Response, next:
   const { username: usernameOrEmail, password, otp } = req.body;
 
   try {
-    const user = await getUserByCredential(usernameOrEmail);
+    const user = await findUserByCredential(usernameOrEmail);
     if (!user) {
       next(new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password'));
       return;
@@ -101,13 +107,8 @@ const login = async (req: TypedRequest<typeof loginSchema>, res: Response, next:
       }
 
       const verification = await getVerification({ target: user.username, type: '2fa' });
-      if (!verification) {
-        next(new ErrorWithStatus(422, 'authentication_error', "Couldn't verify one-time password"));
-        return;
-      }
-
       if (!validateTOTP({ otp, ...verification })) {
-        next(new ErrorWithStatus(422, 'authentication_error', "Couldn't verify one-time password"));
+        next(new ErrorWithStatus(422, 'authentication_error', 'Incorrect one-time password'));
         return;
       }
     }
@@ -116,9 +117,8 @@ const login = async (req: TypedRequest<typeof loginSchema>, res: Response, next:
 
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
-    const twoFactorEnabled = user.totp_enabled_on ? true : false;
 
-    return res.status(200).json({ accessToken, refreshToken, twoFactorEnabled });
+    return res.status(200).json({ accessToken, refreshToken });
   } catch (error) {
     Logger.error((error as Error).stack);
     next(new ErrorWithStatus(500, 'authentication_error', 'Incorrect username or password'));
@@ -133,7 +133,7 @@ const loginConfig = async (
   const { username: usernameOrEmail, password } = req.body;
 
   try {
-    const user = await getUserByCredential(usernameOrEmail);
+    const user = await findUserByCredential(usernameOrEmail);
     if (!user) {
       next(new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password'));
       return;
@@ -168,11 +168,6 @@ const generateNewAccessToken = async (
     }) as JwtPayload;
 
     const user = await getUserByUsername(username);
-
-    if (!user) {
-      next(new ErrorWithStatus(422, 'jwt_refresh_error', 'Failed to refresh token'));
-      return;
-    }
 
     return res.status(200).json({ accessToken: generateAccessToken(user) });
   } catch (error) {
@@ -210,7 +205,7 @@ const forgotPassword = async (
   const { email } = req.body;
 
   try {
-    const user = await getUserByEmail(email);
+    const user = await findUserByEmail(email);
     if (!user || !user.email) {
       next(new ErrorWithStatus(422, 'forget_password_error', 'Account not found'));
       return;
@@ -221,7 +216,7 @@ const forgotPassword = async (
       return;
     }
 
-    const verification = await getVerification({ target: email, type: 'password_reset' });
+    const verification = await findVerification({ target: email, type: 'password_reset' });
     if (verification) {
       await deleteVerification({ target: email, type: 'password_reset' });
     }
@@ -248,13 +243,17 @@ const forgotPassword = async (
       return;
     }
 
-    res
-      .status(200)
-      .json(
-        success([
-          { name: 'password_reset_email_sent', message: 'Check your email for one-time password' },
-        ]),
-      );
+    const is2FAEnabled = user.totp_enabled_on ? true : false;
+
+    res.status(200).json(
+      success([
+        {
+          name: 'password_reset_email_sent',
+          message: 'Check your email for one-time password',
+          is2FAEnabled,
+        },
+      ]),
+    );
   } catch (error) {
     Logger.error((error as Error).stack);
     next(
@@ -272,7 +271,22 @@ const resetPassword = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const { email, newPassword, otp } = req.body;
+  const { email, newPassword, otp, twoFactorCode } = req.body;
+
+  const user = await getUserByEmail(email);
+
+  if (user.totp_enabled_on) {
+    if (!twoFactorCode) {
+      next(new ErrorWithStatus(422, 'reset_password_error', 'Two-factor code required'));
+      return;
+    }
+
+    const twoFactorVerification = await getVerification({ target: user.username, type: '2fa' });
+    if (!validateTOTP({ otp: twoFactorCode, ...twoFactorVerification })) {
+      next(new ErrorWithStatus(422, 'reset_password_error', 'Incorrect two-factor code'));
+      return;
+    }
+  }
 
   try {
     const { isStrong, error } = getPasswordStrength({ password: newPassword });
@@ -282,10 +296,6 @@ const resetPassword = async (
     }
 
     const verification = await getVerification({ target: email, type: 'password_reset' });
-    if (!verification) {
-      next(new ErrorWithStatus(422, 'reset_password_error', 'No reset password request found'));
-      return;
-    }
 
     if (verification.expires_on && isVerificationExpired(verification.expires_on)) {
       await deleteVerification({ target: email, type: 'email' });
@@ -321,17 +331,13 @@ const generate2FAUrl = async (req: Request, res: Response, next: NextFunction) =
 
   try {
     const user = await getUserByUsername(username);
-    if (!user) {
-      next(new ErrorWithStatus(422, '2fa_error', "Couldn't generate url"));
-      return;
-    }
 
     if (user.totp_enabled_on) {
       next(new ErrorWithStatus(422, '2fa_error', '2FA already enabled'));
       return;
     }
 
-    const verification = await getVerification({ target: user.username, type: '2fa' });
+    const verification = await findVerification({ target: user.username, type: '2fa' });
     if (verification) {
       await deleteVerification({ target: user.username, type: '2fa' });
     }
@@ -375,10 +381,6 @@ const enable2FA = async (
 
   try {
     const user = await getUserByUsername(username);
-    if (!user) {
-      next(new ErrorWithStatus(422, '2fa_error', "Couldn't enable 2FA"));
-      return;
-    }
 
     if (user.totp_enabled_on) {
       next(new ErrorWithStatus(422, '2fa_error', '2FA already enabled'));
@@ -386,11 +388,6 @@ const enable2FA = async (
     }
 
     const verification = await getVerification({ target: user.username, type: '2fa' });
-    if (!verification) {
-      next(new ErrorWithStatus(422, '2fa_error', "Couldn't enable 2FA"));
-      return;
-    }
-
     if (!validateTOTP({ otp, ...verification })) {
       next(new ErrorWithStatus(422, '2fa_error', "Couldn't enable 2FA"));
       return;
@@ -415,10 +412,6 @@ const disable2FA = async (
 
   try {
     const user = await getUserByUsername(username);
-    if (!user) {
-      next(new ErrorWithStatus(422, '2fa_error', "Couldn't disable 2FA"));
-      return;
-    }
 
     if (!user.totp_enabled_on) {
       next(new ErrorWithStatus(422, '2fa_error', '2FA not enabled'));
@@ -426,11 +419,6 @@ const disable2FA = async (
     }
 
     const verification = await getVerification({ target: user.username, type: '2fa' });
-    if (!verification) {
-      next(new ErrorWithStatus(422, '2fa_error', "Couldn't disable 2FA"));
-      return;
-    }
-
     if (!validateTOTP({ otp, ...verification })) {
       next(new ErrorWithStatus(422, '2fa_error', "Couldn't disable 2FA"));
       return;

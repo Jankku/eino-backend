@@ -28,6 +28,19 @@ const getVerification = async ({
 }: {
   target: string;
   type: DbVerification['type'];
+}): Promise<DbVerification> => {
+  return await db.one({
+    text: `SELECT * FROM verifications WHERE target = $1 AND type = $2 ORDER by created_on DESC LIMIT 1`,
+    values: [target, type],
+  });
+};
+
+const findVerification = async ({
+  target,
+  type,
+}: {
+  target: string;
+  type: DbVerification['type'];
 }): Promise<DbVerification | null> => {
   return await db.oneOrNone({
     text: `SELECT * FROM verifications WHERE target = $1 AND type = $2 ORDER by created_on DESC LIMIT 1`,
@@ -48,4 +61,4 @@ const deleteVerification = async ({
   });
 };
 
-export { addVerification, getVerification, deleteVerification };
+export { addVerification, getVerification, findVerification, deleteVerification };

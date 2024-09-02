@@ -4,7 +4,7 @@ import { db } from './config';
 import User from './model/user';
 import * as bcrypt from 'bcrypt';
 
-const getUserByIdentifier = async (usernameOrEmail: string): Promise<User | null | undefined> => {
+const findUserByCredential = async (usernameOrEmail: string): Promise<User | null | undefined> => {
   return await db.oneOrNone({
     text: `SELECT *
            FROM users
@@ -13,7 +13,16 @@ const getUserByIdentifier = async (usernameOrEmail: string): Promise<User | null
   });
 };
 
-const getUserByUsername = async (username: string): Promise<User | null | undefined> => {
+const getUserByUsername = async (username: string): Promise<User> => {
+  return await db.one({
+    text: `SELECT *
+           FROM users
+           WHERE username = $1`,
+    values: [username],
+  });
+};
+
+const findUserByUsername = async (username: string): Promise<User | null | undefined> => {
   return await db.oneOrNone({
     text: `SELECT *
            FROM users
@@ -22,7 +31,16 @@ const getUserByUsername = async (username: string): Promise<User | null | undefi
   });
 };
 
-const getUserByEmail = async (email: string): Promise<User | null | undefined> => {
+const getUserByEmail = async (email: string): Promise<User> => {
+  return await db.one({
+    text: `SELECT *
+           FROM users
+           WHERE email = $1`,
+    values: [email],
+  });
+};
+
+const findUserByEmail = async (email: string): Promise<User | null | undefined> => {
   return await db.oneOrNone({
     text: `SELECT *
            FROM users
@@ -114,8 +132,6 @@ const updatePassword = async ({
 
 const isPasswordCorrect = async (username: string, password: string): Promise<boolean> => {
   const user = await getUserByUsername(username);
-  if (!user) return false;
-
   const isCorrect = await bcrypt.compare(password, user.password);
   return isCorrect;
 };
@@ -191,9 +207,11 @@ const deleteAllUsers = async () => {
 };
 
 export {
-  getUserByIdentifier as getUserByCredential,
+  findUserByCredential,
   getUserByUsername,
+  findUserByUsername,
   getUserByEmail,
+  findUserByEmail,
   updateEmailAddress,
   updatePassword,
   isPasswordCorrect,

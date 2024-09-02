@@ -95,6 +95,7 @@ export const resetPasswordSchema = z.object({
     email: emailSchema,
     newPassword: passwordSchema,
     otp: otpSchema,
+    twoFactorCode: otpSchema.optional(),
   }),
 });
 

@@ -19,6 +19,7 @@ const errorMessages = {
   EMAIL_EXISTS: 'Email already exists',
   OTP_REQUIRED: 'One-time password required',
   OTP_INVALID: 'Invalid one-time password',
+  TWO_FACTOR_CODE_REQUIRED: 'Two-factor code required',
 };
 
 export default errorMessages;

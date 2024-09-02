@@ -95,11 +95,6 @@ const deleteAccount = async (
   const username: string = res.locals.username;
   const { password } = req.body;
 
-  if (!password || password === undefined) {
-    next(new ErrorWithStatus(422, 'profile_error', 'Send user password in the request body'));
-    return;
-  }
-
   const isCorrect = await isPasswordCorrect(username, password);
   if (!isCorrect) {
     next(new ErrorWithStatus(422, 'profile_error', 'Incorrect password'));
@@ -111,6 +106,7 @@ const deleteAccount = async (
       text: `DELETE FROM users WHERE username = $1`,
       values: [username],
     });
+
     const shareImagePath = getShareItemPath(username);
     await fs.rm(shareImagePath, { force: true });
 
@@ -269,13 +265,6 @@ const exportUserData = async (
   const username: string = res.locals.username;
   const { password } = req.body;
 
-  if (!password || password === undefined) {
-    next(
-      new ErrorWithStatus(422, 'profile_export_error', 'Send user password in the request body'),
-    );
-    return;
-  }
-
   const isCorrect = await isPasswordCorrect(username, password);
   if (!isCorrect) {
     next(new ErrorWithStatus(422, 'profile_export_error', 'Incorrect password'));
@@ -293,13 +282,9 @@ const exportUserData = async (
     });
 
     res.status(200).json({
-      version: 3,
+      version: 4,
       profile: {
-        user_id: profile.userInfo.user_id,
-        username: username,
-        email: profile.userInfo.email,
-        registration_date: profile.userInfo.registration_date,
-        totp_enabled_on: profile.userInfo.totp_enabled_on,
+        ...profile.userInfo,
         stats: {
           book: {
             ...profile.bookData,

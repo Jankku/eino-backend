@@ -2,7 +2,12 @@ import { NextFunction, Request, Response } from 'express';
 import { success } from '../util/response';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { generateTOTP, validateTOTP } from '../util/totp';
-import { addVerification, deleteVerification, getVerification } from '../db/verification';
+import {
+  addVerification,
+  deleteVerification,
+  findVerification,
+  getVerification,
+} from '../db/verification';
 import Logger from '../util/logger';
 import {
   getUserByUsername,
@@ -25,7 +30,22 @@ const updateEmail = async (
 ) => {
   try {
     const username: string = res.locals.username;
-    const { email } = req.body;
+    const { email, twoFactorCode } = req.body;
+
+    const user = await getUserByUsername(username);
+
+    if (user.totp_enabled_on) {
+      if (!twoFactorCode) {
+        next(new ErrorWithStatus(422, 'update_email_error', 'Two-factor code required'));
+        return;
+      }
+
+      const twoFactorVerification = await getVerification({ target: user.username, type: '2fa' });
+      if (!validateTOTP({ otp: twoFactorCode, ...twoFactorVerification })) {
+        next(new ErrorWithStatus(422, 'update_email_error', 'Incorrect two-factor code'));
+        return;
+      }
+    }
 
     if (!email) {
       await updateEmailAddress({ username, email: null });
@@ -49,7 +69,7 @@ const updateEmail = async (
       return;
     }
 
-    const verification = await getVerification({ target: email, type: 'email' });
+    const verification = await findVerification({ target: email, type: 'email' });
     if (verification) {
       await deleteVerification({ target: email, type: 'email' });
     }
@@ -59,7 +79,7 @@ const updateEmail = async (
     res.status(200).json(success([{ name: 'email_updated', message: 'Email updated' }]));
   } catch (error) {
     Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(422, 'email_error', "Couldn't update email"));
+    next(new ErrorWithStatus(422, 'update_email_error', "Couldn't update email"));
   }
 };
 
@@ -68,7 +88,8 @@ const sendConfirmationEmail = async (req: Request, res: Response, next: NextFunc
     const username: string = res.locals.username;
 
     const user = await getUserByUsername(username);
-    if (!user || !user.email) {
+
+    if (!user.email) {
       next(new ErrorWithStatus(422, 'email_error', "Couldn't send confirmation email"));
       return;
     }
@@ -121,16 +142,13 @@ const verifyEmail = async (
     const { otp } = req.body;
 
     const user = await getUserByUsername(username);
-    if (!user || !user.email) {
+
+    if (!user.email) {
       next(new ErrorWithStatus(422, 'email_verification_error', "Couldn't verify email"));
       return;
     }
 
     const verification = await getVerification({ target: user.email, type: 'email' });
-    if (!verification) {
-      next(new ErrorWithStatus(422, 'email_verification_not_found', 'No verification pending'));
-      return;
-    }
 
     if (verification.expires_on && isVerificationExpired(verification.expires_on)) {
       await deleteVerification({ target: user.email, type: 'email' });
@@ -138,9 +156,8 @@ const verifyEmail = async (
       return;
     }
 
-    const isValid = validateTOTP({ otp, ...verification });
-    if (!isValid) {
-      next(new ErrorWithStatus(422, 'email_verification_error', 'Invalid code'));
+    if (!validateTOTP({ otp, ...verification })) {
+      next(new ErrorWithStatus(422, 'email_verification_error', 'Invalid one-time password'));
       return;
     }
 
