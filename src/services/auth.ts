@@ -420,7 +420,7 @@ const disable2FA = async (
 
     const verification = await getVerification({ target: user.username, type: '2fa' });
     if (!validateTOTP({ otp, ...verification })) {
-      next(new ErrorWithStatus(422, '2fa_error', "Couldn't disable 2FA"));
+      next(new ErrorWithStatus(422, '2fa_error', 'Incorrect two-factor code'));
       return;
     }
 
