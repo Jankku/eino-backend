@@ -21,7 +21,7 @@ const generateSecret = async () => {
 const generateTOTP = async (config: Partial<TOTPConfigWithLabel>) => {
   const secret = await generateSecret();
   const defaults = {
-    issuer: 'eino',
+    issuer: 'Eino',
     algorithm: 'SHA1',
     digits: 6,
     period: 30, // 30 seconds
@@ -39,7 +39,7 @@ const validateTOTP = (config: TOTPConfig) => {
   const totp = new OTPAuth.TOTP({
     ...config,
     secret: OTPAuth.Secret.fromBase32(config.secret),
-    issuer: 'eino',
+    issuer: 'Eino',
   });
   const delta = totp.validate({ token: config.otp, window: 1 });
   return delta !== null && [-1, 0, 1].includes(delta);

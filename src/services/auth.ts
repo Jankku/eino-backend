@@ -59,7 +59,7 @@ const register = async (
     await db.none({
       text: `INSERT INTO users (username, password, email)
              VALUES ($1, $2, $3)`,
-      values: [username, hashedPassword, email],
+      values: [username, hashedPassword, email || null],
     });
 
     if (email) {
@@ -85,7 +85,7 @@ const register = async (
 };
 
 const login = async (req: TypedRequest<typeof loginSchema>, res: Response, next: NextFunction) => {
-  const { username: usernameOrEmail, password, otp } = req.body;
+  const { username: usernameOrEmail, password, twoFactorCode } = req.body;
 
   try {
     const user = await findUserByCredential(usernameOrEmail);
@@ -101,13 +101,13 @@ const login = async (req: TypedRequest<typeof loginSchema>, res: Response, next:
     }
 
     if (user.totp_enabled_on) {
-      if (!otp) {
+      if (!twoFactorCode) {
         next(new ErrorWithStatus(422, 'authentication_error', 'One-time password required'));
         return;
       }
 
       const verification = await getVerification({ target: user.username, type: '2fa' });
-      if (!validateTOTP({ otp, ...verification })) {
+      if (!validateTOTP({ otp: twoFactorCode, ...verification })) {
         next(new ErrorWithStatus(422, 'authentication_error', 'Incorrect one-time password'));
         return;
       }
@@ -376,7 +376,7 @@ const enable2FA = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const { otp } = req.body;
+  const { twoFactorCode } = req.body;
   const username: string = res.locals.username;
 
   try {
@@ -388,8 +388,8 @@ const enable2FA = async (
     }
 
     const verification = await getVerification({ target: user.username, type: '2fa' });
-    if (!validateTOTP({ otp, ...verification })) {
-      next(new ErrorWithStatus(422, '2fa_error', "Couldn't enable 2FA"));
+    if (!validateTOTP({ otp: twoFactorCode, ...verification })) {
+      next(new ErrorWithStatus(422, '2fa_error', 'Incorrect two-factor code'));
       return;
     }
 
@@ -407,7 +407,7 @@ const disable2FA = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const { otp } = req.body;
+  const { twoFactorCode } = req.body;
   const username: string = res.locals.username;
 
   try {
@@ -419,7 +419,7 @@ const disable2FA = async (
     }
 
     const verification = await getVerification({ target: user.username, type: '2fa' });
-    if (!validateTOTP({ otp, ...verification })) {
+    if (!validateTOTP({ otp: twoFactorCode, ...verification })) {
       next(new ErrorWithStatus(422, '2fa_error', 'Incorrect two-factor code'));
       return;
     }

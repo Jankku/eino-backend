@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { dateStringSchema, fixedNonEmptyStringSchema, passwordSchema } from '../../util/zodschema';
+import {
+  dateStringSchema,
+  fixedNonEmptyStringSchema,
+  otpSchema,
+  passwordSchema,
+} from '../../util/zodschema';
 import { dbBookSchema } from '../../db/model/dbbook';
 import { dbMovieSchema } from '../../db/model/dbmovie';
 import { shareSchema } from '../../db/model/dbshare';
@@ -7,6 +12,7 @@ import { shareSchema } from '../../db/model/dbshare';
 export const deleteAccountSchema = z.object({
   body: z.object({
     password: passwordSchema,
+    twoFactorCode: otpSchema,
   }),
 });
 

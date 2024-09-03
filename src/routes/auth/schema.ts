@@ -3,6 +3,7 @@ import { isEmailUnique, isUserUnique } from '../../db/users';
 import {
   emailSchema,
   optionalEmailSchema,
+  optionalOtpSchema,
   otpSchema,
   passwordSchema,
   usernameOrEmailSchema,
@@ -28,15 +29,18 @@ export const registerSchema = z
     params: { name: 'authentication_error' },
     message: errorMessages.USER_EXISTS,
   })
+  .refine((data) => !data.body.email || data.body.email?.includes('@'), {
+    params: { name: 'authentication_error' },
+    message: errorMessages.EMAIL_SHOULD_CONTAIN_AT_SIGN,
+  })
   .refine(
     async (data) => {
       if (!data.body.email) return true;
-      if (!data.body.email.includes('@')) return false;
       return await isEmailUnique(data.body.email);
     },
     {
       params: { name: 'authentication_error' },
-      message: errorMessages.EMAIL_EXISTS,
+      message: errorMessages.EMAIL_ALREADY_USED,
     },
   )
   .superRefine(({ body }, ctx) => {
@@ -53,7 +57,7 @@ export const loginSchema = z.object({
   body: z.object({
     username: usernameOrEmailSchema,
     password: passwordSchema,
-    otp: otpSchema.optional(),
+    twoFactorCode: optionalOtpSchema,
   }),
 });
 
@@ -95,12 +99,12 @@ export const resetPasswordSchema = z.object({
     email: emailSchema,
     newPassword: passwordSchema,
     otp: otpSchema,
-    twoFactorCode: otpSchema.optional(),
+    twoFactorCode: optionalOtpSchema,
   }),
 });
 
 export const enable2FASchema = z.object({
   body: z.object({
-    otp: otpSchema,
+    twoFactorCode: otpSchema,
   }),
 });
