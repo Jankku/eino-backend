@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { db, pgp } from '../db/config';
-import { getItemCountByUsername, isPasswordCorrect } from '../db/users';
+import { getItemCountByUsername, getUserByUsername, isPasswordCorrect } from '../db/users';
 import { ErrorWithStatus } from '../util/errorhandler';
 import * as fs from 'node:fs/promises';
 import { success } from '../util/response';
@@ -27,6 +27,8 @@ import {
 } from '../util/profile';
 import { config } from '../config';
 import { TypedRequest } from '../util/zod';
+import { getVerification } from '../db/verification';
+import { validateTOTP } from '../util/totp';
 
 const getProfile = async (
   _req: TypedRequest<typeof getProfileSchema>,
@@ -93,15 +95,30 @@ const deleteAccount = async (
   next: NextFunction,
 ) => {
   const username: string = res.locals.username;
-  const { password } = req.body;
-
-  const isCorrect = await isPasswordCorrect(username, password);
-  if (!isCorrect) {
-    next(new ErrorWithStatus(422, 'profile_error', 'Incorrect password'));
-    return;
-  }
+  const { password, twoFactorCode } = req.body;
 
   try {
+    const user = await getUserByUsername(username);
+
+    if (user.totp_enabled_on) {
+      if (!twoFactorCode) {
+        next(new ErrorWithStatus(422, 'delete_account_error', 'Two-factor code required'));
+        return;
+      }
+
+      const twoFactorVerification = await getVerification({ target: user.username, type: '2fa' });
+      if (!validateTOTP({ otp: twoFactorCode, ...twoFactorVerification })) {
+        next(new ErrorWithStatus(422, 'delete_account_error', 'Incorrect two-factor code'));
+        return;
+      }
+    }
+
+    const isCorrect = await isPasswordCorrect(username, password);
+    if (!isCorrect) {
+      next(new ErrorWithStatus(422, 'delete_account_error', 'Incorrect password'));
+      return;
+    }
+
     await db.none({
       text: `DELETE FROM users WHERE username = $1`,
       values: [username],
@@ -114,7 +131,7 @@ const deleteAccount = async (
       .status(200)
       .json(success([{ name: 'account_deleted', message: 'Account successfully deleted' }]));
   } catch {
-    next(new ErrorWithStatus(422, 'profile_error', "Couldn't delete account"));
+    next(new ErrorWithStatus(422, 'delete_account_error', "Couldn't delete account"));
   }
 };
 
