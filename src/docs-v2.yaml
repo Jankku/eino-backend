@@ -1,11 +1,13 @@
-openapi: 3.1.0
+openapi: 3.0.0
 info:
   title: Eino
   description: Eino API docs
+  version: 2.2.0
   license:
     name: MIT
     url: https://github.com/Jankku/eino-backend/blob/master/LICENSE.md
-  version: 2.1.0
+externalDocs:
+  url: https://github.com/Jankku/eino-backend/
 servers:
   - url: https://eino.jankku.fi/api/{version}
     variables:
@@ -19,9 +21,11 @@ servers:
     description: Localhost
 tags:
   - name: docs
-    description: Docs endpoints
+    description: Documentation endpoints
   - name: auth
-    description: Auth endpoints
+    description: Authentication endpoints
+  - name: email
+    description: Email endpoints
   - name: books
     description: Book endpoints
   - name: movies
@@ -55,13 +59,10 @@ paths:
               type: object
               properties:
                 username:
-                  type: string
                   $ref: '#/components/schemas/Username'
                 password:
-                  type: string
                   $ref: '#/components/schemas/Password'
                 password2:
-                  type: string
                   $ref: '#/components/schemas/Password'
       responses:
         '200':
@@ -86,20 +87,15 @@ paths:
     post:
       tags:
         - auth
-      summary: Login a user
+      summary: Login user
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                username:
-                  type: string
-                  $ref: '#/components/schemas/Username'
-                password:
-                  type: string
-                  $ref: '#/components/schemas/Password'
+              oneOf:
+                - $ref: '#/components/schemas/Login'
+                - $ref: '#/components/schemas/LoginWithTwoFactor'
       responses:
         '200':
           description: Success response
@@ -112,6 +108,44 @@ paths:
                     type: string
                   refreshToken:
                     type: string
+        '422':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/login/config:
+    post:
+      tags:
+        - auth
+      summary: Get login config
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  $ref: '#/components/schemas/Username'
+                password:
+                  $ref: '#/components/schemas/Password'
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requireOtp:
+                    type: boolean
         '422':
           description: Authentication error
           content:
@@ -177,6 +211,237 @@ paths:
                 $ref: '#/components/schemas/PasswordStrength'
         '500':
           description: Password strength check failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/password/forgot:
+    post:
+      tags:
+        - auth
+      summary: Send reset password email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+      responses:
+        '200':
+          description: Reset password email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '500':
+          description: Failed to send reset password email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/password/reset:
+    post:
+      tags:
+        - auth
+      summary: Reset password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/ResetPassword'
+                - $ref: '#/components/schemas/ResetPasswordWithTwoFactor'
+      responses:
+        '200':
+          description: Password reseted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '500':
+          description: Failed to reset password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/2fa/generate:
+    post:
+      tags:
+        - auth
+      summary: Generate TOTP and QR code
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: TOTP url and QR code data URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TwoFactorGenerateRequest'
+        '500':
+          description: Failed to generate TOTP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/2fa/verify:
+    post:
+      tags:
+        - auth
+      summary: Verify TOTP
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  $ref: '#/components/schemas/Username'
+                otp:
+                  $ref: '#/components/schemas/OTP'
+      responses:
+        '200':
+          description: TOTP verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '500':
+          description: Failed to verify TOTP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/2fa/enable:
+    post:
+      tags:
+        - auth
+      summary: Enable two-factor verification
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                otp:
+                  $ref: '#/components/schemas/OTP'
+      responses:
+        '200':
+          description: Two-factor authentication enabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '500':
+          description: Failed to enable Two-factor authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/2fa/disable:
+    post:
+      tags:
+        - auth
+      summary: Disable two-factor verification
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                otp:
+                  $ref: '#/components/schemas/OTP'
+      responses:
+        '200':
+          description: Two-factor authentication enabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '500':
+          description: Failed to enable Two-factor authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /email/update:
+    post:
+      tags:
+        - email
+      summary: Update email
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+      responses:
+        '200':
+          description: Profile imported successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '422':
+          description: Failed to update email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /email/sendconfirmation:
+    post:
+      tags:
+        - email
+      summary: Send an confirmation email. Used to verify email
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile imported successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '422':
+          description: Failed to send confirmation email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /email/verify:
+    post:
+      tags:
+        - email
+      summary: Verify email using one-time password (OTP) sent to email
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Email verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '422':
+          description: Failed to verify email
           content:
             application/json:
               schema:
@@ -281,7 +546,6 @@ paths:
               type: object
               properties:
                 password:
-                  type: string
                   $ref: '#/components/schemas/Password'
       responses:
         '200':
@@ -726,6 +990,56 @@ components:
       type: string
       minLength: 8
       maxLength: 255
+    Login:
+      type: object
+      properties:
+        username:
+          $ref: '#/components/schemas/Username'
+        password:
+          $ref: '#/components/schemas/Password'
+    LoginWithTwoFactor:
+      type: object
+      properties:
+        username:
+          $ref: '#/components/schemas/Username'
+        password:
+          $ref: '#/components/schemas/Password'
+        twoFactorCode:
+          $ref: '#/components/schemas/OTP'
+    ResetPassword:
+      type: object
+      properties:
+        email:
+          type: string
+        newPassword:
+          $ref: '#/components/schemas/Password'
+        otp:
+          $ref: '#/components/schemas/OTP'
+    ResetPasswordWithTwoFactor:
+      type: object
+      properties:
+        email:
+          type: string
+        newPassword:
+          $ref: '#/components/schemas/Password'
+        otp:
+          $ref: '#/components/schemas/OTP'
+        twoFactorCode:
+          $ref: '#/components/schemas/OTP'
+    TwoFactorGenerateRequest:
+      type: object
+      required:
+        - results
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              totpUrl:
+                type: string
+              qrCodeUrl:
+                type: string
     AddBookRequest:
       type: object
       required:
@@ -931,7 +1245,15 @@ components:
           format: uuid
         username:
           type: string
+        email:
+          type: string
+        email_verified_on:
+          type: string
+          format: date-time
         registration_date:
+          type: string
+          format: date-time
+        totp_enabled_on:
           type: string
           format: date-time
         stats:
@@ -941,7 +1263,6 @@ components:
               type: object
               properties:
                 count:
-                  type: object
                   $ref: '#/components/schemas/ProfileBookCount'
                 pages_read:
                   type: integer
@@ -960,7 +1281,6 @@ components:
               type: object
               properties:
                 count:
-                  type: object
                   $ref: '#/components/schemas/ProfileMovieCount'
                 watch_time:
                   type: integer
@@ -1065,9 +1385,13 @@ components:
                 maximum: 4
               message:
                 type: string
+    OTP:
+      type: string
+      description: 6 digit One-time password. Used to login with 2FA and for email verification
+      minLength: 6
+      maxLength: 6
   requestBodies:
     Book:
-      description: Book
       content:
         application/json:
           schema:
@@ -1076,6 +1400,5 @@ components:
     BearerAuth:
       type: http
       scheme: bearer
+      bearerFormat: JWT
       description: Bearer token authorization
-      name: Authorization
-      in: header

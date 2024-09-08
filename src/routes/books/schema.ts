@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { isBookStatus } from '../../db/model/bookstatus';
+import { bookStatusEnum } from '../../db/model/bookstatus';
 import errorMessages from '../../util/errormessages';
-import { listIdSchema } from '../../model/zodschema';
+import { listIdSchema } from '../../util/zodschema';
 import { bookSchema } from '../../db/model/book';
 
 export const searchSchema = z.object({
@@ -35,7 +35,7 @@ export const deleteOneSchema = z.object({
 
 export const fetchByStatusSchema = z.object({
   params: z.object({
-    status: z.string().refine((status) => isBookStatus(status), errorMessages.LIST_STATUS_INVALID),
+    status: bookStatusEnum,
   }),
 });
 

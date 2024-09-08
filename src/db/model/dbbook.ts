@@ -1,6 +1,6 @@
 import z from 'zod';
 import { bookSchema } from './book';
-import { dateStringSchema, fixedStringSchema } from '../../model/zodschema';
+import { dateStringSchema, fixedStringSchema } from '../../util/zodschema';
 
 export const dbBookSchema = bookSchema.extend({
   book_id: fixedStringSchema,

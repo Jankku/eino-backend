@@ -6,11 +6,7 @@ const SHARE_PATH = './share/';
 const IMAGE_EXTENSION = '.png';
 
 const createShareDir = async () => {
-  try {
-    await fs.mkdir(SHARE_PATH, { recursive: true });
-  } catch {
-    throw new Error('Failed to create share directory');
-  }
+  await fs.mkdir(SHARE_PATH, { recursive: true });
 };
 
 const getSharePath = () => path.join(SHARE_PATH);

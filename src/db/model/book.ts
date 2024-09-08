@@ -4,10 +4,10 @@ import {
   coverUrlSchema,
   dateSchema,
   fixedStringSchema,
-  positiveNumberSchema,
+  nonnegativeNumberSchema,
   scoreSchema,
   sortOrderSchema,
-} from '../../model/zodschema';
+} from '../../util/zodschema';
 import { parseFilter } from '../../util/sort';
 
 export const bookSchema = z.object({
@@ -16,8 +16,8 @@ export const bookSchema = z.object({
   author: fixedStringSchema,
   publisher: fixedStringSchema,
   image_url: coverUrlSchema,
-  pages: positiveNumberSchema,
-  year: positiveNumberSchema,
+  pages: nonnegativeNumberSchema,
+  year: nonnegativeNumberSchema,
   status: bookStatusEnum,
   score: scoreSchema,
   start_date: dateSchema,

@@ -1,6 +1,14 @@
 import { z } from 'zod';
-import { isUserUnique } from '../../db/users';
-import { passwordSchema, usernameSchema } from '../../model/zodschema';
+import { isEmailUnique, isUserUnique } from '../../db/users';
+import {
+  emailSchema,
+  optionalEmailSchema,
+  optionalOtpSchema,
+  otpSchema,
+  passwordSchema,
+  usernameOrEmailSchema,
+  usernameSchema,
+} from '../../util/zodschema';
 import errorMessages from '../../util/errormessages';
 import { getPasswordStrength } from '../../util/auth';
 
@@ -10,12 +18,31 @@ export const registerSchema = z
       username: usernameSchema,
       password: passwordSchema,
       password2: passwordSchema,
+      email: optionalEmailSchema,
     }),
   })
   .refine((data) => data.body.password === data.body.password2, {
     params: { name: 'authentication_error' },
-    message: "Passwords don't match",
+    message: errorMessages.PASSWORDS_NO_MATCH,
   })
+  .refine(async (data) => await isUserUnique(data.body.username), {
+    params: { name: 'authentication_error' },
+    message: errorMessages.USER_EXISTS,
+  })
+  .refine((data) => !data.body.email || data.body.email?.includes('@'), {
+    params: { name: 'authentication_error' },
+    message: errorMessages.EMAIL_SHOULD_CONTAIN_AT_SIGN,
+  })
+  .refine(
+    async (data) => {
+      if (!data.body.email) return true;
+      return await isEmailUnique(data.body.email);
+    },
+    {
+      params: { name: 'authentication_error' },
+      message: errorMessages.EMAIL_ALREADY_USED,
+    },
+  )
   .superRefine(({ body }, ctx) => {
     const { isStrong, error } = getPasswordStrength({
       username: body.username,
@@ -24,13 +51,17 @@ export const registerSchema = z
     if (!isStrong) {
       ctx.addIssue({ code: 'custom', message: error, params: { name: 'authentication_error' } });
     }
-  })
-  .refine(async (data) => await isUserUnique(data.body.username), {
-    params: { name: 'user_exists' },
-    message: errorMessages.USER_EXISTS,
   });
 
 export const loginSchema = z.object({
+  body: z.object({
+    username: usernameOrEmailSchema,
+    password: passwordSchema,
+    twoFactorCode: optionalOtpSchema,
+  }),
+});
+
+export const loginConfigSchema = z.object({
   body: z.object({
     username: usernameSchema,
     password: passwordSchema,
@@ -54,5 +85,26 @@ export const passwordStrengthSchema = z.object({
       .max(255, {
         message: errorMessages.PASSWORD_LENGTH_INVALID,
       }),
+  }),
+});
+
+export const forgotPasswordSchema = z.object({
+  body: z.object({
+    email: emailSchema,
+  }),
+});
+
+export const resetPasswordSchema = z.object({
+  body: z.object({
+    email: emailSchema,
+    newPassword: passwordSchema,
+    otp: otpSchema,
+    twoFactorCode: optionalOtpSchema,
+  }),
+});
+
+export const enable2FASchema = z.object({
+  body: z.object({
+    twoFactorCode: otpSchema,
   }),
 });

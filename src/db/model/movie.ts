@@ -3,10 +3,10 @@ import {
   coverUrlSchema,
   dateSchema,
   fixedStringSchema,
-  positiveNumberSchema,
+  nonnegativeNumberSchema,
   scoreSchema,
   sortOrderSchema,
-} from '../../model/zodschema';
+} from '../../util/zodschema';
 import { movieStatusEnum } from './moviestatus';
 import { parseFilter } from '../../util/sort';
 
@@ -16,8 +16,8 @@ export const movieSchema = z.object({
   director: fixedStringSchema,
   writer: fixedStringSchema,
   image_url: coverUrlSchema,
-  duration: positiveNumberSchema,
-  year: positiveNumberSchema,
+  duration: nonnegativeNumberSchema,
+  year: nonnegativeNumberSchema,
   status: movieStatusEnum,
   score: scoreSchema,
   start_date: dateSchema,

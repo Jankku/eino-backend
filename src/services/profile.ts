@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { db, pgp } from '../db/config';
-import { getItemCountByUsername, isPasswordCorrect } from '../db/users';
+import { getItemCountByUsername, getUserByUsername, isPasswordCorrect } from '../db/users';
 import { ErrorWithStatus } from '../util/errorhandler';
 import * as fs from 'node:fs/promises';
 import { success } from '../util/response';
@@ -9,10 +9,14 @@ import { registerFont, createCanvas } from 'canvas';
 import { getAllBooks, getTop10BookTitles } from '../db/books';
 import { getAllMovies, getTop10MovieTitles } from '../db/movies';
 import { generateShareId, getFontPath, getShareItemPath } from '../util/share';
-import { getSharesByUsername, postShare } from '../db/share';
+import { createShare, getSharesByUsername } from '../db/share';
 import { DateTime } from 'luxon';
 import { getProfileData, getProfileDataV2 } from '../db/profile';
-import { importProfileSchema } from '../routes/profile/schema';
+import {
+  deleteAccountSchema,
+  getProfileSchema,
+  importProfileSchema,
+} from '../routes/profile/schema';
 import {
   booksCs,
   booksListCs,
@@ -22,9 +26,17 @@ import {
   moviesListCs,
 } from '../util/profile';
 import { config } from '../config';
+import { TypedRequest } from '../util/zod';
+import { getVerification } from '../db/verification';
+import { validateTOTP } from '../util/totp';
 
-const getProfile = async (req: Request, res: Response, next: NextFunction) => {
-  const { username } = res.locals;
+const getProfile = async (
+  _req: TypedRequest<typeof getProfileSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
+  const username: string = res.locals.username;
+
   try {
     const data = await db.task(async (t) => await getProfileData(t, username));
 
@@ -49,14 +61,17 @@ const getProfile = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const getProfileV2 = async (req: Request, res: Response, next: NextFunction) => {
-  const { username } = res.locals;
+const getProfileV2 = async (_req: Request, res: Response, next: NextFunction) => {
+  const username: string = res.locals.username;
   try {
     const data = await db.task(async (t) => await getProfileDataV2(t, username));
     res.status(200).json({
       user_id: data.userInfo.user_id,
       username: username,
+      email: data.userInfo.email,
+      email_verified_on: data.userInfo.email_verified_on,
       registration_date: data.userInfo.registration_date,
+      totp_enabled_on: data.userInfo.totp_enabled_on,
       stats: {
         book: {
           ...data.bookData,
@@ -74,26 +89,41 @@ const getProfileV2 = async (req: Request, res: Response, next: NextFunction) => 
   }
 };
 
-const deleteAccount = async (req: Request, res: Response, next: NextFunction) => {
-  const { username } = res.locals;
-  const { password } = req.body;
-
-  if (!password || password === undefined) {
-    next(new ErrorWithStatus(422, 'profile_error', 'Send user password in the request body'));
-    return;
-  }
-
-  const isCorrect = await isPasswordCorrect(username, password);
-  if (!isCorrect) {
-    next(new ErrorWithStatus(422, 'profile_error', 'Incorrect password'));
-    return;
-  }
+const deleteAccount = async (
+  req: TypedRequest<typeof deleteAccountSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
+  const username: string = res.locals.username;
+  const { password, twoFactorCode } = req.body;
 
   try {
+    const user = await getUserByUsername(username);
+
+    if (user.totp_enabled_on) {
+      if (!twoFactorCode) {
+        next(new ErrorWithStatus(422, 'delete_account_error', 'Two-factor code required'));
+        return;
+      }
+
+      const twoFactorVerification = await getVerification({ target: user.username, type: '2fa' });
+      if (!validateTOTP({ otp: twoFactorCode, ...twoFactorVerification })) {
+        next(new ErrorWithStatus(422, 'delete_account_error', 'Incorrect two-factor code'));
+        return;
+      }
+    }
+
+    const isCorrect = await isPasswordCorrect(username, password);
+    if (!isCorrect) {
+      next(new ErrorWithStatus(422, 'delete_account_error', 'Incorrect password'));
+      return;
+    }
+
     await db.none({
       text: `DELETE FROM users WHERE username = $1`,
       values: [username],
     });
+
     const shareImagePath = getShareItemPath(username);
     await fs.rm(shareImagePath, { force: true });
 
@@ -101,13 +131,13 @@ const deleteAccount = async (req: Request, res: Response, next: NextFunction) =>
       .status(200)
       .json(success([{ name: 'account_deleted', message: 'Account successfully deleted' }]));
   } catch {
-    next(new ErrorWithStatus(422, 'profile_error', "Couldn't delete account"));
+    next(new ErrorWithStatus(422, 'delete_account_error', "Couldn't delete account"));
   }
 };
 
-const generateShareImage = async (req: Request, res: Response, next: NextFunction) => {
+const generateShareImage = async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const { username } = res.locals;
+    const username: string = res.locals.username;
     const bookTitles = await getTop10BookTitles(username);
     const movieTitles = await getTop10MovieTitles(username);
 
@@ -234,7 +264,7 @@ const generateShareImage = async (req: Request, res: Response, next: NextFunctio
     const shareImagePath = getShareItemPath(username);
     const shareId = generateShareId();
 
-    await postShare(shareId, username);
+    await createShare(shareId, username);
     await fs.writeFile(shareImagePath, imageBuffer);
 
     res.status(200).json(success([{ share_id: shareId }]));
@@ -244,16 +274,13 @@ const generateShareImage = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
-const exportUserData = async (req: Request, res: Response, next: NextFunction) => {
-  const { username } = res.locals;
+const exportUserData = async (
+  req: TypedRequest<typeof getProfileSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
+  const username: string = res.locals.username;
   const { password } = req.body;
-
-  if (!password || password === undefined) {
-    next(
-      new ErrorWithStatus(422, 'profile_export_error', 'Send user password in the request body'),
-    );
-    return;
-  }
 
   const isCorrect = await isPasswordCorrect(username, password);
   if (!isCorrect) {
@@ -272,11 +299,9 @@ const exportUserData = async (req: Request, res: Response, next: NextFunction) =
     });
 
     res.status(200).json({
-      version: 2,
+      version: 4,
       profile: {
-        user_id: profile.userInfo.user_id,
-        username: username,
-        registration_date: profile.userInfo.registration_date,
+        ...profile.userInfo,
         stats: {
           book: {
             ...profile.bookData,
@@ -298,10 +323,14 @@ const exportUserData = async (req: Request, res: Response, next: NextFunction) =
   }
 };
 
-const importUserData = async (req: Request, res: Response, next: NextFunction) => {
+const importUserData = async (
+  req: TypedRequest<typeof importProfileSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
-    const { username } = res.locals;
-    const { body } = importProfileSchema.parse(req);
+    const username: string = res.locals.username;
+    const { body } = req;
 
     const { book_count, movie_count } = await getItemCountByUsername(username);
 

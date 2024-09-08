@@ -10,21 +10,29 @@ import {
 import { success } from '../util/response';
 import { db } from '../db/config';
 import { ErrorWithStatus } from '../util/errorhandler';
-import BookStatus from '../db/model/bookstatus';
 import { fetchFinnaImages } from './third-party/finna';
 import { fetchOpenLibraryImages } from './third-party/openlibrary';
 import DbBook from '../db/model/dbbook';
+import { TypedRequest } from '../util/zod';
 import {
-  bookSchema,
-  bookSortSchema,
-  bookNumberKeySchema,
-  bookStringKeySchema,
-} from '../db/model/book';
-import { getItemFilter, itemSorter } from '../util/sort';
+  addOneSchema,
+  deleteOneSchema,
+  fetchByStatusSchema,
+  fetchImagesSchema,
+  fetchOneSchema,
+  searchSchema,
+  updateOneSchema,
+} from '../routes/books';
+import { bookSortSchema, bookNumberKeySchema, bookStringKeySchema } from '../db/model/book';
+import { itemSorter, getItemFilter } from '../util/sort';
 
-const fetchOne = async (req: Request, res: Response, next: NextFunction) => {
+const fetchOne = async (
+  req: TypedRequest<typeof fetchOneSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
   const { bookId } = req.params;
-  const { username } = res.locals;
+  const username: string = res.locals.username;
 
   try {
     const book = await getBookById(bookId, username);
@@ -35,7 +43,7 @@ const fetchOne = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const fetchAll = async (req: Request, res: Response, next: NextFunction) => {
-  const { username } = res.locals;
+  const username: string = res.locals.username;
 
   try {
     let books = await getAllBooks(username);
@@ -67,9 +75,13 @@ const fetchAll = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const fetchByStatus = async (req: Request, res: Response, next: NextFunction) => {
-  const { username } = res.locals;
-  const status = req.params.status as BookStatus;
+const fetchByStatus = async (
+  req: TypedRequest<typeof fetchByStatusSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
+  const username: string = res.locals.username;
+  const status = req.params.status;
 
   try {
     let books = await getBooksByStatus(username, status);
@@ -101,9 +113,13 @@ const fetchByStatus = async (req: Request, res: Response, next: NextFunction) =>
   }
 };
 
-const addOne = async (req: Request, res: Response, next: NextFunction) => {
-  const { username } = res.locals;
-  const book = bookSchema.parse(req.body);
+const addOne = async (
+  req: TypedRequest<typeof addOneSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
+  const username: string = res.locals.username;
+  const book = req.body;
 
   try {
     await db.tx('add-book', async (t) => {
@@ -118,8 +134,12 @@ const addOne = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const updateOne = async (req: Request, res: Response, next: NextFunction) => {
-  const { username } = res.locals;
+const updateOne = async (
+  req: TypedRequest<typeof updateOneSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
+  const username: string = res.locals.username;
   const { bookId } = req.params;
   const {
     isbn,
@@ -168,9 +188,13 @@ const updateOne = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const deleteOne = async (req: Request, res: Response, next: NextFunction) => {
+const deleteOne = async (
+  req: TypedRequest<typeof deleteOneSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
   const { bookId } = req.params;
-  const { username } = res.locals;
+  const username: string = res.locals.username;
 
   try {
     await db.none({
@@ -187,11 +211,15 @@ const deleteOne = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const search = async (req: Request, res: Response, next: NextFunction) => {
+const search = async (
+  req: TypedRequest<typeof searchSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const queryString = String(req.query.query).trim();
     const queryAsArray = queryString.split(' ');
-    const { username } = res.locals;
+    const username: string = res.locals.username;
     const resultArray: DbBook[] = [];
 
     for (const queryPart of queryAsArray) {
@@ -262,8 +290,12 @@ const search = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const fetchImages = async (req: Request, res: Response, next: NextFunction) => {
-  const query = req.query.query as string;
+const fetchImages = async (
+  req: TypedRequest<typeof fetchImagesSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
+  const query = req.query.query;
 
   try {
     const responses = (await Promise.allSettled([

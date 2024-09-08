@@ -1,6 +1,6 @@
 /* eslint-disable security/detect-object-injection */
 import { DateTime } from 'luxon';
-import { SortOrder } from '../model/zodschema';
+import { SortOrder } from './zodschema';
 import z from 'zod';
 
 const isDate = (value: unknown): value is Date => value instanceof Date;

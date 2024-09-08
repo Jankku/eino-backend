@@ -2,7 +2,7 @@ module.exports = {
   root: true,
   extends: [
     'eslint:recommended',
-    'plugin:@typescript-eslint/recommended',
+    'plugin:@typescript-eslint/recommended-type-checked',
     'plugin:security/recommended-legacy',
     'plugin:import/recommended',
     'plugin:import/typescript',
@@ -19,5 +19,12 @@ module.exports = {
     'unicorn/prevent-abbreviations': 0,
     'unicorn/no-null': 0,
     'unicorn/prefer-top-level-await': 0,
+    '@typescript-eslint/no-unsafe-assignment': 0,
+    '@typescript-eslint/no-unsafe-member-access': 0,
+    '@typescript-eslint/no-unsafe-return': 0,
+    '@typescript-eslint/no-unsafe-argument': 0,
+    '@typescript-eslint/no-misused-promises': 0,
+    'import/no-named-as-default-member': 0,
   },
+  reportUnusedDisableDirectives: true,
 };

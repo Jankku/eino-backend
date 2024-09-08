@@ -2,7 +2,6 @@ import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { z, ZodError } from 'zod';
 import { config } from '../config';
-import JwtPayload from '../model/jwtpayload';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { formatZodErrors } from '../util/zod';
 
@@ -19,6 +18,12 @@ const tokenSchema = z.object({
       .transform((val) => val.split(' ')[1]),
   }),
 });
+
+export type JwtPayload = {
+  userId: string;
+  username: string;
+  email?: string;
+};
 
 /**
  * Verifies that user's access token is valid

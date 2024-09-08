@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import dotenv from 'dotenv';
+import { nonEmptyString } from './util/zodschema';
 
 dotenv.config();
 
-const nonEmptyString = z.string().min(1);
-
 const configSchema = z.object({
+  NODE_ENV: z.optional(nonEmptyString).default('development'),
   DATABASE_URL: z
     .string()
     .refine(
@@ -17,6 +17,9 @@ const configSchema = z.object({
   POSTGRES_DB: nonEmptyString,
   PORT: z.coerce.number().positive().default(5000),
   TMDB_API_KEY: z.optional(nonEmptyString),
+  EMAIL_SENDER: z.optional(z.string().email().min(1)),
+  EMAIL_MAILTRAP_TOKEN: z.optional(nonEmptyString),
+  EMAIL_MAILTRAP_TEST_INBOX_ID: z.optional(z.coerce.number().positive()),
   ACCESS_TOKEN_SECRET: nonEmptyString,
   ACCESS_TOKEN_VALIDITY: nonEmptyString,
   REFRESH_TOKEN_SECRET: nonEmptyString,
@@ -28,8 +31,8 @@ const configSchema = z.object({
 const result = configSchema.safeParse(process.env);
 
 if (!result.success) {
-  console.error(result.error.issues);
+  console.log(result.error.errors);
   throw new Error('Invalid configuration');
 }
 
-export const config = result.data;
+export const config = { ...result.data, isProduction: result.data.NODE_ENV === 'production' };
