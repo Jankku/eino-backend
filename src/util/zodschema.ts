@@ -10,11 +10,13 @@ export const dateSchema = z.preprocess((arg) => {
   if (typeof arg == 'string' || arg instanceof Date) return new Date(arg);
 }, z.date()) as z.ZodType<Date | undefined>; // fix for preprocess
 
+export const nonEmptyString = z.string().min(1);
+
 export const fixedStringSchema = z.string().min(0).max(255);
 
 export const fixedNonEmptyStringSchema = z.string().min(1).max(255);
 
-export const positiveNumberSchema = z.number().nonnegative();
+export const nonnegativeNumberSchema = z.number().nonnegative();
 
 export const listIdSchema = z.string({
   required_error: errorMessages.LIST_ID_REQUIRED,

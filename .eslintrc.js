@@ -24,6 +24,7 @@ module.exports = {
     '@typescript-eslint/no-unsafe-return': 0,
     '@typescript-eslint/no-unsafe-argument': 0,
     '@typescript-eslint/no-misused-promises': 0,
+    'import/no-named-as-default-member': 0,
   },
   reportUnusedDisableDirectives: true,
 };

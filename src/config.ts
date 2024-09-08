@@ -1,9 +1,8 @@
 import { z } from 'zod';
 import dotenv from 'dotenv';
+import { nonEmptyString } from './util/zodschema';
 
 dotenv.config();
-
-const nonEmptyString = z.string().min(1);
 
 const configSchema = z.object({
   NODE_ENV: z.optional(nonEmptyString).default('development'),
