@@ -35,6 +35,16 @@ const generateTOTP = async (config: Partial<TOTPConfigWithLabel>) => {
   return { otp, ...totp, secret: totp.secret.base32, totpUrl: totp.toString() };
 };
 
+const validateEmailOTP = (config: TOTPConfig) => {
+  const totp = new OTPAuth.TOTP({
+    ...config,
+    secret: OTPAuth.Secret.fromBase32(config.secret),
+    issuer: 'Eino',
+  });
+  const delta = totp.validate({ token: config.otp });
+  return delta !== null && delta === 0;
+};
+
 const validateTOTP = (config: TOTPConfig) => {
   const totp = new OTPAuth.TOTP({
     ...config,
@@ -45,4 +55,4 @@ const validateTOTP = (config: TOTPConfig) => {
   return delta !== null && [-1, 0, 1].includes(delta);
 };
 
-export { generateTOTP, validateTOTP };
+export { generateTOTP, validateTOTP, validateEmailOTP };

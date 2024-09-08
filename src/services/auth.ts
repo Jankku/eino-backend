@@ -230,7 +230,7 @@ const forgotPassword = async (
       algorithm,
       digits,
       period,
-      expires_on: DateTime.now().plus({ minutes: 30 }).toJSDate(),
+      expires_on: DateTime.now().plus({ minutes: 15 }).toJSDate(),
     });
 
     const emailResponse = await sendEmail({

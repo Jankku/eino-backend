@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { success } from '../util/response';
 import { ErrorWithStatus } from '../util/errorhandler';
-import { generateTOTP, validateTOTP } from '../util/totp';
+import { generateTOTP, validateEmailOTP, validateTOTP } from '../util/totp';
 import {
   addVerification,
   deleteVerification,
@@ -100,13 +100,16 @@ const sendConfirmationEmail = async (req: Request, res: Response, next: NextFunc
       return;
     }
 
-    const totp = await generateTOTP({ label: user.email, period: 0 });
+    const totp = await generateTOTP({
+      label: user.email,
+      period: 60 * 15, // 15 minutes
+    });
 
     await addVerification({
       ...totp,
       type: 'email',
       target: totp.label,
-      expires_on: DateTime.now().plus({ minutes: 30 }).toJSDate(),
+      expires_on: DateTime.now().plus({ minutes: 15 }).toJSDate(),
     });
 
     const emailResponse = await sendEmail({
@@ -156,7 +159,7 @@ const verifyEmail = async (
       return;
     }
 
-    if (!validateTOTP({ otp, ...verification })) {
+    if (!validateEmailOTP({ otp, ...verification })) {
       next(new ErrorWithStatus(422, 'email_verification_error', 'Invalid one-time password'));
       return;
     }
