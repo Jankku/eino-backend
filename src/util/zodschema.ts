@@ -78,10 +78,9 @@ export const otpSchema = z
 
 export const optionalOtpSchema = z
   .string()
-  .min(0)
+  .min(0, errorMessages.OTP_INVALID)
   .max(6, errorMessages.OTP_INVALID)
-  .nullable()
-  .transform((val) => (val === '' ? null : val));
+  .optional();
 
 export const sortOrderSchema = z.enum(['ascending', 'descending']).default('ascending');
 export type SortOrder = z.infer<typeof sortOrderSchema>;
