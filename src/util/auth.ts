@@ -5,13 +5,12 @@ import { zxcvbn, zxcvbnOptions, Options } from '@zxcvbn-ts/core';
 import * as zxcvbnCommon from '@zxcvbn-ts/language-common';
 import * as zxcvbnEn from '@zxcvbn-ts/language-en';
 import * as zxcvbnFi from '@zxcvbn-ts/language-fi';
-import { db } from '../db/config';
 import User from '../db/model/user';
 
 const { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, ACCESS_TOKEN_VALIDITY, REFRESH_TOKEN_VALIDITY } =
   config;
 
-const generateAccessToken = (user: User): string =>
+export const generateAccessToken = (user: User): string =>
   jwt.sign(
     {
       userId: user.user_id,
@@ -27,7 +26,7 @@ const generateAccessToken = (user: User): string =>
     },
   );
 
-const generateRefreshToken = (user: User): string =>
+export const generateRefreshToken = (user: User): string =>
   jwt.sign(
     {
       userId: user.user_id,
@@ -43,9 +42,10 @@ const generateRefreshToken = (user: User): string =>
     },
   );
 
-const generatePasswordHash = (password: string): Promise<string> => bcrypt.hash(password, 12);
+export const generatePasswordHash = (password: string): Promise<string> =>
+  bcrypt.hash(password, 12);
 
-const initZxcvbn = () => {
+export const initZxcvbn = () => {
   const options: Partial<Options> = {
     graphs: zxcvbnCommon.adjacencyGraphs,
     dictionary: {
@@ -60,7 +60,7 @@ const initZxcvbn = () => {
 
 type PasswordStrengthScore = 0 | 1 | 2 | 3 | 4;
 
-const getPasswordStrength = ({
+export const getPasswordStrength = ({
   username = '',
   password,
 }: {
@@ -81,22 +81,4 @@ const getPasswordStrength = ({
   const error = ['Password is too weak.', warning || suggestions].filter(Boolean).join(' ');
 
   return { isStrong, score, error };
-};
-
-const updateLastLogin = async (userId: string): Promise<void> => {
-  await db.none({
-    text: `UPDATE users
-             SET last_login_on = CURRENT_TIMESTAMP(0)
-             WHERE user_id = $1`,
-    values: [userId],
-  });
-};
-
-export {
-  generateAccessToken,
-  generateRefreshToken,
-  generatePasswordHash,
-  initZxcvbn,
-  getPasswordStrength,
-  updateLastLogin,
 };

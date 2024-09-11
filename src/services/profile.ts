@@ -30,7 +30,7 @@ import { TypedRequest } from '../util/zod';
 import { getVerification } from '../db/verification';
 import { validateTOTP } from '../util/totp';
 
-const getProfile = async (
+export const getProfile = async (
   _req: TypedRequest<typeof getProfileSchema>,
   res: Response,
   next: NextFunction,
@@ -38,20 +38,22 @@ const getProfile = async (
   const username: string = res.locals.username;
 
   try {
-    const data = await db.task(async (t) => await getProfileData(t, username));
+    const { userInfo, bookData, bookScores, movieData, movieScores } = await db.task(
+      async (t) => await getProfileData(t, username),
+    );
 
     res.status(200).json({
-      user_id: data.userInfo.user_id,
+      user_id: userInfo.user_id,
       username: username,
-      registration_date: data.userInfo.registration_date,
+      registration_date: userInfo.registration_date,
       stats: {
         book: {
-          ...data.bookData,
-          score_distribution: data.bookScores,
+          ...bookData,
+          score_distribution: bookScores,
         },
         movie: {
-          ...data.movieData,
-          score_distribution: data.movieScores,
+          ...movieData,
+          score_distribution: movieScores,
         },
       },
     });
@@ -61,25 +63,27 @@ const getProfile = async (
   }
 };
 
-const getProfileV2 = async (_req: Request, res: Response, next: NextFunction) => {
+export const getProfileV2 = async (_req: Request, res: Response, next: NextFunction) => {
   const username: string = res.locals.username;
   try {
-    const data = await db.task(async (t) => await getProfileDataV2(t, username));
+    const { userInfo, bookData, bookScores, movieData, movieScores } = await db.task(
+      async (t) => await getProfileDataV2(t, username),
+    );
     res.status(200).json({
-      user_id: data.userInfo.user_id,
+      user_id: userInfo.user_id,
       username: username,
-      email: data.userInfo.email,
-      email_verified_on: data.userInfo.email_verified_on,
-      registration_date: data.userInfo.registration_date,
-      totp_enabled_on: data.userInfo.totp_enabled_on,
+      email: userInfo.email,
+      email_verified_on: userInfo.email_verified_on,
+      registration_date: userInfo.registration_date,
+      totp_enabled_on: userInfo.totp_enabled_on,
       stats: {
         book: {
-          ...data.bookData,
-          score_distribution: data.bookScores,
+          ...bookData,
+          score_distribution: bookScores,
         },
         movie: {
-          ...data.movieData,
-          score_distribution: data.movieScores,
+          ...movieData,
+          score_distribution: movieScores,
         },
       },
     });
@@ -89,7 +93,7 @@ const getProfileV2 = async (_req: Request, res: Response, next: NextFunction) =>
   }
 };
 
-const deleteAccount = async (
+export const deleteAccount = async (
   req: TypedRequest<typeof deleteAccountSchema>,
   res: Response,
   next: NextFunction,
@@ -98,30 +102,32 @@ const deleteAccount = async (
   const { password, twoFactorCode } = req.body;
 
   try {
-    const user = await getUserByUsername(username);
+    await db.tx('deleteAccount', async (t) => {
+      const user = await getUserByUsername(t, username);
 
-    if (user.totp_enabled_on) {
-      if (!twoFactorCode) {
-        next(new ErrorWithStatus(422, 'delete_account_error', 'Two-factor code required'));
-        return;
+      if (user.totp_enabled_on) {
+        if (!twoFactorCode) {
+          throw new ErrorWithStatus(422, 'delete_account_error', 'Two-factor code required');
+        }
+
+        const twoFactorVerification = await getVerification(t, {
+          target: user.username,
+          type: '2fa',
+        });
+        if (!validateTOTP({ otp: twoFactorCode, ...twoFactorVerification })) {
+          throw new ErrorWithStatus(422, 'delete_account_error', 'Incorrect two-factor code');
+        }
       }
 
-      const twoFactorVerification = await getVerification({ target: user.username, type: '2fa' });
-      if (!validateTOTP({ otp: twoFactorCode, ...twoFactorVerification })) {
-        next(new ErrorWithStatus(422, 'delete_account_error', 'Incorrect two-factor code'));
-        return;
+      const isCorrect = await isPasswordCorrect(t, { username, password });
+      if (!isCorrect) {
+        throw new ErrorWithStatus(422, 'delete_account_error', 'Incorrect password');
       }
-    }
 
-    const isCorrect = await isPasswordCorrect(username, password);
-    if (!isCorrect) {
-      next(new ErrorWithStatus(422, 'delete_account_error', 'Incorrect password'));
-      return;
-    }
-
-    await db.none({
-      text: `DELETE FROM users WHERE username = $1`,
-      values: [username],
+      await t.none({
+        text: `DELETE FROM users WHERE username = $1`,
+        values: [username],
+      });
     });
 
     const shareImagePath = getShareItemPath(username);
@@ -130,16 +136,24 @@ const deleteAccount = async (
     res
       .status(200)
       .json(success([{ name: 'account_deleted', message: 'Account successfully deleted' }]));
-  } catch {
-    next(new ErrorWithStatus(422, 'delete_account_error', "Couldn't delete account"));
+  } catch (error) {
+    if (error instanceof ErrorWithStatus) {
+      next(error);
+    } else {
+      Logger.error(error);
+      next(new ErrorWithStatus(422, 'delete_account_error', "Couldn't delete account"));
+    }
   }
 };
 
-const generateShareImage = async (_req: Request, res: Response, next: NextFunction) => {
+export const generateShareImage = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const username: string = res.locals.username;
-    const bookTitles = await getTop10BookTitles(username);
-    const movieTitles = await getTop10MovieTitles(username);
+    const { bookTitles, movieTitles } = await db.task('generateShareImage', async (t) => {
+      const bookTitles = await getTop10BookTitles(t, username);
+      const movieTitles = await getTop10MovieTitles(t, username);
+      return { bookTitles, movieTitles };
+    });
 
     if (bookTitles.length === 0 && movieTitles.length === 0) {
       next(new ErrorWithStatus(422, 'profile_error', 'Not enough items for image creation'));
@@ -264,7 +278,9 @@ const generateShareImage = async (_req: Request, res: Response, next: NextFuncti
     const shareImagePath = getShareItemPath(username);
     const shareId = generateShareId();
 
-    await createShare(shareId, username);
+    await db.task('createShare', async (t) => {
+      await createShare(t, { id: shareId, username });
+    });
     await fs.writeFile(shareImagePath, imageBuffer);
 
     res.status(200).json(success([{ share_id: shareId }]));
@@ -274,7 +290,7 @@ const generateShareImage = async (_req: Request, res: Response, next: NextFuncti
   }
 };
 
-const exportUserData = async (
+export const exportUserData = async (
   req: TypedRequest<typeof getProfileSchema>,
   res: Response,
   next: NextFunction,
@@ -282,19 +298,17 @@ const exportUserData = async (
   const username: string = res.locals.username;
   const { password } = req.body;
 
-  const isCorrect = await isPasswordCorrect(username, password);
-  if (!isCorrect) {
-    next(new ErrorWithStatus(422, 'profile_export_error', 'Incorrect password'));
-    return;
-  }
-
   try {
-    const [books, movies, profile, shares] = await db.task('export-user-data', async (t) => {
+    const [books, movies, profile, shares] = await db.task('exportUserData', async (t) => {
+      const isCorrect = await isPasswordCorrect(t, { username, password });
+      if (!isCorrect) {
+        throw new ErrorWithStatus(422, 'profile_export_error', 'Incorrect password');
+      }
       return Promise.all([
-        getAllBooks(username, t),
-        getAllMovies(username, t),
+        getAllBooks(t, username),
+        getAllMovies(t, username),
         getProfileDataV2(t, username),
-        getSharesByUsername(username, t),
+        getSharesByUsername(t, username),
       ]);
     });
 
@@ -318,49 +332,53 @@ const exportUserData = async (
       shares,
     });
   } catch (error) {
-    Logger.error(error);
-    next(new ErrorWithStatus(500, 'profile_error', "Couldn't export user data"));
+    if (error instanceof ErrorWithStatus) {
+      next(error);
+    } else {
+      Logger.error(error);
+      next(new ErrorWithStatus(500, 'profile_error', "Couldn't export user data"));
+    }
   }
 };
 
-const importUserData = async (
+export const importUserData = async (
   req: TypedRequest<typeof importProfileSchema>,
   res: Response,
   next: NextFunction,
 ) => {
+  const { body } = req;
+  const username: string = res.locals.username;
+
   try {
-    const username: string = res.locals.username;
-    const { body } = req;
+    await db.tx('importUserData', async (t) => {
+      const { book_count, movie_count } = await getItemCountByUsername(t, username);
 
-    const { book_count, movie_count } = await getItemCountByUsername(username);
+      const maxItemCount = config.USER_LIST_ITEM_MAX_COUNT;
 
-    const maxItemCount = config.USER_LIST_ITEM_MAX_COUNT;
+      if (
+        body.books.length + book_count > maxItemCount ||
+        body.movies.length + movie_count > maxItemCount
+      ) {
+        next(
+          new ErrorWithStatus(
+            422,
+            'profile_import_error',
+            `Item count exceeds the maximum of ${maxItemCount} items per list`,
+          ),
+        );
+        return;
+      }
 
-    if (
-      body.books.length + book_count > maxItemCount ||
-      body.movies.length + movie_count > maxItemCount
-    ) {
-      next(
-        new ErrorWithStatus(
-          422,
-          'profile_import_error',
-          `Item count exceeds the maximum of ${maxItemCount} items per list`,
-        ),
+      const bookHashMap = Object.fromEntries(
+        body.books.map((book) => [calculateBookHash(book), book]),
       );
-      return;
-    }
+      const movieHashMap = Object.fromEntries(
+        body.movies.map((movie) => [calculateMovieHash(movie), movie]),
+      );
 
-    const bookHashMap = Object.fromEntries(
-      body.books.map((book) => [calculateBookHash(book), book]),
-    );
-    const movieHashMap = Object.fromEntries(
-      body.movies.map((movie) => [calculateMovieHash(movie), movie]),
-    );
+      const mapBooks = body.books.map((book) => ({ ...book, submitter: username }));
+      const mapMovies = body.movies.map((movie) => ({ ...movie, submitter: username }));
 
-    const mapBooks = body.books.map((book) => ({ ...book, submitter: username }));
-    const mapMovies = body.movies.map((movie) => ({ ...movie, submitter: username }));
-
-    await db.tx('import-profile', async (t) => {
       // Insert books to books table
       const newBooks = await t.many(pgp.helpers.insert(mapBooks, booksCs) + ' RETURNING *');
 
@@ -395,13 +413,4 @@ const importUserData = async (
     Logger.error(error);
     next(new ErrorWithStatus(500, 'profile_import_error', "Couldn't import user data"));
   }
-};
-
-export {
-  getProfile,
-  getProfileV2,
-  generateShareImage,
-  deleteAccount,
-  exportUserData,
-  importUserData,
 };

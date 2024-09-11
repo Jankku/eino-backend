@@ -26,7 +26,7 @@ import {
 import { bookSortSchema, bookNumberKeySchema, bookStringKeySchema } from '../db/model/book';
 import { itemSorter, getItemFilter } from '../util/sort';
 
-const fetchOne = async (
+export const fetchOne = async (
   req: TypedRequest<typeof fetchOneSchema>,
   res: Response,
   next: NextFunction,
@@ -35,18 +35,18 @@ const fetchOne = async (
   const username: string = res.locals.username;
 
   try {
-    const book = await getBookById(bookId, username);
+    const book = await db.task('fetchOne', async (t) => await getBookById(t, { bookId, username }));
     res.status(200).json(success(book));
   } catch {
     next(new ErrorWithStatus(422, 'book_list_error', "Couldn't find book"));
   }
 };
 
-const fetchAll = async (req: Request, res: Response, next: NextFunction) => {
+export const fetchAll = async (req: Request, res: Response, next: NextFunction) => {
   const username: string = res.locals.username;
 
   try {
-    let books = await getAllBooks(username);
+    let books = await db.task('fetchAll', async (t) => await getAllBooks(t, username));
 
     const queryParams = bookSortSchema.safeParse(req.query);
     if (queryParams.success) {
@@ -75,7 +75,7 @@ const fetchAll = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const fetchByStatus = async (
+export const fetchByStatus = async (
   req: TypedRequest<typeof fetchByStatusSchema>,
   res: Response,
   next: NextFunction,
@@ -84,7 +84,7 @@ const fetchByStatus = async (
   const status = req.params.status;
 
   try {
-    let books = await getBooksByStatus(username, status);
+    let books = await db.task(async (t) => await getBooksByStatus(t, { username, status }));
 
     const queryParams = bookSortSchema.safeParse(req.query);
     if (queryParams.success) {
@@ -113,7 +113,7 @@ const fetchByStatus = async (
   }
 };
 
-const addOne = async (
+export const addOne = async (
   req: TypedRequest<typeof addOneSchema>,
   res: Response,
   next: NextFunction,
@@ -122,7 +122,7 @@ const addOne = async (
   const book = req.body;
 
   try {
-    await db.tx('add-book', async (t) => {
+    await db.tx('addOne', async (t) => {
       const bookId = await postBook(t, book, username);
       await postBookToUserList(t, bookId, book, username);
     });
@@ -134,7 +134,7 @@ const addOne = async (
   }
 };
 
-const updateOne = async (
+export const updateOne = async (
   req: TypedRequest<typeof updateOneSchema>,
   res: Response,
   next: NextFunction,
@@ -156,7 +156,7 @@ const updateOne = async (
   } = req.body;
 
   try {
-    await db.tx('update-book', async (t) => {
+    const { updatedBook } = await db.tx('updateOne', async (t) => {
       await t.none({
         text: `UPDATE books
            SET title=$1,
@@ -179,8 +179,10 @@ const updateOne = async (
            WHERE book_id = $5`,
         values: [status, score, start_date, end_date, bookId],
       });
+      const updatedBook = await getBookById(t, { bookId, username });
+      return { updatedBook };
     });
-    const updatedBook = await getBookById(bookId, username);
+
     res.status(200).json(success(updatedBook));
   } catch (error) {
     Logger.error((error as Error).stack);
@@ -188,7 +190,7 @@ const updateOne = async (
   }
 };
 
-const deleteOne = async (
+export const deleteOne = async (
   req: TypedRequest<typeof deleteOneSchema>,
   res: Response,
   next: NextFunction,
@@ -211,7 +213,7 @@ const deleteOne = async (
   }
 };
 
-const search = async (
+export const search = async (
   req: TypedRequest<typeof searchSchema>,
   res: Response,
   next: NextFunction,
@@ -220,12 +222,14 @@ const search = async (
     const queryString = String(req.query.query).trim();
     const queryAsArray = queryString.split(' ');
     const username: string = res.locals.username;
-    const resultArray: DbBook[] = [];
 
-    for (const queryPart of queryAsArray) {
-      // accurate query
-      const rows = await db.any({
-        text: `SELECT b.book_id,
+    const { resultArray } = await db.task('search', async (t) => {
+      const resultArray: DbBook[] = [];
+
+      for (const queryPart of queryAsArray) {
+        // accurate query
+        const rows = await t.any({
+          text: `SELECT b.book_id,
                   b.isbn,
                   b.title,
                   b.author,
@@ -242,20 +246,20 @@ const search = async (
                WHERE document @@ to_tsquery('english', $2)
                  AND submitter = $1
                ORDER BY ts_rank(document, plainto_tsquery($2)) DESC;`,
-        values: [username, `${queryPart}:*`],
-      });
-      // Push only unique results
-      for (const row of rows) {
-        if (!resultArray.some((item) => item.book_id === row.book_id)) {
-          resultArray.push(row);
+          values: [username, `${queryPart}:*`],
+        });
+        // Push only unique results
+        for (const row of rows) {
+          if (!resultArray.some((item) => item.book_id === row.book_id)) {
+            resultArray.push(row);
+          }
         }
       }
-    }
 
-    if (resultArray.length === 0) {
-      // less accurate query
-      const rows = await db.any({
-        text: `SELECT b.book_id,
+      if (resultArray.length === 0) {
+        // less accurate query
+        const rows = await t.any({
+          text: `SELECT b.book_id,
                   b.isbn,
                   b.title,
                   b.author,
@@ -274,15 +278,18 @@ const search = async (
                   OR author ILIKE $2
                   OR publisher ILIKE $2)
                LIMIT 100;`,
-        values: [username, `%${queryString}%`],
-      });
-      // Push only unique results
-      for (const row of rows) {
-        if (!resultArray.some((item) => item.book_id === row.book_id)) {
-          resultArray.push(row);
+          values: [username, `%${queryString}%`],
+        });
+        // Push only unique results
+        for (const row of rows) {
+          if (!resultArray.some((item) => item.book_id === row.book_id)) {
+            resultArray.push(row);
+          }
         }
       }
-    }
+
+      return { resultArray };
+    });
 
     res.status(200).json(success(resultArray));
   } catch {
@@ -290,7 +297,7 @@ const search = async (
   }
 };
 
-const fetchImages = async (
+export const fetchImages = async (
   req: TypedRequest<typeof fetchImagesSchema>,
   res: Response,
   next: NextFunction,
@@ -312,5 +319,3 @@ const fetchImages = async (
     next(new ErrorWithStatus(500, 'book_list_error', 'Failed to fetch images'));
   }
 };
-
-export { fetchOne, fetchAll, fetchByStatus, addOne, updateOne, deleteOne, search, fetchImages };

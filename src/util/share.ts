@@ -5,17 +5,15 @@ import * as fs from 'node:fs/promises';
 const SHARE_PATH = './share/';
 const IMAGE_EXTENSION = '.png';
 
-const createShareDir = async () => {
+export const createShareDir = async () => {
   await fs.mkdir(SHARE_PATH, { recursive: true });
 };
 
-const getSharePath = () => path.join(SHARE_PATH);
+export const getSharePath = () => path.join(SHARE_PATH);
 
-const getShareItemPath = (username: string) =>
+export const getShareItemPath = (username: string) =>
   path.join(SHARE_PATH, `${username}${IMAGE_EXTENSION}`);
 
-const generateShareId = () => crypto.randomBytes(4).toString('hex');
+export const generateShareId = () => crypto.randomBytes(4).toString('hex');
 
-const getFontPath = (name: string) => path.join('./src', 'fonts', name);
-
-export { createShareDir, getSharePath, getShareItemPath, generateShareId, getFontPath };
+export const getFontPath = (name: string) => path.join('./src', 'fonts', name);

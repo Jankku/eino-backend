@@ -1,17 +1,12 @@
 import chai, { should, use } from 'chai';
 import chaiHttp from 'chai-http';
 import app from '../src/app';
-import { deleteAllUsers } from '../src/db/users';
 
 should();
 use(chaiHttp);
 
 describe('Authentication', () => {
   describe('Register', () => {
-    beforeEach(() => {
-      deleteAllUsers();
-    });
-
     it('Should error with empty password', (done) => {
       const user = {
         username: 'testuser1',

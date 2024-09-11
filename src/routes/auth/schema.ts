@@ -11,6 +11,7 @@ import {
 } from '../../util/zodschema';
 import errorMessages from '../../util/errormessages';
 import { getPasswordStrength } from '../../util/auth';
+import { db } from '../../db/config';
 
 export const registerSchema = z
   .object({
@@ -25,7 +26,7 @@ export const registerSchema = z
     params: { name: 'authentication_error' },
     message: errorMessages.PASSWORDS_NO_MATCH,
   })
-  .refine(async (data) => await isUserUnique(data.body.username), {
+  .refine(async (data) => await db.task(async (t) => await isUserUnique(t, data.body.username)), {
     params: { name: 'authentication_error' },
     message: errorMessages.USER_EXISTS,
   })
@@ -36,7 +37,7 @@ export const registerSchema = z
   .refine(
     async (data) => {
       if (!data.body.email) return true;
-      return await isEmailUnique(data.body.email);
+      return await db.task(async (t) => await isEmailUnique(t, data.body.email!));
     },
     {
       params: { name: 'authentication_error' },

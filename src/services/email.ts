@@ -22,105 +22,112 @@ import { DateTime } from 'luxon';
 import { isVerificationExpired } from '../util/verification';
 import { sendEmail } from '../util/email';
 import { confirmEmailTemplate } from '../util/emailtemplates';
+import { db } from '../db/config';
 
-const updateEmail = async (
+export const updateEmail = async (
   req: TypedRequest<typeof updateEmailSchema>,
   res: Response,
   next: NextFunction,
 ) => {
+  const username: string = res.locals.username;
+  const { email, twoFactorCode } = req.body;
   try {
-    const username: string = res.locals.username;
-    const { email, twoFactorCode } = req.body;
+    await db.tx('updateEmail', async (t) => {
+      const user = await getUserByUsername(t, username);
 
-    const user = await getUserByUsername(username);
+      if (user.totp_enabled_on) {
+        if (!twoFactorCode) {
+          throw new ErrorWithStatus(422, 'update_email_error', 'Two-factor code required');
+        }
 
-    if (user.totp_enabled_on) {
-      if (!twoFactorCode) {
-        next(new ErrorWithStatus(422, 'update_email_error', 'Two-factor code required'));
+        const twoFactorVerification = await getVerification(t, {
+          target: user.username,
+          type: '2fa',
+        });
+        if (!validateTOTP({ otp: twoFactorCode, ...twoFactorVerification })) {
+          throw new ErrorWithStatus(422, 'update_email_error', 'Incorrect two-factor code');
+        }
+      }
+
+      if (!email) {
+        await updateEmailAddress(t, { username, email: null });
+        res
+          .status(200)
+          .json(success([{ name: 'email_removed', message: 'Email successfully removed' }]));
         return;
       }
 
-      const twoFactorVerification = await getVerification({ target: user.username, type: '2fa' });
-      if (!validateTOTP({ otp: twoFactorCode, ...twoFactorVerification })) {
-        next(new ErrorWithStatus(422, 'update_email_error', 'Incorrect two-factor code'));
+      const isEmailUsed = await isEmailAlreadyUsed(t, { username, email });
+      if (isEmailUsed) {
+        throw new ErrorWithStatus(422, 'email_already_used', 'Email is already in use');
+      }
+
+      const isVerified = await isEmailVerified(t, email);
+      if (isVerified) {
+        res
+          .status(200)
+          .json(
+            success([{ name: 'email_already_verified', message: 'Email is already verified' }]),
+          );
         return;
       }
-    }
 
-    if (!email) {
-      await updateEmailAddress({ username, email: null });
-      res
-        .status(200)
-        .json(success([{ name: 'email_removed', message: 'Email successfully removed' }]));
-      return;
-    }
+      const verification = await findVerification(t, { target: email, type: 'email' });
+      if (verification) {
+        await deleteVerification(t, { target: email, type: 'email' });
+      }
 
-    const isEmailUsed = await isEmailAlreadyUsed({ username, email });
-    if (isEmailUsed) {
-      next(new ErrorWithStatus(422, 'email_already_used', 'Email is already in use'));
-      return;
-    }
-
-    const isVerified = await isEmailVerified(email);
-    if (isVerified) {
-      res
-        .status(200)
-        .json(success([{ name: 'email_already_verified', message: 'Email is already verified' }]));
-      return;
-    }
-
-    const verification = await findVerification({ target: email, type: 'email' });
-    if (verification) {
-      await deleteVerification({ target: email, type: 'email' });
-    }
-
-    await updateEmailAddress({ username, email });
+      await updateEmailAddress(t, { username, email });
+    });
 
     res.status(200).json(success([{ name: 'email_updated', message: 'Email updated' }]));
   } catch (error) {
-    Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(422, 'update_email_error', "Couldn't update email"));
+    if (error instanceof ErrorWithStatus) {
+      next(error);
+    } else {
+      Logger.error((error as Error).stack);
+      next(new ErrorWithStatus(422, 'update_email_error', "Couldn't update email"));
+    }
   }
 };
 
-const sendConfirmationEmail = async (req: Request, res: Response, next: NextFunction) => {
+export const sendConfirmationEmail = async (req: Request, res: Response, next: NextFunction) => {
+  const username: string = res.locals.username;
+
   try {
-    const username: string = res.locals.username;
+    await db.tx('sendConfirmationEmail', async (t) => {
+      const user = await getUserByUsername(t, username);
 
-    const user = await getUserByUsername(username);
+      if (!user.email) {
+        throw new ErrorWithStatus(422, 'email_error', "Couldn't send confirmation email");
+      }
 
-    if (!user.email) {
-      next(new ErrorWithStatus(422, 'email_error', "Couldn't send confirmation email"));
-      return;
-    }
+      const isVerified = await isEmailVerified(t, user.email);
+      if (isVerified) {
+        throw new ErrorWithStatus(422, 'email_already_verified', 'Email already verified');
+      }
 
-    const isVerified = await isEmailVerified(user.email);
-    if (isVerified) {
-      next(new ErrorWithStatus(422, 'email_already_verified', 'Email already verified'));
-      return;
-    }
+      const totp = await generateTOTP({
+        label: user.email,
+        period: 60 * 15, // 15 minutes
+      });
 
-    const totp = await generateTOTP({
-      label: user.email,
-      period: 60 * 15, // 15 minutes
+      await addVerification(t, {
+        ...totp,
+        type: 'email',
+        target: totp.label,
+        expires_on: DateTime.now().plus({ minutes: 15 }).toJSDate(),
+      });
+
+      const emailResponse = await sendEmail({
+        recipient: user.email,
+        template: confirmEmailTemplate(totp.otp),
+      });
+
+      if (!emailResponse.success) {
+        throw new ErrorWithStatus(424, 'email_error', "Couldn't send confirmation email");
+      }
     });
-
-    await addVerification({
-      ...totp,
-      type: 'email',
-      target: totp.label,
-      expires_on: DateTime.now().plus({ minutes: 15 }).toJSDate(),
-    });
-
-    const emailResponse = await sendEmail({
-      recipient: user.email,
-      template: confirmEmailTemplate(totp.otp),
-    });
-
-    if (!emailResponse.success) {
-      next(new ErrorWithStatus(424, 'email_error', "Couldn't send confirmation email"));
-      return;
-    }
 
     res
       .status(200)
@@ -130,51 +137,56 @@ const sendConfirmationEmail = async (req: Request, res: Response, next: NextFunc
         ]),
       );
   } catch (error) {
-    Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(422, 'email_error', "Couldn't send confirmation email"));
+    if (error instanceof ErrorWithStatus) {
+      next(error);
+    } else {
+      Logger.error((error as Error).stack);
+      next(new ErrorWithStatus(422, 'email_error', "Couldn't send confirmation email"));
+    }
   }
 };
 
-const verifyEmail = async (
+export const verifyEmail = async (
   req: TypedRequest<typeof verifyEmailSchema>,
   res: Response,
   next: NextFunction,
 ) => {
+  const username: string = res.locals.username;
+  const { otp } = req.body;
+
   try {
-    const username: string = res.locals.username;
-    const { otp } = req.body;
+    await db.tx('verifyEmail', async (t) => {
+      const user = await getUserByUsername(t, username);
 
-    const user = await getUserByUsername(username);
+      if (!user.email) {
+        throw new ErrorWithStatus(422, 'email_verification_error', "Couldn't verify email");
+      }
 
-    if (!user.email) {
-      next(new ErrorWithStatus(422, 'email_verification_error', "Couldn't verify email"));
-      return;
-    }
+      const verification = await getVerification(t, { target: user.email, type: 'email' });
 
-    const verification = await getVerification({ target: user.email, type: 'email' });
+      if (verification.expires_on && isVerificationExpired(verification.expires_on)) {
+        await deleteVerification(t, { target: user.email, type: 'email' });
+        throw new ErrorWithStatus(422, 'email_verification_expired', 'Verification expired');
+      }
 
-    if (verification.expires_on && isVerificationExpired(verification.expires_on)) {
-      await deleteVerification({ target: user.email, type: 'email' });
-      next(new ErrorWithStatus(422, 'email_verification_expired', 'Verification expired'));
-      return;
-    }
+      if (!validateEmailOTP({ otp, ...verification })) {
+        throw new ErrorWithStatus(422, 'email_verification_error', 'Invalid one-time password');
+      }
 
-    if (!validateEmailOTP({ otp, ...verification })) {
-      next(new ErrorWithStatus(422, 'email_verification_error', 'Invalid one-time password'));
-      return;
-    }
+      await deleteVerification(t, { target: user.email, type: 'email' });
 
-    await deleteVerification({ target: user.email, type: 'email' });
-
-    await updateEmailVerifiedTimestamp(user.email);
+      await updateEmailVerifiedTimestamp(t, user.email);
+    });
 
     res
       .status(200)
       .json(success([{ name: 'email_verified', message: 'Email successfully verified' }]));
   } catch (error) {
-    Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(422, 'email_verification_error', "Couldn't verify email"));
+    if (error instanceof ErrorWithStatus) {
+      next(error);
+    } else {
+      Logger.error((error as Error).stack);
+      next(new ErrorWithStatus(422, 'email_verification_error', "Couldn't verify email"));
+    }
   }
 };
-
-export { updateEmail, verifyEmail, sendConfirmationEmail };

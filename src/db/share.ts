@@ -1,29 +1,30 @@
 import { ITask } from 'pg-promise';
-import { db } from './config';
 import DbShare from './model/dbshare';
 
-const getShare = async (id: string): Promise<DbShare> => {
-  return await db.one({
+export const getShare = async (t: ITask<unknown>, id: string): Promise<DbShare> => {
+  return await t.one({
     text: `SELECT * FROM shares
             WHERE share_id = $1;`,
     values: [id],
   });
 };
 
-const getSharesByUsername = async (
+export const getSharesByUsername = async (
+  t: ITask<unknown>,
   username: string,
-  client?: ITask<unknown>,
 ): Promise<DbShare[]> => {
-  const c = client || db;
-  return await c.any({
+  return await t.any({
     text: `SELECT share_id, created_on FROM shares
             WHERE username = $1;`,
     values: [username],
   });
 };
 
-const createShare = async (id: string, username: string): Promise<string> => {
-  const result = await db.one({
+export const createShare = async (
+  t: ITask<unknown>,
+  { id, username }: { id: string; username: string },
+): Promise<string> => {
+  const result = await t.one({
     text: `INSERT INTO shares (share_id, username)
            VALUES ($1, $2)
            ON CONFLICT (username)
@@ -33,5 +34,3 @@ const createShare = async (id: string, username: string): Promise<string> => {
   });
   return result.share_id;
 };
-
-export { getShare, getSharesByUsername, createShare };

@@ -1,11 +1,14 @@
+import { ITask } from 'pg-promise';
 import { generatePasswordHash } from '../util/auth';
 import Logger from '../util/logger';
-import { db } from './config';
 import User from './model/user';
 import * as bcrypt from 'bcrypt';
 
-const findUserByCredential = async (usernameOrEmail: string): Promise<User | null | undefined> => {
-  return await db.oneOrNone({
+export const findUserByCredential = async (
+  t: ITask<unknown>,
+  usernameOrEmail: string,
+): Promise<User | null | undefined> => {
+  return await t.oneOrNone({
     text: `SELECT *
            FROM users
            WHERE username = $1 OR email = $1`,
@@ -13,8 +16,8 @@ const findUserByCredential = async (usernameOrEmail: string): Promise<User | nul
   });
 };
 
-const getUserByUsername = async (username: string): Promise<User> => {
-  return await db.one({
+export const getUserByUsername = async (t: ITask<unknown>, username: string): Promise<User> => {
+  return await t.one({
     text: `SELECT *
            FROM users
            WHERE username = $1`,
@@ -22,8 +25,11 @@ const getUserByUsername = async (username: string): Promise<User> => {
   });
 };
 
-const findUserByUsername = async (username: string): Promise<User | null | undefined> => {
-  return await db.oneOrNone({
+export const findUserByUsername = async (
+  t: ITask<unknown>,
+  username: string,
+): Promise<User | null | undefined> => {
+  return await t.oneOrNone({
     text: `SELECT *
            FROM users
            WHERE username = $1`,
@@ -31,8 +37,8 @@ const findUserByUsername = async (username: string): Promise<User | null | undef
   });
 };
 
-const getUserByEmail = async (email: string): Promise<User> => {
-  return await db.one({
+export const getUserByEmail = async (t: ITask<unknown>, email: string): Promise<User> => {
+  return await t.one({
     text: `SELECT *
            FROM users
            WHERE email = $1`,
@@ -40,8 +46,11 @@ const getUserByEmail = async (email: string): Promise<User> => {
   });
 };
 
-const findUserByEmail = async (email: string): Promise<User | null | undefined> => {
-  return await db.oneOrNone({
+export const findUserByEmail = async (
+  t: ITask<unknown>,
+  email: string,
+): Promise<User | null | undefined> => {
+  return await t.oneOrNone({
     text: `SELECT *
            FROM users
            WHERE email = $1`,
@@ -49,14 +58,17 @@ const findUserByEmail = async (email: string): Promise<User | null | undefined> 
   });
 };
 
-const updateEmailAddress = async ({
-  username,
-  email,
-}: {
-  username: string;
-  email: string | null;
-}): Promise<void> => {
-  await db.none({
+export const updateEmailAddress = async (
+  t: ITask<unknown>,
+  {
+    username,
+    email,
+  }: {
+    username: string;
+    email: string | null;
+  },
+): Promise<void> => {
+  await t.none({
     text: `UPDATE users
              SET email = $1, email_verified_on = NULL
              WHERE username = $2`,
@@ -64,8 +76,11 @@ const updateEmailAddress = async ({
   });
 };
 
-const updateEmailVerifiedTimestamp = async (email: string): Promise<void> => {
-  await db.none({
+export const updateEmailVerifiedTimestamp = async (
+  t: ITask<unknown>,
+  email: string,
+): Promise<void> => {
+  await t.none({
     text: `UPDATE users
              SET email_verified_on = CURRENT_TIMESTAMP(0)
              WHERE email = $1`,
@@ -73,28 +88,31 @@ const updateEmailVerifiedTimestamp = async (email: string): Promise<void> => {
   });
 };
 
-const enableTOTP = async (username: string): Promise<void> => {
-  await db.none({
+export const enableTOTP = async (t: ITask<unknown>, username: string): Promise<void> => {
+  await t.none({
     text: `UPDATE users SET totp_enabled_on = CURRENT_TIMESTAMP(0) WHERE username = $1`,
     values: [username],
   });
 };
 
-const disableTOTP = async (username: string): Promise<void> => {
-  await db.none({
+export const disableTOTP = async (t: ITask<unknown>, username: string): Promise<void> => {
+  await t.none({
     text: `UPDATE users SET totp_enabled_on = NULL WHERE username = $1`,
     values: [username],
   });
 };
 
-const isEmailAlreadyUsed = async ({
-  username,
-  email,
-}: {
-  username: string;
-  email: string;
-}): Promise<boolean> => {
-  const result = await db.oneOrNone({
+export const isEmailAlreadyUsed = async (
+  t: ITask<unknown>,
+  {
+    username,
+    email,
+  }: {
+    username: string;
+    email: string;
+  },
+): Promise<boolean> => {
+  const result = await t.oneOrNone({
     text: `SELECT email
            FROM users
            WHERE email = $1 AND username != $2`,
@@ -103,8 +121,8 @@ const isEmailAlreadyUsed = async ({
   return result !== null;
 };
 
-const isEmailVerified = async (email: string): Promise<boolean> => {
-  const result = await db.oneOrNone({
+export const isEmailVerified = async (t: ITask<unknown>, email: string): Promise<boolean> => {
+  const result = await t.oneOrNone({
     text: `SELECT email_verified_on
            FROM users
            WHERE email = $1`,
@@ -114,15 +132,18 @@ const isEmailVerified = async (email: string): Promise<boolean> => {
   return result.email_verified_on !== null;
 };
 
-const updatePassword = async ({
-  email,
-  newPassword,
-}: {
-  email: string;
-  newPassword: string;
-}): Promise<void> => {
+export const updatePassword = async (
+  t: ITask<unknown>,
+  {
+    email,
+    newPassword,
+  }: {
+    email: string;
+    newPassword: string;
+  },
+): Promise<void> => {
   const hashedPassword = await generatePasswordHash(newPassword);
-  await db.none({
+  await t.none({
     text: `UPDATE users
              SET password = $1
              WHERE email = $2`,
@@ -130,15 +151,18 @@ const updatePassword = async ({
   });
 };
 
-const isPasswordCorrect = async (username: string, password: string): Promise<boolean> => {
-  const user = await getUserByUsername(username);
+export const isPasswordCorrect = async (
+  t: ITask<unknown>,
+  { username, password }: { username: string; password: string },
+): Promise<boolean> => {
+  const user = await getUserByUsername(t, username);
   const isCorrect = await bcrypt.compare(password, user.password);
   return isCorrect;
 };
 
-const isUserUnique = async (username: string): Promise<boolean> => {
+export const isUserUnique = async (t: ITask<unknown>, username: string): Promise<boolean> => {
   try {
-    const result = await db.result({
+    const result = await t.result({
       text: `SELECT username
            FROM users
            WHERE username = $1`,
@@ -151,9 +175,9 @@ const isUserUnique = async (username: string): Promise<boolean> => {
   }
 };
 
-const isEmailUnique = async (email: string): Promise<boolean> => {
+export const isEmailUnique = async (t: ITask<unknown>, email: string): Promise<boolean> => {
   try {
-    const result = await db.result({
+    const result = await t.result({
       text: `SELECT email
            FROM users
            WHERE email = $1`,
@@ -166,14 +190,26 @@ const isEmailUnique = async (email: string): Promise<boolean> => {
   }
 };
 
+export const updateLastLogin = async (t: ITask<unknown>, userId: string): Promise<void> => {
+  await t.none({
+    text: `UPDATE users
+             SET last_login_on = CURRENT_TIMESTAMP(0)
+             WHERE user_id = $1`,
+    values: [userId],
+  });
+};
+
 type UserItemCount = {
   username: string;
   book_count: number;
   movie_count: number;
 };
 
-const getItemCountByUsername = async (username: string): Promise<UserItemCount> => {
-  return await db.one({
+export const getItemCountByUsername = async (
+  t: ITask<unknown>,
+  username: string,
+): Promise<UserItemCount> => {
+  return await t.one({
     text: `SELECT 
       $1 AS username, 
       COALESCE(b.book_count, 0) AS book_count,
@@ -192,36 +228,4 @@ const getItemCountByUsername = async (username: string): Promise<UserItemCount> 
       ) m ON TRUE;`,
     values: [username],
   });
-};
-
-// Used only for tests
-const deleteAllUsers = async () => {
-  try {
-    await db.none({
-      text: `DELETE
-             FROM users`,
-    });
-  } catch (error) {
-    Logger.error((error as Error).stack);
-  }
-};
-
-export {
-  findUserByCredential,
-  getUserByUsername,
-  findUserByUsername,
-  getUserByEmail,
-  findUserByEmail,
-  updateEmailAddress,
-  updatePassword,
-  isPasswordCorrect,
-  isUserUnique,
-  isEmailAlreadyUsed,
-  isEmailUnique,
-  isEmailVerified,
-  updateEmailVerifiedTimestamp,
-  deleteAllUsers,
-  getItemCountByUsername,
-  enableTOTP,
-  disableTOTP,
 };

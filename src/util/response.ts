@@ -1,4 +1,4 @@
-interface ResponseItem {
+export interface ResponseItem {
   name: string;
   message: string;
 }
@@ -7,6 +7,4 @@ interface ResponseItem {
  * @description Returns success response object
  * @param results {array} Response item array
  */
-const success = (results: Array<unknown>) => ({ results });
-
-export { success, ResponseItem };
+export const success = (results: Array<unknown>) => ({ results });

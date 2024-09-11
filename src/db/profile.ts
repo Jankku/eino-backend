@@ -12,8 +12,8 @@ type UserInfo = {
   registration_date: string;
 };
 
-const getUserInfo = async (client: ITask<unknown>, username: string): Promise<UserInfo> => {
-  return await client.one({
+const getUserInfo = async (t: ITask<unknown>, username: string): Promise<UserInfo> => {
+  return await t.one({
     text: `SELECT user_id, username, email, email_verified_on, totp_enabled_on, created_on as registration_date
            FROM users
            WHERE username = $1`,
@@ -27,8 +27,8 @@ type BookData = {
   score_average: number;
 };
 
-const getBookData = async (client: ITask<unknown>, username: string): Promise<BookData> => {
-  const pagesAndAvgScore = await client.one({
+const getBookData = async (t: ITask<unknown>, username: string): Promise<BookData> => {
+  const pagesAndAvgScore = await t.one({
     text: `SELECT * FROM
             (SELECT count(*) FROM books WHERE submitter = $1) count,
             (SELECT coalesce(sum(b.pages), 0) as pages_read, coalesce(round(avg(ubl.score), 1), 0) AS average
@@ -63,8 +63,8 @@ const fillBookStatuses = (rows: StatusRow[]): StatusRow[] => {
   });
 };
 
-const getBookDataV2 = async (client: ITask<unknown>, username: string): Promise<BookDataV2> => {
-  const rows = await client.any({
+const getBookDataV2 = async (t: ITask<unknown>, username: string): Promise<BookDataV2> => {
+  const rows = await t.any({
     text: `SELECT * FROM
             (SELECT ubl.status, COALESCE(count(*), 0) AS count
               FROM books b
@@ -95,8 +95,8 @@ type MovieData = {
   score_average: number;
 };
 
-const getMovieData = async (client: ITask<unknown>, username: string): Promise<MovieData> => {
-  const movieData = await client.any({
+const getMovieData = async (t: ITask<unknown>, username: string): Promise<MovieData> => {
+  const movieData = await t.any({
     text: `SELECT * FROM
             (SELECT count(*) FROM movies WHERE submitter = $1) count,
             (SELECT coalesce(sum(m.duration) / 60, 0) as watch_time, coalesce(round(avg(uml.score), 1), 0) AS average
@@ -153,13 +153,13 @@ const getMovieDataV2 = async (client: ITask<unknown>, username: string): Promise
   };
 };
 
-type ItemScoreRow = {
+export type ItemScoreRow = {
   score: number;
   count: number;
 };
 
-const getBookScores = async (client: ITask<unknown>, username: string): Promise<ItemScoreRow[]> => {
-  const rows = await client.any({
+const getBookScores = async (t: ITask<unknown>, username: string): Promise<ItemScoreRow[]> => {
+  const rows = await t.any({
     text: `SELECT ubl.score, count(ubl.score)
            FROM books b
                     INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
@@ -170,11 +170,8 @@ const getBookScores = async (client: ITask<unknown>, username: string): Promise<
   return await fillAndSortResponse(rows);
 };
 
-const getMovieScores = async (
-  client: ITask<unknown>,
-  username: string,
-): Promise<ItemScoreRow[]> => {
-  const rows = await client.any({
+const getMovieScores = async (t: ITask<unknown>, username: string): Promise<ItemScoreRow[]> => {
+  const rows = await t.any({
     text: `SELECT uml.score, count(uml.score)
            FROM movies m
                     INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
@@ -193,13 +190,13 @@ type ProfileData = {
   movieScores: ItemScoreRow[];
 };
 
-const getProfileData = async (client: ITask<unknown>, username: string): Promise<ProfileData> => {
+export const getProfileData = async (t: ITask<unknown>, username: string): Promise<ProfileData> => {
   const [userInfo, bookData, movieData, bookScores, movieScores] = await Promise.all([
-    getUserInfo(client, username),
-    getBookData(client, username),
-    getMovieData(client, username),
-    getBookScores(client, username),
-    getMovieScores(client, username),
+    getUserInfo(t, username),
+    getBookData(t, username),
+    getMovieData(t, username),
+    getBookScores(t, username),
+    getMovieScores(t, username),
   ]);
   return {
     userInfo,
@@ -218,16 +215,16 @@ type ProfileDataV2 = {
   movieScores: ItemScoreRow[];
 };
 
-const getProfileDataV2 = async (
-  client: ITask<unknown>,
+export const getProfileDataV2 = async (
+  t: ITask<unknown>,
   username: string,
 ): Promise<ProfileDataV2> => {
   const [userInfo, bookData, movieData, bookScores, movieScores] = await Promise.all([
-    getUserInfo(client, username),
-    getBookDataV2(client, username),
-    getMovieDataV2(client, username),
-    getBookScores(client, username),
-    getMovieScores(client, username),
+    getUserInfo(t, username),
+    getBookDataV2(t, username),
+    getMovieDataV2(t, username),
+    getBookScores(t, username),
+    getMovieScores(t, username),
   ]);
   return {
     userInfo,
@@ -237,5 +234,3 @@ const getProfileDataV2 = async (
     movieScores,
   };
 };
-
-export { getProfileData, getProfileDataV2, ItemScoreRow, BookDataV2, MovieDataV2 };

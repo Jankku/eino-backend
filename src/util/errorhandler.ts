@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 
-class ErrorWithStatus extends Error {
+export class ErrorWithStatus extends Error {
   status: number;
 
   constructor(status: number, name: string, message: string) {
@@ -11,7 +11,7 @@ class ErrorWithStatus extends Error {
   }
 }
 
-const errorHandler = (
+export const errorHandler = (
   errors: unknown,
   req: Request,
   res: Response,
@@ -25,5 +25,3 @@ const errorHandler = (
     res.status(status).json({ errors: [{ name, message }] });
   }
 };
-
-export { ErrorWithStatus, errorHandler };

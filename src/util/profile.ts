@@ -17,7 +17,7 @@ import { pgp } from '../db/config';
  * ]
  * @param array Initial book/movie score array
  */
-const fillAndSortResponse = async (array: ItemScoreRow[]) =>
+export const fillAndSortResponse = async (array: ItemScoreRow[]) =>
   new Promise<Array<ItemScoreRow>>((resolve) => {
     const resultArray: ItemScoreRow[] = [];
     const foundNumbers: number[] = [];
@@ -37,42 +37,32 @@ const fillAndSortResponse = async (array: ItemScoreRow[]) =>
     resolve(resultArray);
   });
 
-const booksCs = new pgp.helpers.ColumnSet(
+export const booksCs = new pgp.helpers.ColumnSet(
   ['isbn', 'title', 'author', 'publisher', 'image_url', 'pages', 'year', 'submitter'],
   { table: 'books' },
 );
 
-const booksListCs = new pgp.helpers.ColumnSet(
+export const booksListCs = new pgp.helpers.ColumnSet(
   ['book_id', 'username', 'status', 'score', 'start_date', 'end_date'],
   { table: 'user_book_list' },
 );
 
-const moviesCs = new pgp.helpers.ColumnSet(
+export const moviesCs = new pgp.helpers.ColumnSet(
   ['title', 'studio', 'director', 'writer', 'image_url', 'duration', 'year', 'submitter'],
   { table: 'movies' },
 );
 
-const moviesListCs = new pgp.helpers.ColumnSet(
+export const moviesListCs = new pgp.helpers.ColumnSet(
   ['movie_id', 'username', 'status', 'score', 'start_date', 'end_date'],
   { table: 'user_movie_list' },
 );
 
-const calculateBookHash = (book: Book) => {
+export const calculateBookHash = (book: Book) => {
   const hash = `${book.isbn}${book.title}${book.author}${book.publisher}${book.image_url}${book.pages}${book.year}`;
   return crypto.createHash('md5').update(hash).digest('hex');
 };
 
-const calculateMovieHash = (movie: Movie) => {
+export const calculateMovieHash = (movie: Movie) => {
   const hash = `${movie.title}${movie.studio}${movie.director}${movie.writer}${movie.image_url}${movie.duration}${movie.year}`;
   return crypto.createHash('md5').update(hash).digest('hex');
-};
-
-export {
-  fillAndSortResponse,
-  calculateBookHash,
-  calculateMovieHash,
-  booksCs,
-  booksListCs,
-  moviesCs,
-  moviesListCs,
 };

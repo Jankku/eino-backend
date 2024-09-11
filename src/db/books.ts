@@ -1,12 +1,10 @@
-import { db } from './config';
 import Book from './model/book';
 import BookStatus from './model/bookstatus';
 import DbBook from './model/dbbook';
 import { ITask } from 'pg-promise';
 
-const getAllBooks = async (username: string, client?: ITask<unknown>): Promise<DbBook[]> => {
-  const c = client || db;
-  return await c.any({
+export const getAllBooks = async (t: ITask<unknown>, username: string): Promise<DbBook[]> => {
+  return await t.any({
     text: `SELECT b.book_id,
                   b.isbn,
                   b.title,
@@ -30,8 +28,11 @@ const getAllBooks = async (username: string, client?: ITask<unknown>): Promise<D
   });
 };
 
-const getBookById = async (bookId: string, username: string): Promise<DbBook[]> => {
-  return await db.any({
+export const getBookById = async (
+  t: ITask<unknown>,
+  { bookId, username }: { bookId: string; username: string },
+): Promise<DbBook[]> => {
+  return await t.any({
     text: `SELECT b.book_id,
                   b.isbn,
                   b.title,
@@ -54,8 +55,11 @@ const getBookById = async (bookId: string, username: string): Promise<DbBook[]> 
   });
 };
 
-const getBooksByStatus = async (username: string, status: BookStatus): Promise<DbBook[]> => {
-  return await db.any({
+export const getBooksByStatus = async (
+  t: ITask<unknown>,
+  { username, status }: { username: string; status: BookStatus },
+): Promise<DbBook[]> => {
+  return await t.any({
     text: `SELECT b.book_id,
                   b.isbn,
                   b.title,
@@ -79,8 +83,8 @@ const getBooksByStatus = async (username: string, status: BookStatus): Promise<D
   });
 };
 
-const postBook = async (client: ITask<unknown>, b: Book, submitter: string): Promise<string> => {
-  const result = await client.one({
+export const postBook = async (t: ITask<unknown>, b: Book, submitter: string): Promise<string> => {
+  const result = await t.one({
     text: `INSERT INTO books (isbn, title, author, publisher, image_url, pages, year, submitter)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
            RETURNING book_id`,
@@ -89,21 +93,24 @@ const postBook = async (client: ITask<unknown>, b: Book, submitter: string): Pro
   return result.book_id;
 };
 
-const postBookToUserList = async (
-  client: ITask<unknown>,
+export const postBookToUserList = async (
+  t: ITask<unknown>,
   bookId: string,
   b: Book,
   username: string,
 ): Promise<void> => {
-  await client.none({
+  await t.none({
     text: `INSERT INTO user_book_list (book_id, username, status, score, start_date, end_date)
              VALUES ($1, $2, $3, $4, $5, $6)`,
     values: [bookId, username, b.status, b.score, b.start_date, b.end_date],
   });
 };
 
-const getTop10BookTitles = async (username: string): Promise<string[]> => {
-  return await db.map(
+export const getTop10BookTitles = async (
+  t: ITask<unknown>,
+  username: string,
+): Promise<string[]> => {
+  return await t.map(
     {
       text: `SELECT CASE
                 WHEN char_length(b.title) > 25
@@ -123,13 +130,4 @@ const getTop10BookTitles = async (username: string): Promise<string[]> => {
     undefined,
     (row) => row.title,
   );
-};
-
-export {
-  getAllBooks,
-  getBookById,
-  getBooksByStatus,
-  postBook,
-  postBookToUserList,
-  getTop10BookTitles,
 };

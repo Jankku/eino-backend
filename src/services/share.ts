@@ -6,8 +6,9 @@ import Logger from '../util/logger';
 import { getShareItemPath } from '../util/share';
 import { TypedRequest } from '../util/zod';
 import { getShareImageSchema } from '../routes/share';
+import { db } from '../db/config';
 
-const getShareImage = async (
+export const getShareImage = async (
   req: TypedRequest<typeof getShareImageSchema>,
   res: Response,
   next: NextFunction,
@@ -15,7 +16,9 @@ const getShareImage = async (
   const { id } = req.params;
 
   try {
-    const share = await getShare(id);
+    const share = await db.task('getShareImage', async (t) => {
+      return await getShare(t, id);
+    });
     const imagePath = getShareItemPath(share.username);
     const shareImage = await fs.readFile(imagePath);
     res.set({ 'Content-Type': 'image/png' }).send(shareImage);
@@ -24,5 +27,3 @@ const getShareImage = async (
     next(new ErrorWithStatus(422, 'share_error', "Couldn't find share"));
   }
 };
-
-export { getShareImage };

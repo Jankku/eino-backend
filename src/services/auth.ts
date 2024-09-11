@@ -8,6 +8,7 @@ import {
   findUserByEmail,
   getUserByEmail,
   getUserByUsername,
+  updateLastLogin,
   updatePassword,
 } from '../db/users';
 import { db } from '../db/config';
@@ -18,7 +19,6 @@ import {
   generatePasswordHash,
   generateRefreshToken,
   getPasswordStrength,
-  updateLastLogin,
 } from '../util/auth';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { config } from '../config';
@@ -47,7 +47,7 @@ import { isVerificationExpired } from '../util/verification';
 import { sendEmail } from '../util/email';
 import { resetPasswordTemplate } from '../util/emailtemplates';
 
-const register = async (
+export const register = async (
   req: TypedRequest<typeof registerSchema>,
   res: Response,
   next: NextFunction,
@@ -55,21 +55,14 @@ const register = async (
   const { username, password, email } = req.body;
 
   try {
-    const hashedPassword = await generatePasswordHash(password);
-    await db.none({
-      text: `INSERT INTO users (username, password, email)
+    await db.task('register', async (t) => {
+      const hashedPassword = await generatePasswordHash(password);
+      await t.none({
+        text: `INSERT INTO users (username, password, email)
              VALUES ($1, $2, $3)`,
-      values: [username, hashedPassword, email || null],
-    });
-
-    if (email) {
-      const totp = await generateTOTP({ label: email, period: 0 });
-      await addVerification({
-        ...totp,
-        type: 'email',
-        target: totp.label,
+        values: [username, hashedPassword, email || null],
       });
-    }
+    });
 
     res.status(200).json(success([{ name: 'user_registered', message: username }]));
   } catch (error) {
@@ -84,48 +77,56 @@ const register = async (
   }
 };
 
-const login = async (req: TypedRequest<typeof loginSchema>, res: Response, next: NextFunction) => {
+export const login = async (
+  req: TypedRequest<typeof loginSchema>,
+  res: Response,
+  next: NextFunction,
+) => {
   const { username: usernameOrEmail, password, twoFactorCode } = req.body;
 
   try {
-    const user = await findUserByCredential(usernameOrEmail);
-    if (!user) {
-      next(new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password'));
-      return;
-    }
-
-    const isCorrect = await bcrypt.compare(password, user.password);
-    if (!isCorrect) {
-      next(new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password'));
-      return;
-    }
-
-    if (user.totp_enabled_on) {
-      if (!twoFactorCode) {
-        next(new ErrorWithStatus(422, 'authentication_error', 'One-time password required'));
-        return;
+    const { user } = await db.tx('login', async (t) => {
+      const user = await findUserByCredential(t, usernameOrEmail);
+      if (!user) {
+        throw new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password');
       }
 
-      const verification = await getVerification({ target: user.username, type: '2fa' });
-      if (!validateTOTP({ otp: twoFactorCode, ...verification })) {
-        next(new ErrorWithStatus(422, 'authentication_error', 'Incorrect one-time password'));
-        return;
+      const isCorrect = await bcrypt.compare(password, user.password);
+      if (!isCorrect) {
+        throw new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password');
       }
-    }
 
-    await updateLastLogin(user.user_id);
+      if (user.totp_enabled_on) {
+        if (!twoFactorCode) {
+          throw new ErrorWithStatus(422, 'authentication_error', 'One-time password required');
+        }
+
+        const verification = await getVerification(t, { target: user.username, type: '2fa' });
+        if (!validateTOTP({ otp: twoFactorCode, ...verification })) {
+          throw new ErrorWithStatus(422, 'authentication_error', 'Incorrect one-time password');
+        }
+      }
+
+      await updateLastLogin(t, user.user_id);
+
+      return { user };
+    });
 
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
     return res.status(200).json({ accessToken, refreshToken });
   } catch (error) {
-    Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(500, 'authentication_error', 'Incorrect username or password'));
+    if (error instanceof ErrorWithStatus) {
+      next(error);
+    } else {
+      Logger.error((error as Error).stack);
+      next(new ErrorWithStatus(500, 'authentication_error', 'Incorrect username or password'));
+    }
   }
 };
 
-const loginConfig = async (
+export const loginConfig = async (
   req: TypedRequest<typeof loginConfigSchema>,
   res: Response,
   next: NextFunction,
@@ -133,28 +134,34 @@ const loginConfig = async (
   const { username: usernameOrEmail, password } = req.body;
 
   try {
-    const user = await findUserByCredential(usernameOrEmail);
-    if (!user) {
-      next(new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password'));
-      return;
-    }
+    const { user } = await db.tx('loginConfig', async (t) => {
+      const user = await findUserByCredential(t, usernameOrEmail);
+      if (!user) {
+        throw new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password');
+      }
 
-    const isCorrect = await bcrypt.compare(password, user.password);
-    if (!isCorrect) {
-      next(new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password'));
-      return;
-    }
+      const isCorrect = await bcrypt.compare(password, user.password);
+      if (!isCorrect) {
+        throw new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password');
+      }
+
+      return { user };
+    });
 
     return res.status(200).json({
       is2FAEnabled: user.totp_enabled_on ? true : false,
     });
   } catch (error) {
-    Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(500, 'authentication_error', 'Unknown error while trying to login'));
+    if (error instanceof ErrorWithStatus) {
+      next(error);
+    } else {
+      Logger.error((error as Error).stack);
+      next(new ErrorWithStatus(500, 'authentication_error', 'Incorrect username or password'));
+    }
   }
 };
 
-const generateNewAccessToken = async (
+export const generateNewAccessToken = async (
   req: TypedRequest<typeof refreshTokenSchema>,
   res: Response,
   next: NextFunction,
@@ -167,7 +174,9 @@ const generateNewAccessToken = async (
       issuer: 'eino-backend',
     }) as JwtPayload;
 
-    const user = await getUserByUsername(username);
+    const user = await db.task('generateNewAccessToken', async (t) => {
+      return await getUserByUsername(t, username);
+    });
 
     return res.status(200).json({ accessToken: generateAccessToken(user) });
   } catch (error) {
@@ -175,7 +184,7 @@ const generateNewAccessToken = async (
   }
 };
 
-const passwordStrength = (
+export const passwordStrength = (
   req: TypedRequest<typeof passwordStrengthSchema>,
   res: Response,
   next: NextFunction,
@@ -197,7 +206,7 @@ const passwordStrength = (
   }
 };
 
-const forgotPassword = async (
+export const forgotPassword = async (
   req: TypedRequest<typeof forgotPasswordSchema>,
   res: Response,
   next: NextFunction,
@@ -205,36 +214,38 @@ const forgotPassword = async (
   const { email } = req.body;
 
   try {
-    const user = await findUserByEmail(email);
-    if (!user || !user.email) {
-      next(new ErrorWithStatus(422, 'forget_password_error', 'Account not found'));
-      return;
-    }
+    const { user, otp } = await db.tx('forgotPassword', async (t) => {
+      const user = await findUserByEmail(t, email);
+      if (!user || !user.email) {
+        throw new ErrorWithStatus(422, 'forget_password_error', 'Account not found');
+      }
 
-    if (!user.email_verified_on) {
-      next(new ErrorWithStatus(422, 'forget_password_error', 'Email not verified'));
-      return;
-    }
+      if (!user.email_verified_on) {
+        throw new ErrorWithStatus(422, 'forget_password_error', 'Email not verified');
+      }
 
-    const verification = await findVerification({ target: email, type: 'password_reset' });
-    if (verification) {
-      await deleteVerification({ target: email, type: 'password_reset' });
-    }
+      const verification = await findVerification(t, { target: email, type: 'password_reset' });
+      if (verification) {
+        await deleteVerification(t, { target: email, type: 'password_reset' });
+      }
 
-    const { otp, secret, algorithm, digits, period } = await generateTOTP({ label: email });
+      const { otp, secret, algorithm, digits, period } = await generateTOTP({ label: email });
 
-    await addVerification({
-      type: 'password_reset',
-      target: email,
-      secret,
-      algorithm,
-      digits,
-      period,
-      expires_on: DateTime.now().plus({ minutes: 15 }).toJSDate(),
+      await addVerification(t, {
+        type: 'password_reset',
+        target: email,
+        secret,
+        algorithm,
+        digits,
+        period,
+        expires_on: DateTime.now().plus({ minutes: 15 }).toJSDate(),
+      });
+
+      return { user, otp };
     });
 
     const emailResponse = await sendEmail({
-      recipient: user.email,
+      recipient: user.email!,
       template: resetPasswordTemplate(otp),
     });
 
@@ -243,116 +254,125 @@ const forgotPassword = async (
       return;
     }
 
-    const is2FAEnabled = user.totp_enabled_on ? true : false;
-
     res.status(200).json(
       success([
         {
           name: 'password_reset_email_sent',
           message: 'Check your email for one-time password',
-          is2FAEnabled,
+          is2FAEnabled: user.totp_enabled_on ? true : false,
         },
       ]),
     );
   } catch (error) {
-    Logger.error((error as Error).stack);
-    next(
-      new ErrorWithStatus(
-        500,
-        'forget_password_error',
-        'Unknown error while trying to reset password',
-      ),
-    );
+    if (error instanceof ErrorWithStatus) {
+      next(error);
+    } else {
+      Logger.error((error as Error).stack);
+      next(
+        new ErrorWithStatus(
+          500,
+          'forget_password_error',
+          'Unknown error while trying to reset password',
+        ),
+      );
+    }
   }
 };
 
-const resetPassword = async (
+export const resetPassword = async (
   req: TypedRequest<typeof resetPasswordSchema>,
   res: Response,
   next: NextFunction,
 ) => {
   const { email, newPassword, otp, twoFactorCode } = req.body;
 
-  const user = await getUserByEmail(email);
-
-  if (user.totp_enabled_on) {
-    if (!twoFactorCode) {
-      next(new ErrorWithStatus(422, 'reset_password_error', 'Two-factor code required'));
-      return;
-    }
-
-    const twoFactorVerification = await getVerification({ target: user.username, type: '2fa' });
-    if (!validateTOTP({ otp: twoFactorCode, ...twoFactorVerification })) {
-      next(new ErrorWithStatus(422, 'reset_password_error', 'Incorrect two-factor code'));
-      return;
-    }
-  }
-
   try {
-    const { isStrong, error } = getPasswordStrength({ password: newPassword });
-    if (!isStrong) {
-      next(new ErrorWithStatus(422, 'reset_password_error', error));
-      return;
-    }
+    await db.tx('resetPassword', async (t) => {
+      const user = await getUserByEmail(t, email);
 
-    const verification = await getVerification({ target: email, type: 'password_reset' });
+      if (user.totp_enabled_on) {
+        if (!twoFactorCode) {
+          throw new ErrorWithStatus(422, 'reset_password_error', 'Two-factor code required');
+        }
 
-    if (verification.expires_on && isVerificationExpired(verification.expires_on)) {
-      await deleteVerification({ target: email, type: 'email' });
-      next(new ErrorWithStatus(422, 'reset_password_error', 'Verification expired'));
-      return;
-    }
+        const twoFactorVerification = await getVerification(t, {
+          target: user.username,
+          type: '2fa',
+        });
+        if (!validateTOTP({ otp: twoFactorCode, ...twoFactorVerification })) {
+          throw new ErrorWithStatus(422, 'reset_password_error', 'Incorrect two-factor code');
+        }
+      }
 
-    if (!validateTOTP({ otp, ...verification })) {
-      next(new ErrorWithStatus(422, 'reset_password_error', 'Incorrect one-time password'));
-      return;
-    }
+      const { isStrong, error } = getPasswordStrength({ password: newPassword });
+      if (!isStrong) {
+        throw new ErrorWithStatus(422, 'reset_password_error', error);
+      }
 
-    await updatePassword({ email, newPassword });
-    await deleteVerification({ target: email, type: 'password_reset' });
+      const verification = await getVerification(t, { target: email, type: 'password_reset' });
+
+      if (verification.expires_on && isVerificationExpired(verification.expires_on)) {
+        await deleteVerification(t, { target: email, type: 'email' });
+        throw new ErrorWithStatus(422, 'reset_password_error', 'Verification expired');
+      }
+
+      if (!validateTOTP({ otp, ...verification })) {
+        throw new ErrorWithStatus(422, 'reset_password_error', 'Incorrect one-time password');
+      }
+
+      await updatePassword(t, { email, newPassword });
+      await deleteVerification(t, { target: email, type: 'password_reset' });
+    });
 
     res
       .status(200)
       .json(success([{ name: 'password_reset_successful', message: 'Password reset successful' }]));
   } catch (error) {
-    Logger.error((error as Error).stack);
-    next(
-      new ErrorWithStatus(
-        500,
-        'forget_password_error',
-        'Unknown error while trying to reset password',
-      ),
-    );
+    if (error instanceof ErrorWithStatus) {
+      next(error);
+    } else {
+      Logger.error((error as Error).stack);
+      next(
+        new ErrorWithStatus(
+          500,
+          'forget_password_error',
+          'Unknown error while trying to reset password',
+        ),
+      );
+    }
   }
 };
 
-const generate2FAUrl = async (req: Request, res: Response, next: NextFunction) => {
+export const generate2FAUrl = async (req: Request, res: Response, next: NextFunction) => {
   const username: string = res.locals.username;
 
   try {
-    const user = await getUserByUsername(username);
+    const { totpUrl } = await db.tx('generate2FAUrl', async (t) => {
+      const user = await getUserByUsername(t, username);
 
-    if (user.totp_enabled_on) {
-      next(new ErrorWithStatus(422, '2fa_error', '2FA already enabled'));
-      return;
-    }
+      if (user.totp_enabled_on) {
+        throw new ErrorWithStatus(422, '2fa_error', '2FA already enabled');
+      }
 
-    const verification = await findVerification({ target: user.username, type: '2fa' });
-    if (verification) {
-      await deleteVerification({ target: user.username, type: '2fa' });
-    }
+      const verification = await findVerification(t, { target: user.username, type: '2fa' });
+      if (verification) {
+        await deleteVerification(t, { target: user.username, type: '2fa' });
+      }
 
-    const { totpUrl, secret, digits, period, algorithm, label } = await generateTOTP({
-      label: user.username,
-    });
+      const { totpUrl, secret, digits, period, algorithm, label } = await generateTOTP({
+        label: user.username,
+      });
 
-    await addVerification({
-      type: '2fa',
-      target: label,
-      secret,
-      algorithm,
-      digits,
-      period,
+      await addVerification(t, {
+        type: '2fa',
+        target: label,
+        secret,
+        algorithm,
+        digits,
+        period,
+      });
+
+      return { totpUrl };
     });
 
     const qrCodeUrl = await QRCode.toDataURL(totpUrl);
@@ -366,12 +386,16 @@ const generate2FAUrl = async (req: Request, res: Response, next: NextFunction) =
       ]),
     );
   } catch (error) {
-    Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(422, '2fa_error', "Couldn't generate url"));
+    if (error instanceof ErrorWithStatus) {
+      next(error);
+    } else {
+      Logger.error((error as Error).stack);
+      next(new ErrorWithStatus(422, '2fa_error', "Couldn't generate url"));
+    }
   }
 };
 
-const enable2FA = async (
+export const enable2FA = async (
   req: TypedRequest<typeof enable2FASchema>,
   res: Response,
   next: NextFunction,
@@ -380,29 +404,33 @@ const enable2FA = async (
   const username: string = res.locals.username;
 
   try {
-    const user = await getUserByUsername(username);
+    await db.tx('enable2FA', async (t) => {
+      const user = await getUserByUsername(t, username);
 
-    if (user.totp_enabled_on) {
-      next(new ErrorWithStatus(422, '2fa_error', '2FA already enabled'));
-      return;
-    }
+      if (user.totp_enabled_on) {
+        throw new ErrorWithStatus(422, '2fa_error', '2FA already enabled');
+      }
 
-    const verification = await getVerification({ target: user.username, type: '2fa' });
-    if (!validateTOTP({ otp: twoFactorCode, ...verification })) {
-      next(new ErrorWithStatus(422, '2fa_error', 'Incorrect two-factor code'));
-      return;
-    }
+      const verification = await getVerification(t, { target: user.username, type: '2fa' });
+      if (!validateTOTP({ otp: twoFactorCode, ...verification })) {
+        throw new ErrorWithStatus(422, '2fa_error', 'Incorrect two-factor code');
+      }
 
-    await enableTOTP(user.username);
+      await enableTOTP(t, user.username);
+    });
 
     res.status(200).json(success([{ name: '2fa_enabled', message: '2FA enabled' }]));
   } catch (error) {
-    Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(422, '2fa_error', "Couldn't enable 2FA"));
+    if (error instanceof ErrorWithStatus) {
+      next(error);
+    } else {
+      Logger.error((error as Error).stack);
+      next(new ErrorWithStatus(422, '2fa_error', "Couldn't enable 2FA"));
+    }
   }
 };
 
-const disable2FA = async (
+export const disable2FA = async (
   req: TypedRequest<typeof enable2FASchema>,
   res: Response,
   next: NextFunction,
@@ -411,38 +439,29 @@ const disable2FA = async (
   const username: string = res.locals.username;
 
   try {
-    const user = await getUserByUsername(username);
+    await db.tx('disable2FA', async (t) => {
+      const user = await getUserByUsername(t, username);
 
-    if (!user.totp_enabled_on) {
-      next(new ErrorWithStatus(422, '2fa_error', '2FA not enabled'));
-      return;
-    }
+      if (!user.totp_enabled_on) {
+        throw new ErrorWithStatus(422, '2fa_error', '2FA not enabled');
+      }
 
-    const verification = await getVerification({ target: user.username, type: '2fa' });
-    if (!validateTOTP({ otp: twoFactorCode, ...verification })) {
-      next(new ErrorWithStatus(422, '2fa_error', 'Incorrect two-factor code'));
-      return;
-    }
+      const verification = await getVerification(t, { target: user.username, type: '2fa' });
+      if (!validateTOTP({ otp: twoFactorCode, ...verification })) {
+        throw new ErrorWithStatus(422, '2fa_error', 'Incorrect two-factor code');
+      }
 
-    await deleteVerification({ target: user.username, type: '2fa' });
-    await disableTOTP(user.username);
+      await deleteVerification(t, { target: user.username, type: '2fa' });
+      await disableTOTP(t, user.username);
+    });
 
     res.status(200).json(success([{ name: '2fa_disabled', message: '2FA disabled' }]));
   } catch (error) {
-    Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(422, '2fa_error', "Couldn't disable 2FA"));
+    if (error instanceof ErrorWithStatus) {
+      next(error);
+    } else {
+      Logger.error((error as Error).stack);
+      next(new ErrorWithStatus(422, '2fa_error', "Couldn't disable 2FA"));
+    }
   }
-};
-
-export {
-  register,
-  login,
-  loginConfig,
-  generateNewAccessToken,
-  passwordStrength,
-  forgotPassword,
-  resetPassword,
-  generate2FAUrl,
-  enable2FA,
-  disable2FA,
 };
