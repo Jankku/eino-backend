@@ -60,7 +60,7 @@ export const register = async (
       await t.none({
         text: `INSERT INTO users (username, password, email)
              VALUES ($1, $2, $3)`,
-        values: [username, hashedPassword, email || null],
+        values: [username, hashedPassword, email || undefined],
       });
     });
 

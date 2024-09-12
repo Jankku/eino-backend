@@ -159,7 +159,7 @@ export type ItemScoreRow = {
 };
 
 const getBookScores = async (t: ITask<unknown>, username: string): Promise<ItemScoreRow[]> => {
-  const rows = await t.any({
+  const rows = await t.any<ItemScoreRow>({
     text: `SELECT ubl.score, count(ubl.score)
            FROM books b
                     INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
@@ -171,7 +171,7 @@ const getBookScores = async (t: ITask<unknown>, username: string): Promise<ItemS
 };
 
 const getMovieScores = async (t: ITask<unknown>, username: string): Promise<ItemScoreRow[]> => {
-  const rows = await t.any({
+  const rows = await t.any<ItemScoreRow>({
     text: `SELECT uml.score, count(uml.score)
            FROM movies m
                     INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id

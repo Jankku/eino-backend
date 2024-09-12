@@ -65,7 +65,7 @@ export const updateEmailAddress = async (
     email,
   }: {
     username: string;
-    email: string | null;
+    email: string | undefined | null;
   },
 ): Promise<void> => {
   await t.none({

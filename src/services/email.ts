@@ -50,7 +50,7 @@ export const updateEmail = async (
       }
 
       if (!email) {
-        await updateEmailAddress(t, { username, email: null });
+        await updateEmailAddress(t, { username, email: undefined });
         res
           .status(200)
           .json(success([{ name: 'email_removed', message: 'Email successfully removed' }]));

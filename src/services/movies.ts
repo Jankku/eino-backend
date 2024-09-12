@@ -236,7 +236,7 @@ export const search = async (
 
       for (const queryPart of queryAsArray) {
         // accurate query
-        const rows = await t.any({
+        const rows = await t.any<DbMovie>({
           text: `SELECT m.movie_id,
                   m.title,
                   m.studio,
@@ -266,7 +266,7 @@ export const search = async (
 
       if (resultArray.length === 0) {
         // less accurate query
-        const rows = await t.any({
+        const rows = await t.any<DbMovie>({
           text: `SELECT m.movie_id,
                   m.title,
                   m.studio,

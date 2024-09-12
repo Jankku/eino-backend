@@ -69,6 +69,7 @@ export const optionalEmailSchema = z
     message: errorMessages.EMAIL_INVALID,
   })
   .nullable()
+  // eslint-disable-next-line unicorn/no-null
   .transform((val) => (val === '' ? null : val));
 
 export const usernameOrEmailSchema = z.union([usernameSchema, emailSchema]);

@@ -18,7 +18,7 @@ export const formatZodErrors = (error: ZodError) => {
   const errors = Object.values(error.issues);
   const formattedErrors = errors.map((e: ZodIssue) => {
     const isCustom = e.code === 'custom';
-    const code = isCustom ? e?.params?.name : null;
+    const code = isCustom ? e?.params?.name : undefined;
     const name = code ?? e.code;
     return {
       name: name,

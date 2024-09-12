@@ -228,7 +228,7 @@ export const search = async (
 
       for (const queryPart of queryAsArray) {
         // accurate query
-        const rows = await t.any({
+        const rows = await t.any<DbBook>({
           text: `SELECT b.book_id,
                   b.isbn,
                   b.title,
@@ -258,7 +258,7 @@ export const search = async (
 
       if (resultArray.length === 0) {
         // less accurate query
-        const rows = await t.any({
+        const rows = await t.any<DbBook>({
           text: `SELECT b.book_id,
                   b.isbn,
                   b.title,

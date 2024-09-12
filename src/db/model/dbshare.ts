@@ -6,6 +6,7 @@ export const shareSchema = z.object({
   created_on: dateStringSchema,
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const dbShareSchema = shareSchema.extend({
   username: fixedNonEmptyStringSchema,
 });
