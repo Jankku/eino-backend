@@ -3,12 +3,10 @@ import { config } from '../config';
 
 const Logger = createLogger({
   level: config.isProduction ? 'info' : 'debug',
-  defaultMeta: { service: 'eino' },
   format: format.combine(
-    format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    format.timestamp(),
     format.errors({ stack: true }),
-    format.splat(),
-    format.json(),
+    config.isProduction ? format.json() : format.cli({ all: true }),
   ),
   transports: [
     new transports.Console({

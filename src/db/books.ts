@@ -31,8 +31,8 @@ export const getAllBooks = async (t: ITask<unknown>, username: string): Promise<
 export const getBookById = async (
   t: ITask<unknown>,
   { bookId, username }: { bookId: string; username: string },
-): Promise<DbBook[]> => {
-  return await t.any({
+): Promise<DbBook> => {
+  return await t.one({
     text: `SELECT b.book_id,
                   b.isbn,
                   b.title,

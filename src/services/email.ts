@@ -23,6 +23,7 @@ import { isVerificationExpired } from '../util/verification';
 import { sendEmail } from '../util/email';
 import { confirmEmailTemplate } from '../util/emailtemplates';
 import { db } from '../db/config';
+import { addAudit } from '../db/audit';
 
 export const updateEmail = async (
   req: TypedRequest<typeof updateEmailSchema>,
@@ -51,6 +52,12 @@ export const updateEmail = async (
 
       if (!email) {
         await updateEmailAddress(t, { username, email: undefined });
+        await addAudit(t, {
+          username,
+          action: 'email_updated',
+          old_data: { email: user.email },
+          new_data: { email: undefined },
+        });
         res
           .status(200)
           .json(success([{ name: 'email_removed', message: 'Email successfully removed' }]));
@@ -78,6 +85,12 @@ export const updateEmail = async (
       }
 
       await updateEmailAddress(t, { username, email });
+      await addAudit(t, {
+        username,
+        action: 'email_updated',
+        old_data: { email: user.email },
+        new_data: { email },
+      });
     });
 
     res.status(200).json(success([{ name: 'email_updated', message: 'Email updated' }]));
@@ -127,6 +140,8 @@ export const sendConfirmationEmail = async (req: Request, res: Response, next: N
       if (!emailResponse.success) {
         throw new ErrorWithStatus(424, 'email_error', "Couldn't send confirmation email");
       }
+
+      await addAudit(t, { username, action: 'email_verification_email_sent' });
     });
 
     res
@@ -174,8 +189,8 @@ export const verifyEmail = async (
       }
 
       await deleteVerification(t, { target: user.email, type: 'email' });
-
       await updateEmailVerifiedTimestamp(t, user.email);
+      await addAudit(t, { username, action: 'email_verified', old_data: { email: user.email } });
     });
 
     res

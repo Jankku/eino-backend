@@ -25,6 +25,7 @@ import {
 import { TypedRequest } from '../util/zod';
 import { movieNumberKeySchema, movieSortSchema, movieStringKeySchema } from '../db/model/movie';
 import { getItemFilter, itemSorter } from '../util/sort';
+import { addAudit } from '../db/audit';
 
 export const fetchOne = async (
   req: TypedRequest<typeof fetchOneSchema>,
@@ -39,7 +40,7 @@ export const fetchOne = async (
       'fetchOne',
       async (t) => await getMovieById(t, { movieId, username }),
     );
-    res.status(200).json(success(movie));
+    res.status(200).json(success([movie]));
   } catch (error) {
     Logger.error((error as Error).stack);
     next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't find movie"));
@@ -63,8 +64,8 @@ export const fetchAll = async (req: Request, res: Response, next: NextFunction) 
           numberSchema: movieNumberKeySchema,
         });
         if (itemFilter) {
-          movies = movies.filter((book) =>
-            itemFilter(book as unknown as Record<string, never>, filter),
+          movies = movies.filter((movie) =>
+            itemFilter(movie as unknown as Record<string, never>, filter),
           );
         }
       }
@@ -104,8 +105,8 @@ export const fetchByStatus = async (
           numberSchema: movieNumberKeySchema,
         });
         if (itemFilter) {
-          movies = movies.filter((book) =>
-            itemFilter(book as unknown as Record<string, never>, filter),
+          movies = movies.filter((movie) =>
+            itemFilter(movie as unknown as Record<string, never>, filter),
           );
         }
       }
@@ -132,6 +133,13 @@ export const addOne = async (
     await db.tx('addOne', async (t) => {
       const movieId = await postMovie(t, movie, username);
       await postMovieToUserList(t, movieId, movie, username);
+      await addAudit(t, {
+        username,
+        action: 'create',
+        table_name: 'movies',
+        record_id: movieId,
+        new_data: movie,
+      });
     });
 
     res
@@ -166,6 +174,7 @@ export const updateOne = async (
 
   try {
     const { updatedMovie } = await db.tx('updateOne', async (t) => {
+      const oldMovie = await getMovieById(t, { movieId, username });
       await t.none({
         text: `UPDATE movies
         SET title=$1,
@@ -189,9 +198,17 @@ export const updateOne = async (
         values: [status, score, start_date, end_date, movieId],
       });
       const updatedMovie = await getMovieById(t, { movieId, username });
+      await addAudit(t, {
+        username,
+        action: 'update',
+        table_name: 'movies',
+        record_id: movieId,
+        old_data: oldMovie,
+        new_data: updatedMovie,
+      });
       return { updatedMovie };
     });
-    res.status(200).json(success(updatedMovie));
+    res.status(200).json(success([updatedMovie]));
   } catch (error) {
     Logger.error((error as Error).stack);
     next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't update movie"));
@@ -207,13 +224,24 @@ export const deleteOne = async (
   const username: string = res.locals.username;
 
   try {
-    await db.none({
-      text: `DELETE
+    await db.tx('deleteOne', async (t) => {
+      const movie = await getMovieById(t, { movieId, username });
+      await db.none({
+        text: `DELETE
            FROM movies
            WHERE movie_id = $1
              AND submitter = $2`,
-      values: [movieId, username],
+        values: [movieId, username],
+      });
+      await addAudit(t, {
+        username,
+        action: 'delete',
+        table_name: 'movies',
+        record_id: movieId,
+        old_data: movie,
+      });
     });
+
     res.status(200).json(success([{ name: 'movie_deleted', message: 'Movie deleted' }]));
   } catch (error) {
     Logger.error((error as Error).stack);

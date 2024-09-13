@@ -17,6 +17,7 @@
     "lint:fix": "eslint --fix src/**/*.ts",
     "format": "prettier --write ./src",
     "migrate": "./node_modules/.bin/node-pg-migrate",
+    "migrate:dev": "npx node-pg-migrate -m dist/migrations",
     "prepare": "husky"
   },
   "repository": {

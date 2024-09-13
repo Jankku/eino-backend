@@ -29,6 +29,7 @@ import { config } from '../config';
 import { TypedRequest } from '../util/zod';
 import { getVerification } from '../db/verification';
 import { validateTOTP } from '../util/totp';
+import { addAudit } from '../db/audit';
 
 export const getProfile = async (
   _req: TypedRequest<typeof getProfileSchema>,
@@ -124,10 +125,8 @@ export const deleteAccount = async (
         throw new ErrorWithStatus(422, 'delete_account_error', 'Incorrect password');
       }
 
-      await t.none({
-        text: `DELETE FROM users WHERE username = $1`,
-        values: [username],
-      });
+      await t.none('DELETE FROM users WHERE username = $1', username);
+      await addAudit(t, { username, action: 'account_deleted' });
     });
 
     const shareImagePath = getShareItemPath(username);
@@ -278,8 +277,9 @@ export const generateShareImage = async (_req: Request, res: Response, next: Nex
     const shareImagePath = getShareItemPath(username);
     const shareId = generateShareId();
 
-    await db.task('createShare', async (t) => {
+    await db.tx('createShare', async (t) => {
       await createShare(t, { id: shareId, username });
+      await addAudit(t, { username, action: 'profile_shared' });
     });
     await fs.writeFile(shareImagePath, imageBuffer);
 
@@ -290,7 +290,7 @@ export const generateShareImage = async (_req: Request, res: Response, next: Nex
   }
 };
 
-export const exportUserData = async (
+export const exportProfileData = async (
   req: TypedRequest<typeof getProfileSchema>,
   res: Response,
   next: NextFunction,
@@ -299,11 +299,14 @@ export const exportUserData = async (
   const { password } = req.body;
 
   try {
-    const [books, movies, profile, shares] = await db.task('exportUserData', async (t) => {
+    const [books, movies, profile, shares] = await db.task('exportProfileData', async (t) => {
       const isCorrect = await isPasswordCorrect(t, { username, password });
       if (!isCorrect) {
         throw new ErrorWithStatus(422, 'profile_export_error', 'Incorrect password');
       }
+
+      await addAudit(t, { username, action: 'profile_data_exported' });
+
       return Promise.all([
         getAllBooks(t, username),
         getAllMovies(t, username),
@@ -341,7 +344,7 @@ export const exportUserData = async (
   }
 };
 
-export const importUserData = async (
+export const importProfileData = async (
   req: TypedRequest<typeof importProfileSchema>,
   res: Response,
   next: NextFunction,
@@ -350,7 +353,7 @@ export const importUserData = async (
   const username: string = res.locals.username;
 
   try {
-    await db.tx('importUserData', async (t) => {
+    await db.tx('importProfileData', async (t) => {
       const { book_count, movie_count } = await getItemCountByUsername(t, username);
 
       const maxItemCount = config.USER_LIST_ITEM_MAX_COUNT;
@@ -406,6 +409,8 @@ export const importUserData = async (
       // Insert mapped movies to user_movie_list table
       const insertMovieList = pgp.helpers.insert(movieListItems, moviesListCs);
       await t.none(insertMovieList);
+
+      await addAudit(t, { username, action: 'profile_data_imported' });
     });
 
     return res.status(200).json(success([{ name: 'import_success', message: 'Profile imported' }]));

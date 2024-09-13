@@ -68,9 +68,7 @@ export const optionalEmailSchema = z
   .max(255, {
     message: errorMessages.EMAIL_INVALID,
   })
-  .nullable()
-  // eslint-disable-next-line unicorn/no-null
-  .transform((val) => (val === '' ? null : val));
+  .nullish();
 
 export const usernameOrEmailSchema = z.union([usernameSchema, emailSchema]);
 
@@ -83,7 +81,7 @@ export const optionalOtpSchema = z
   .string()
   .min(0, errorMessages.OTP_INVALID)
   .max(6, errorMessages.OTP_INVALID)
-  .optional();
+  .nullish();
 
 export const sortOrderSchema = z.enum(['ascending', 'descending']).default('ascending');
 export type SortOrder = z.infer<typeof sortOrderSchema>;
