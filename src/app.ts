@@ -16,9 +16,11 @@ import { routerV1 } from './routes/router-v1';
 import { routerV2 } from './routes/router-v2';
 import { initZxcvbn } from './util/auth';
 import closeWithGrace from 'close-with-grace';
+import { initDiscordAuditProcessing } from './services/audit';
 
 initZxcvbn();
 createShareDir().catch((error) => Logger.error('Error creating share directory', error));
+initDiscordAuditProcessing();
 
 const app = express();
 

@@ -6,12 +6,10 @@ dotenv.config();
 
 const configSchema = z.object({
   NODE_ENV: z.optional(nonEmptyString).default('development'),
-  DATABASE_URL: z
-    .string()
-    .refine(
-      (value) => value.startsWith('postgres://') || value.startsWith('postgresql://'),
-      "Must start with 'postgres://' or 'postgresql://'",
-    ),
+  DATABASE_URL: nonEmptyString.refine(
+    (value) => value.startsWith('postgres://') || value.startsWith('postgresql://'),
+    "Must start with 'postgres://' or 'postgresql://'",
+  ),
   POSTGRES_USER: nonEmptyString,
   POSTGRES_PASSWORD: nonEmptyString,
   POSTGRES_DB: nonEmptyString,
@@ -20,6 +18,12 @@ const configSchema = z.object({
   EMAIL_SENDER: z.optional(z.string().email().min(1)),
   EMAIL_MAILTRAP_TOKEN: z.optional(nonEmptyString),
   EMAIL_MAILTRAP_TEST_INBOX_ID: z.optional(z.coerce.number().positive()),
+  DISCORD_AUDIT_LOG_WEBHOOK_URL: z.optional(
+    nonEmptyString.refine(
+      (value) => value.startsWith('https://discord.com/api/webhooks/'),
+      "Must start with 'https://discord.com/api/webhooks/'",
+    ),
+  ),
   ACCESS_TOKEN_SECRET: nonEmptyString,
   ACCESS_TOKEN_VALIDITY: nonEmptyString,
   REFRESH_TOKEN_SECRET: nonEmptyString,

@@ -30,8 +30,8 @@ export const getAllMovies = async (t: ITask<unknown>, username: string): Promise
 export const getMovieById = async (
   t: ITask<unknown>,
   { movieId, username }: { movieId: string; username: string },
-): Promise<DbMovie[]> => {
-  return await t.any({
+): Promise<DbMovie> => {
+  return await t.one({
     text: `SELECT uml.movie_id,
                   m.title,
                   m.studio,

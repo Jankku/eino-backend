@@ -46,6 +46,7 @@ import { DateTime } from 'luxon';
 import { isVerificationExpired } from '../util/verification';
 import { sendEmail } from '../util/email';
 import { resetPasswordTemplate } from '../util/emailtemplates';
+import { addAudit } from '../db/audit';
 
 export const register = async (
   req: TypedRequest<typeof registerSchema>,
@@ -62,6 +63,7 @@ export const register = async (
              VALUES ($1, $2, $3)`,
         values: [username, hashedPassword, email || undefined],
       });
+      await addAudit(t, { username, action: 'register' });
     });
 
     res.status(200).json(success([{ name: 'user_registered', message: username }]));
@@ -108,6 +110,7 @@ export const login = async (
       }
 
       await updateLastLogin(t, user.user_id);
+      await addAudit(t, { username: user.username, action: 'login' });
 
       return { user };
     });
@@ -174,11 +177,14 @@ export const generateNewAccessToken = async (
       issuer: 'eino-backend',
     }) as JwtPayload;
 
-    const user = await db.task('generateNewAccessToken', async (t) => {
-      return await getUserByUsername(t, username);
+    const accessToken = await db.task('generateNewAccessToken', async (t) => {
+      const user = await getUserByUsername(t, username);
+      const accessToken = generateAccessToken(user);
+      await addAudit(t, { username: user.username, action: 'access_token_refresh' });
+      return accessToken;
     });
 
-    return res.status(200).json({ accessToken: generateAccessToken(user) });
+    return res.status(200).json({ accessToken });
   } catch (error) {
     next(new ErrorWithStatus(422, 'jwt_refresh_error', (error as Error)?.message));
   }
@@ -248,6 +254,16 @@ export const forgotPassword = async (
       recipient: user.email!,
       template: resetPasswordTemplate(otp),
     });
+
+    await db.task(
+      'forgotPassword',
+      async (t) =>
+        await addAudit(t, {
+          username: user.username,
+          action: 'password_forgot',
+          new_data: { email, email_sent: emailResponse.success },
+        }),
+    );
 
     if (!emailResponse.success) {
       next(new ErrorWithStatus(424, 'forget_password_error', "Couldn't send password reset email"));
@@ -322,6 +338,7 @@ export const resetPassword = async (
 
       await updatePassword(t, { email, newPassword });
       await deleteVerification(t, { target: email, type: 'password_reset' });
+      await addAudit(t, { username: user.username, action: 'password_reseted' });
     });
 
     res
@@ -417,6 +434,7 @@ export const enable2FA = async (
       }
 
       await enableTOTP(t, user.username);
+      await addAudit(t, { username: user.username, action: 'two_factor_authentication_enabled' });
     });
 
     res.status(200).json(success([{ name: '2fa_enabled', message: '2FA enabled' }]));
@@ -453,6 +471,7 @@ export const disable2FA = async (
 
       await deleteVerification(t, { target: user.username, type: '2fa' });
       await disableTOTP(t, user.username);
+      await addAudit(t, { username: user.username, action: 'two_factor_authentication_disabled' });
     });
 
     res.status(200).json(success([{ name: '2fa_disabled', message: '2FA disabled' }]));

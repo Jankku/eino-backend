@@ -25,6 +25,7 @@ import {
 } from '../routes/books';
 import { bookSortSchema, bookNumberKeySchema, bookStringKeySchema } from '../db/model/book';
 import { itemSorter, getItemFilter } from '../util/sort';
+import { addAudit } from '../db/audit';
 
 export const fetchOne = async (
   req: TypedRequest<typeof fetchOneSchema>,
@@ -36,7 +37,7 @@ export const fetchOne = async (
 
   try {
     const book = await db.task('fetchOne', async (t) => await getBookById(t, { bookId, username }));
-    res.status(200).json(success(book));
+    res.status(200).json(success([book]));
   } catch {
     next(new ErrorWithStatus(422, 'book_list_error', "Couldn't find book"));
   }
@@ -125,6 +126,13 @@ export const addOne = async (
     await db.tx('addOne', async (t) => {
       const bookId = await postBook(t, book, username);
       await postBookToUserList(t, bookId, book, username);
+      await addAudit(t, {
+        username,
+        action: 'create',
+        table_name: 'books',
+        record_id: bookId,
+        new_data: book,
+      });
     });
 
     res.status(201).json(success([{ name: 'book_added_to_list', message: 'Book added to list' }]));
@@ -157,6 +165,7 @@ export const updateOne = async (
 
   try {
     const { updatedBook } = await db.tx('updateOne', async (t) => {
+      const oldBook = await getBookById(t, { bookId, username });
       await t.none({
         text: `UPDATE books
            SET title=$1,
@@ -180,10 +189,18 @@ export const updateOne = async (
         values: [status, score, start_date, end_date, bookId],
       });
       const updatedBook = await getBookById(t, { bookId, username });
+      await addAudit(t, {
+        username,
+        action: 'update',
+        table_name: 'books',
+        record_id: bookId,
+        old_data: oldBook,
+        new_data: updatedBook,
+      });
       return { updatedBook };
     });
 
-    res.status(200).json(success(updatedBook));
+    res.status(200).json(success([updatedBook]));
   } catch (error) {
     Logger.error((error as Error).stack);
     next(new ErrorWithStatus(422, 'book_list_error', "Couldn't update book"));
@@ -199,13 +216,24 @@ export const deleteOne = async (
   const username: string = res.locals.username;
 
   try {
-    await db.none({
-      text: `DELETE
+    await db.tx('deleteOne', async (t) => {
+      const book = await getBookById(t, { bookId, username });
+      await t.none({
+        text: `DELETE
            FROM books
            WHERE book_id = $1
              AND submitter = $2`,
-      values: [bookId, username],
+        values: [bookId, username],
+      });
+      await addAudit(t, {
+        username,
+        action: 'delete',
+        table_name: 'books',
+        record_id: bookId,
+        old_data: book,
+      });
     });
+
     res.status(200).json(success([{ name: 'book_deleted', message: 'Book deleted' }]));
   } catch (error) {
     Logger.error((error as Error).stack);

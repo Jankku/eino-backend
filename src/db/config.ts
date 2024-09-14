@@ -28,8 +28,8 @@ pgp.pg.types.setTypeParser(1700, (value: string) => Number.parseFloat(value)); /
 
 if (!config.isProduction) {
   monitor.attach(options);
-  monitor.setLog((msg, info) => {
+  monitor.setLog((_, info) => {
     info.display = false;
-    Logger.debug(msg);
+    Logger.debug(info.text);
   });
 }
