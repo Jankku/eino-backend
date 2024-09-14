@@ -28,7 +28,7 @@ export const wait = async (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
 export const truncate = (text: string, length: number): string =>
-  text.length > length ? `${text.slice(0, length)}...` : text;
+  text.length > length ? `${text.slice(0, length - 3)}...` : text;
 
 type DiscordEmbed = {
   timestamp: string;
