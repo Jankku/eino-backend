@@ -3,11 +3,13 @@ import { DateTime } from 'luxon';
 import { SortOrder } from './zodschema';
 import z from 'zod';
 
-const isDate = (value: unknown): value is Date => value instanceof Date;
+const isDate = (value: unknown): value is Date =>
+  value instanceof Date && !Number.isNaN(value.getTime());
 
 const isString = (value: unknown): value is string => typeof value === 'string';
 
-const isNumber = (value: unknown): value is number => typeof value === 'number';
+const isNumber = (value: unknown): value is number =>
+  typeof value === 'number' && !Number.isNaN(value);
 
 const stringSort = (a: string, b: string, order: SortOrder) => {
   return order === 'ascending' ? a.localeCompare(b) : b.localeCompare(a);

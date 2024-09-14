@@ -12,7 +12,6 @@ import { db } from '../db/config';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { fetchFinnaImages } from './third-party/finna';
 import { fetchOpenLibraryImages } from './third-party/openlibrary';
-import DbBook from '../db/model/dbbook';
 import { TypedRequest } from '../util/zod';
 import {
   addOneSchema,
@@ -23,7 +22,7 @@ import {
   searchSchema,
   updateOneSchema,
 } from '../routes/books';
-import { bookSortSchema, bookNumberKeySchema, bookStringKeySchema } from '../db/model/book';
+import { bookSortSchema, bookNumberKeySchema, bookStringKeySchema, DbBook } from '../db/model/book';
 import { itemSorter, getItemFilter } from '../util/sort';
 import { addAudit } from '../db/audit';
 

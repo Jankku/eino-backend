@@ -12,7 +12,6 @@ import { db } from '../db/config';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { fetchTmdbImages } from './third-party/tmdb';
 import { fetchFinnaImages } from './third-party/finna';
-import DbMovie from '../db/model/dbmovie';
 import {
   addOneSchema,
   deleteOneSchema,
@@ -23,7 +22,12 @@ import {
   updateOneSchema,
 } from '../routes/movies';
 import { TypedRequest } from '../util/zod';
-import { movieNumberKeySchema, movieSortSchema, movieStringKeySchema } from '../db/model/movie';
+import {
+  DbMovie,
+  movieNumberKeySchema,
+  movieSortSchema,
+  movieStringKeySchema,
+} from '../db/model/movie';
 import { getItemFilter, itemSorter } from '../util/sort';
 import { addAudit } from '../db/audit';
 

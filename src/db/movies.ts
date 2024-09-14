@@ -1,5 +1,4 @@
-import DbMovie from './model/dbmovie';
-import Movie from './model/movie';
+import { Movie, DbMovie } from './model/movie';
 import MovieStatus from './model/moviestatus';
 import { ITask } from 'pg-promise';
 

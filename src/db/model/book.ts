@@ -3,6 +3,7 @@ import { bookStatusEnum } from './bookstatus';
 import {
   coverUrlSchema,
   dateSchema,
+  dateStringSchema,
   fixedStringSchema,
   nonnegativeNumberSchema,
   scoreSchema,
@@ -24,7 +25,14 @@ export const bookSchema = z.object({
   end_date: dateSchema,
 });
 
-const bookSortableKeySchema = bookSchema.omit({ image_url: true, isbn: true }).keyof();
+export const dbBookSchema = bookSchema.extend({
+  book_id: fixedStringSchema,
+  created_on: dateStringSchema,
+});
+
+const bookSortableKeySchema = dbBookSchema
+  .omit({ book_id: true, image_url: true, isbn: true })
+  .keyof();
 
 export const bookStringKeySchema = bookSortableKeySchema.exclude(['pages', 'year', 'score']);
 export const bookNumberKeySchema = bookSortableKeySchema.extract(['pages', 'year', 'score']);
@@ -45,6 +53,5 @@ export const bookSortSchema = z.object({
   order: sortOrderSchema,
 });
 
-type Book = z.infer<typeof bookSchema>;
-
-export default Book;
+export type Book = z.infer<typeof bookSchema>;
+export type DbBook = z.infer<typeof dbBookSchema>;

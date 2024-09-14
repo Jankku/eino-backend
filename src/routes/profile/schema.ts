@@ -5,8 +5,8 @@ import {
   optionalOtpSchema,
   passwordSchema,
 } from '../../util/zodschema';
-import { dbBookSchema } from '../../db/model/dbbook';
-import { dbMovieSchema } from '../../db/model/dbmovie';
+import { dbBookSchema } from '../../db/model/book';
+import { dbMovieSchema } from '../../db/model/movie';
 import { shareSchema } from '../../db/model/dbshare';
 
 export const deleteAccountSchema = z.object({

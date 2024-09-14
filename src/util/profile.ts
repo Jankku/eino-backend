@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { ItemScoreRow } from '../db/profile';
-import Book from '../db/model/book';
-import Movie from '../db/model/movie';
+import { Book } from '../db/model/book';
+import { Movie } from '../db/model/movie';
 import { pgp } from '../db/config';
 
 /**

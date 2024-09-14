@@ -2,6 +2,7 @@ import z from 'zod';
 import {
   coverUrlSchema,
   dateSchema,
+  dateStringSchema,
   fixedStringSchema,
   nonnegativeNumberSchema,
   scoreSchema,
@@ -24,7 +25,12 @@ export const movieSchema = z.object({
   end_date: dateSchema,
 });
 
-const movieSortableKeySchema = movieSchema.omit({ image_url: true }).keyof();
+export const dbMovieSchema = movieSchema.extend({
+  movie_id: fixedStringSchema,
+  created_on: dateStringSchema,
+});
+
+const movieSortableKeySchema = dbMovieSchema.omit({ movie_id: true, image_url: true }).keyof();
 
 export const movieStringKeySchema = movieSortableKeySchema.exclude(['duration', 'year', 'score']);
 export const movieNumberKeySchema = movieSortableKeySchema.extract(['duration', 'year', 'score']);
@@ -45,6 +51,5 @@ export const movieSortSchema = z.object({
   order: sortOrderSchema,
 });
 
-type Movie = z.infer<typeof movieSchema>;
-
-export default Movie;
+export type Movie = z.infer<typeof movieSchema>;
+export type DbMovie = z.infer<typeof dbMovieSchema>;
