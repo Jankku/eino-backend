@@ -22,7 +22,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     },
   );
 
-  pgm.createIndex('audit_log', ['created_on'], { ifNotExists: true });
+  pgm.createIndex('audit_log', ['action', 'created_on'], { ifNotExists: true });
 }
 
 export async function down(pgm: MigrationBuilder): Promise<void> {
