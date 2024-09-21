@@ -69,6 +69,5 @@ export const importProfileSchema = z.object({
     profile: profileInfoSchema,
     books: z.array(dbBookSchema),
     movies: z.array(dbMovieSchema),
-    shares: z.array(shareSchema),
   }),
 });

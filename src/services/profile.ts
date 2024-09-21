@@ -35,7 +35,7 @@ import { config } from '../config';
 import { TypedRequest } from '../util/zod';
 import { getVerification } from '../db/verification';
 import { validateTOTP } from '../util/totp';
-import { addAudit } from '../db/audit';
+import { addAudit, getAuditsByUsername } from '../db/audit';
 import { generateProfilePicturePath } from '../util/profilepicture';
 import sharp from 'sharp';
 
@@ -79,13 +79,7 @@ export const getProfileV2 = async (_req: Request, res: Response, next: NextFunct
       async (t) => await getProfileDataV2(t, username),
     );
     res.status(200).json({
-      user_id: userInfo.user_id,
-      username: username,
-      email: userInfo.email,
-      email_verified_on: userInfo.email_verified_on,
-      registration_date: userInfo.registration_date,
-      totp_enabled_on: userInfo.totp_enabled_on,
-      profile_picture_path: userInfo.profile_picture_path,
+      ...userInfo,
       stats: {
         book: {
           ...bookData,
@@ -308,24 +302,28 @@ export const exportProfileData = async (
   const { password } = req.body;
 
   try {
-    const [books, movies, profile, shares] = await db.task('exportProfileData', async (t) => {
-      const isCorrect = await isPasswordCorrect(t, { username, password });
-      if (!isCorrect) {
-        throw new ErrorWithStatus(422, 'profile_export_error', 'Incorrect password');
-      }
+    const [books, movies, profile, shares, audits] = await db.task(
+      'exportProfileData',
+      async (t) => {
+        const isCorrect = await isPasswordCorrect(t, { username, password });
+        if (!isCorrect) {
+          throw new ErrorWithStatus(422, 'profile_export_error', 'Incorrect password');
+        }
 
-      await addAudit(t, { username, action: 'profile_data_exported' });
+        await addAudit(t, { username, action: 'profile_data_exported' });
 
-      return Promise.all([
-        getAllBooks(t, username),
-        getAllMovies(t, username),
-        getProfileDataV2(t, username),
-        getSharesByUsername(t, username),
-      ]);
-    });
+        return Promise.all([
+          getAllBooks(t, username),
+          getAllMovies(t, username),
+          getProfileDataV2(t, username),
+          getSharesByUsername(t, username),
+          getAuditsByUsername(t, username),
+        ]);
+      },
+    );
 
     res.status(200).json({
-      version: 4,
+      version: 5,
       profile: {
         ...profile.userInfo,
         stats: {
@@ -342,6 +340,7 @@ export const exportProfileData = async (
       books,
       movies,
       shares,
+      audits,
     });
   } catch (error) {
     if (error instanceof ErrorWithStatus) {
