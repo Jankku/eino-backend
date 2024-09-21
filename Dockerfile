@@ -8,7 +8,7 @@ RUN npm ci --build-from-source && npm run build
 
 FROM node:lts-alpine
 WORKDIR /home/node/eino
-RUN apk add --no-cache cairo jpeg pango && chown -R node:node /home/node/eino
+RUN apk add --no-cache cairo jpeg pango && mkdir -p /home/node/eino/profilepicture && chown -R node:node /home/node/eino
 COPY --chown=node:node package*.json docker-entrypoint.sh ./
 COPY --chown=node:node --from=build /home/node/eino/node_modules ./node_modules
 COPY --chown=node:node --from=build /home/node/eino/src ./src
