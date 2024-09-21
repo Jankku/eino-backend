@@ -1,6 +1,12 @@
 import { NextFunction, Request, Response } from 'express';
 import { db, pgp } from '../db/config';
-import { getItemCountByUsername, getUserByUsername, isPasswordCorrect } from '../db/users';
+import {
+  findProfilePictureByUsername,
+  getItemCountByUsername,
+  getUserByUsername,
+  isPasswordCorrect,
+  updateProfilePicturePath,
+} from '../db/users';
 import { ErrorWithStatus } from '../util/errorhandler';
 import * as fs from 'node:fs/promises';
 import { success } from '../util/response';
@@ -30,6 +36,8 @@ import { TypedRequest } from '../util/zod';
 import { getVerification } from '../db/verification';
 import { validateTOTP } from '../util/totp';
 import { addAudit } from '../db/audit';
+import { generateProfilePicturePath } from '../util/profilepicture';
+import sharp from 'sharp';
 
 export const getProfile = async (
   _req: TypedRequest<typeof getProfileSchema>,
@@ -77,6 +85,7 @@ export const getProfileV2 = async (_req: Request, res: Response, next: NextFunct
       email_verified_on: userInfo.email_verified_on,
       registration_date: userInfo.registration_date,
       totp_enabled_on: userInfo.totp_enabled_on,
+      profile_picture_path: userInfo.profile_picture_path,
       stats: {
         book: {
           ...bookData,
@@ -417,5 +426,67 @@ export const importProfileData = async (
   } catch (error) {
     Logger.error(error);
     next(new ErrorWithStatus(500, 'profile_import_error', "Couldn't import user data"));
+  }
+};
+
+export const saveProfilePicture = async (req: Request, res: Response, next: NextFunction) => {
+  const file = req.file;
+  const username: string = res.locals.username;
+  try {
+    if (!file) {
+      await db.tx('saveProfilePicture', async (t) => {
+        const oldProfilePicturePath = await findProfilePictureByUsername(t, username);
+        await updateProfilePicturePath(t, { username, path: undefined });
+        if (oldProfilePicturePath) {
+          await addAudit(t, {
+            username,
+            action: 'profile_picture_updated',
+            old_data: { path: oldProfilePicturePath },
+          });
+          await fs.rm(oldProfilePicturePath, { force: true });
+        }
+      });
+      res
+        .status(200)
+        .json(success([{ name: 'profile_picture_removed', message: 'Profile picture removed' }]));
+      return;
+    }
+
+    if (!file.mimetype.startsWith('image/')) {
+      next(new ErrorWithStatus(422, 'profile_picture_error', 'Invalid file type'));
+      return;
+    }
+
+    const TEN_MB = 10 * 1024 * 1024;
+    if (file.size > TEN_MB) {
+      next(new ErrorWithStatus(422, 'profile_picture_error', 'File size exceeds 10MB'));
+      return;
+    }
+
+    await db.tx('saveProfilePicture', async (t) => {
+      const path = generateProfilePicturePath();
+      const oldProfilePicturePath = await findProfilePictureByUsername(t, username);
+      if (oldProfilePicturePath) {
+        await fs.rm(oldProfilePicturePath, { force: true });
+      }
+      await updateProfilePicturePath(t, { username, path });
+      await addAudit(t, {
+        username,
+        action: 'profile_picture_updated',
+        old_data: oldProfilePicturePath ? { path: oldProfilePicturePath } : undefined,
+        new_data: { path },
+      });
+      await sharp(file.buffer)
+        .resize({ width: 200, height: 200, fit: 'cover' })
+        .avif()
+        .toFile(path);
+    });
+
+    res
+      .status(200)
+      .json(success([{ name: 'profile_picture_uploaded', message: 'Profile picture uploaded' }]));
+  } catch (error) {
+    Logger.error((error as Error).stack);
+    next(new ErrorWithStatus(422, 'profile_picture_error', "Couldn't save profile picture"));
   }
 };

@@ -34,6 +34,8 @@ tags:
     description: Profile endpoints
   - name: share
     description: Public profile share endpoints
+  - name: profilepicture
+    description: Public profile picture endpoints
 paths:
   /docs.json:
     get:
@@ -482,6 +484,33 @@ paths:
                       properties:
                         share_id:
                           type: string
+  /profile/profilepicture:
+    post:
+      tags:
+        - profile
+      summary: Upload profile picture
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                picture:
+                  type: string
+                  format: binary
+            encoding:
+              picture:
+                contentType: image/*
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
   /profile/export:
     post:
       tags:
@@ -980,6 +1009,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+  /profilepicture/{fileName}.avif:
+    get:
+      parameters:
+        - name: fileName
+          in: path
+          required: true
+          schema:
+            type: string
+      tags:
+        - profilepicture
+      summary: Get profile picture by filename
+      responses:
+        '200':
+          description: Successful response
+          content:
+            image/avif:
+              schema:
+                type: string
+                format: binary
+        '422':
+          description: Couldn't get profile picture
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
 components:
   schemas:
     Username:
@@ -1256,6 +1310,8 @@ components:
         totp_enabled_on:
           type: string
           format: date-time
+        profile_picture_path:
+          type: string
         stats:
           type: object
           properties:

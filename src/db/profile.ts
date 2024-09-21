@@ -9,12 +9,13 @@ type UserInfo = {
   email: string | null;
   email_verified_on: string | null;
   totp_enabled_on: string | null;
+  profile_picture_path: string | null;
   registration_date: string;
 };
 
 const getUserInfo = async (t: ITask<unknown>, username: string): Promise<UserInfo> => {
   return await t.one({
-    text: `SELECT user_id, username, email, email_verified_on, totp_enabled_on, created_on as registration_date
+    text: `SELECT user_id, username, email, email_verified_on, totp_enabled_on, profile_picture_path, created_on as registration_date
            FROM users
            WHERE username = $1`,
     values: [username],

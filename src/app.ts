@@ -17,15 +17,21 @@ import { routerV2 } from './routes/router-v2';
 import { initZxcvbn } from './util/auth';
 import closeWithGrace from 'close-with-grace';
 import { initDiscordAuditProcessing } from './services/audit';
+import { createProfilePictureDir } from './util/profilepicture';
 
 initZxcvbn();
-createShareDir().catch((error) => Logger.error('Error creating share directory', error));
+createShareDir().catch((error) => Logger.error('Error creating share dir', { error }));
+createProfilePictureDir().catch((error) =>
+  Logger.error('Error creating profile picture dir', { error }),
+);
 initDiscordAuditProcessing();
 
 const app = express();
 
 app.use(express.json({ limit: config.REQUEST_BODY_MAX_SIZE }));
-app.use(helmet());
+if (config.isProduction) {
+  app.use(helmet());
+}
 app.use(cors({ allowedHeaders: ['Content-Type', 'Authorization'] }));
 
 // Prevent requests when server is closing

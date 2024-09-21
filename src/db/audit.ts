@@ -12,6 +12,7 @@ export const auditAction = {
   TWO_FACTOR_AUTHENTICATION_ENABLED: 'two_factor_authentication_enabled',
   TWO_FACTOR_AUTHENTICATION_DISABLED: 'two_factor_authentication_disabled',
   PROFILE_SHARED: 'profile_shared',
+  PROFILE_PICTURE_UPDATED: 'profile_picture_updated',
   PROFILE_DATA_EXPORTED: 'profile_data_exported',
   PROFILE_DATA_IMPORTED: 'profile_data_imported',
   ACCOUNT_DELETED: 'account_deleted',

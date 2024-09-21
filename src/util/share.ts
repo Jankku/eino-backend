@@ -9,8 +9,6 @@ export const createShareDir = async () => {
   await fs.mkdir(SHARE_PATH, { recursive: true });
 };
 
-export const getSharePath = () => path.join(SHARE_PATH);
-
 export const getShareItemPath = (username: string) =>
   path.join(SHARE_PATH, `${username}${IMAGE_EXTENSION}`);
 

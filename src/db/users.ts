@@ -3,6 +3,7 @@ import { generatePasswordHash } from '../util/auth';
 import Logger from '../util/logger';
 import User from './model/user';
 import * as bcrypt from 'bcrypt';
+import { getProfilePicturePathByFileName } from '../util/profilepicture';
 
 export const findUserByCredential = async (
   t: ITask<unknown>,
@@ -227,5 +228,43 @@ export const getItemCountByUsername = async (
         WHERE submitter = $1
       ) m ON TRUE;`,
     values: [username],
+  });
+};
+
+export const findProfilePictureByUsername = async (
+  t: ITask<unknown>,
+  username: string,
+): Promise<string | null> => {
+  const result = await t.oneOrNone({
+    text: `SELECT profile_picture_path
+           FROM users
+           WHERE username = $1`,
+    values: [username],
+  });
+  return result?.profile_picture_path;
+};
+
+export const findProfilePicturePathByFileName = async (
+  t: ITask<unknown>,
+  fileName: string,
+): Promise<string | null> => {
+  const result = await t.oneOrNone({
+    text: `SELECT profile_picture_path
+           FROM users
+           WHERE profile_picture_path = $1`,
+    values: [getProfilePicturePathByFileName(fileName)],
+  });
+  return result?.profile_picture_path;
+};
+
+export const updateProfilePicturePath = async (
+  t: ITask<unknown>,
+  { username, path }: { username: string; path: string | undefined },
+): Promise<void> => {
+  await t.none({
+    text: `UPDATE users
+             SET profile_picture_path = $1
+             WHERE username = $2`,
+    values: [path, username],
   });
 };
