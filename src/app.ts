@@ -1,5 +1,4 @@
 import express from 'express';
-import helmet from 'helmet';
 import cors from 'cors';
 import Logger from './util/logger';
 import { errorHandler, ErrorWithStatus } from './util/errorhandler';
@@ -29,9 +28,6 @@ initDiscordAuditProcessing();
 const app = express();
 
 app.use(express.json({ limit: config.REQUEST_BODY_MAX_SIZE }));
-if (config.isProduction) {
-  app.use(helmet());
-}
 app.use(cors({ allowedHeaders: ['Content-Type', 'Authorization'] }));
 
 // Prevent requests when server is closing
