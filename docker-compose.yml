@@ -11,6 +11,8 @@ services:
     entrypoint: '/bin/ash docker-entrypoint.sh'
     depends_on:
       - database
+    volumes:
+      - profilepicture:/home/node/eino/profilepicture/
   database:
     container_name: database
     image: postgres:14
@@ -21,3 +23,4 @@ services:
 
 volumes:
   database-data:
+  profilepicture:
