@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { config } from '../../config';
 import { DbAudit } from '../../db/audit';
-import Logger from '../../util/logger';
+import { Logger } from '../../util/logger';
 import { auditToDiscordEmbed } from '../../util/audit';
 
 export const sendAuditsToDiscord = async (audits: DbAudit[]): Promise<void> => {

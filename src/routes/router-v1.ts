@@ -4,7 +4,7 @@ import { bookRouter } from './books';
 import { movieRouter } from './movies';
 import { profileRouter } from './profile';
 import { shareRouter } from './share';
-import verifyToken from '../middleware/verifytoken';
+import { verifyToken } from '../middleware/verifytoken';
 import swaggerUi from 'swagger-ui-express';
 import yaml from 'yaml';
 import { readFileSync } from 'node:fs';

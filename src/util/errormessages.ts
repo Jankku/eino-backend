@@ -1,4 +1,4 @@
-const errorMessages = {
+export const errorMessages = {
   USER_EXISTS: 'User already exists',
   USERNAME_REQUIRED: 'Username required',
   USERNAME_TYPE_ERROR: 'Username should be a string',
@@ -23,5 +23,3 @@ const errorMessages = {
   TWO_FACTOR_CODE_REQUIRED: 'Two-factor code required',
   FILE_EXTENSION_INVALID: 'Invalid file extension',
 };
-
-export default errorMessages;

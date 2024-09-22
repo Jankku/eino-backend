@@ -1,5 +1,5 @@
 import { Movie, DbMovie } from './model/movie';
-import MovieStatus from './model/moviestatus';
+import { MovieStatus } from './model/moviestatus';
 import { ITask } from 'pg-promise';
 
 export const getAllMovies = async (t: ITask<unknown>, username: string): Promise<DbMovie[]> => {

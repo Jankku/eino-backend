@@ -1,7 +1,7 @@
 import { createLogger, format, transports } from 'winston';
 import { config } from '../config';
 
-const Logger = createLogger({
+export const Logger = createLogger({
   level: config.isProduction ? 'info' : 'debug',
   format: format.combine(
     format.timestamp(),
@@ -16,5 +16,3 @@ const Logger = createLogger({
 });
 
 Logger.on('error', () => {});
-
-export default Logger;

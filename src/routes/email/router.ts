@@ -1,5 +1,5 @@
 import express from 'express';
-import validateSchema from '../../middleware/validateschema';
+import { validateSchema } from '../../middleware/validateschema';
 import { updateEmailSchema, verifyEmailSchema } from './schema';
 import * as email from '../../services/email';
 

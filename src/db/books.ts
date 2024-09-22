@@ -1,5 +1,5 @@
 import { Book, DbBook } from './model/book';
-import BookStatus from './model/bookstatus';
+import { BookStatus } from './model/bookstatus';
 import { ITask } from 'pg-promise';
 
 export const getAllBooks = async (t: ITask<unknown>, username: string): Promise<DbBook[]> => {

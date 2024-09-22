@@ -1,5 +1,5 @@
 import express from 'express';
-import validateSchema from '../../middleware/validateschema';
+import { validateSchema } from '../../middleware/validateschema';
 import { getShareImage } from '../../services/share';
 import { getShareImageSchema } from './schema';
 

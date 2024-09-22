@@ -11,6 +11,4 @@ const dbShareSchema = shareSchema.extend({
   username: fixedNonEmptyStringSchema,
 });
 
-type DbShare = z.infer<typeof dbShareSchema>;
-
-export default DbShare;
+export type DbShare = z.infer<typeof dbShareSchema>;

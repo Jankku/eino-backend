@@ -2,7 +2,7 @@ import { NextFunction, Response } from 'express';
 import * as fs from 'node:fs/promises';
 import { getShare } from '../db/share';
 import { ErrorWithStatus } from '../util/errorhandler';
-import Logger from '../util/logger';
+import { Logger } from '../util/logger';
 import { getShareItemPath } from '../util/share';
 import { TypedRequest } from '../util/zod';
 import { getShareImageSchema } from '../routes/share';

@@ -6,7 +6,7 @@ import { profileRouterV2 } from './profile';
 import { profilePictureRouter } from './profilepicture';
 import { shareRouter } from './share';
 import { emailRouter } from './email';
-import verifyToken from '../middleware/verifytoken';
+import { verifyToken } from '../middleware/verifytoken';
 import swaggerUi from 'swagger-ui-express';
 import yaml from 'yaml';
 import { readFileSync } from 'node:fs';

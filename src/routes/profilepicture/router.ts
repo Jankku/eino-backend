@@ -1,5 +1,5 @@
 import express from 'express';
-import validateSchema from '../../middleware/validateschema';
+import { validateSchema } from '../../middleware/validateschema';
 import { getProfilePictureSchema } from './schema';
 import { getProfilePicture } from '../../services/profilepicture';
 

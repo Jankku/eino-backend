@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { movieStatusEnum } from '../../db/model/moviestatus';
 import { listIdSchema } from '../../util/zodschema';
-import errorMessages from '../../util/errormessages';
+import { errorMessages } from '../../util/errormessages';
 import { movieSchema } from '../../db/model/movie';
 
 export const searchSchema = z.object({

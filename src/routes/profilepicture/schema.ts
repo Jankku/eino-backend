@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import errorMessages from '../../util/errormessages';
+import { errorMessages } from '../../util/errormessages';
 
 export const getProfilePictureSchema = z.object({
   params: z.object({

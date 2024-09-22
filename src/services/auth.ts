@@ -13,7 +13,7 @@ import {
 } from '../db/users';
 import { db } from '../db/config';
 import { success } from '../util/response';
-import Logger from '../util/logger';
+import { Logger } from '../util/logger';
 import {
   generateAccessToken,
   generatePasswordHash,

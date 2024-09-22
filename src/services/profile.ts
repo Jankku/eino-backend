@@ -10,7 +10,7 @@ import {
 import { ErrorWithStatus } from '../util/errorhandler';
 import * as fs from 'node:fs/promises';
 import { success } from '../util/response';
-import Logger from '../util/logger';
+import { Logger } from '../util/logger';
 import { registerFont, createCanvas } from 'canvas';
 import { getAllBooks, getTop10BookTitles } from '../db/books';
 import { getAllMovies, getTop10MovieTitles } from '../db/movies';

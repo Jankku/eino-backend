@@ -1,9 +1,19 @@
 import { ITask } from 'pg-promise';
 import { generatePasswordHash } from '../util/auth';
-import Logger from '../util/logger';
-import User from './model/user';
+import { Logger } from '../util/logger';
 import * as bcrypt from 'bcrypt';
 import { getProfilePicturePathByFileName } from '../util/profilepicture';
+
+export type User = {
+  user_id: string;
+  username: string;
+  password: string;
+  email: string | null;
+  email_verified_on: Date;
+  totp_enabled_on: Date;
+  last_login_on: Date;
+  created_on: Date;
+};
 
 export const findUserByCredential = async (
   t: ITask<unknown>,

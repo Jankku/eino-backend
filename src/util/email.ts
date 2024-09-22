@@ -1,6 +1,6 @@
 import { Mail, MailtrapClient, SendError, SendResponse } from 'mailtrap';
 import { config } from '../config';
-import Logger from './logger';
+import { Logger } from './logger';
 
 export type EmailTemplate = {
   subject: string;

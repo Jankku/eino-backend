@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import errorMessages from '../../util/errormessages';
+import { errorMessages } from '../../util/errormessages';
 import { optionalEmailSchema, optionalOtpSchema } from '../../util/zodschema';
 
 export const updateEmailSchema = z.object({

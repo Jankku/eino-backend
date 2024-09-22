@@ -28,7 +28,7 @@ export type JwtPayload = {
 /**
  * Verifies that user's access token is valid
  */
-const verifyToken = (req: Request, res: Response, next: NextFunction) => {
+export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   try {
     const accessToken = tokenSchema.parse(req).headers.authorization;
     const { username } = jwt.verify(accessToken, config.ACCESS_TOKEN_SECRET, {
@@ -46,5 +46,3 @@ const verifyToken = (req: Request, res: Response, next: NextFunction) => {
     }
   }
 };
-
-export default verifyToken;

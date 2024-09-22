@@ -1,5 +1,5 @@
 import express from 'express';
-import validateSchema from '../../middleware/validateschema';
+import { validateSchema } from '../../middleware/validateschema';
 import * as books from '../../services/books';
 import {
   addOneSchema,

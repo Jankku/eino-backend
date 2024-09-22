@@ -3,7 +3,7 @@ import * as fs from 'node:fs/promises';
 import { db } from '../db/config';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { findProfilePicturePathByFileName } from '../db/users';
-import Logger from '../util/logger';
+import { Logger } from '../util/logger';
 import { TypedRequest } from '../util/zod';
 import { getProfilePictureSchema } from '../routes/profilepicture/schema';
 

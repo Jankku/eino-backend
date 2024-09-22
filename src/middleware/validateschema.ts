@@ -11,7 +11,7 @@ const customErrorMap: z.ZodErrorMap = (error, ctx) => {
 
 z.setErrorMap(customErrorMap);
 
-const validateSchema =
+export const validateSchema =
   (schema: ZodSchema) => async (req: Request, res: Response, next: NextFunction) => {
     try {
       await schema.parseAsync({
@@ -28,5 +28,3 @@ const validateSchema =
       }
     }
   };
-
-export default validateSchema;

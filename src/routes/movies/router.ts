@@ -1,5 +1,5 @@
 import express from 'express';
-import validateSchema from '../../middleware/validateschema';
+import { validateSchema } from '../../middleware/validateschema';
 import * as movies from '../../services/movies';
 import {
   addOneSchema,

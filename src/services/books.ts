@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import Logger from '../util/logger';
+import { Logger } from '../util/logger';
 import {
   getAllBooks,
   getBookById,

@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon';
 import { AuditAction, getAuditsByActionNewerThan } from '../db/audit';
 import { db } from '../db/config';
-import Logger from '../util/logger';
+import { Logger } from '../util/logger';
 import { sendAuditsToDiscord } from './third-party/discord';
 import { chunkArray, sequentially, wait } from '../util/audit';
 import { config } from '../config';

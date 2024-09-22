@@ -9,7 +9,7 @@ import {
   usernameOrEmailSchema,
   usernameSchema,
 } from '../../util/zodschema';
-import errorMessages from '../../util/errormessages';
+import { errorMessages } from '../../util/errormessages';
 import { getPasswordStrength } from '../../util/auth';
 import { db } from '../../db/config';
 

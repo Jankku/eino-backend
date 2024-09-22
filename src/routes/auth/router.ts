@@ -1,5 +1,5 @@
 import express from 'express';
-import validateSchema from '../../middleware/validateschema';
+import { validateSchema } from '../../middleware/validateschema';
 import * as auth from '../../services/auth';
 import {
   registerSchema,
@@ -11,7 +11,7 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
 } from './schema';
-import verifyToken from '../../middleware/verifytoken';
+import { verifyToken } from '../../middleware/verifytoken';
 
 export const authRouter = express.Router();
 

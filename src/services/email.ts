@@ -8,7 +8,7 @@ import {
   findVerification,
   getVerification,
 } from '../db/verification';
-import Logger from '../util/logger';
+import { Logger } from '../util/logger';
 import {
   getUserByUsername,
   isEmailAlreadyUsed,

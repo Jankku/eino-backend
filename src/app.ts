@@ -1,8 +1,8 @@
 import express from 'express';
 import cors from 'cors';
-import Logger from './util/logger';
+import { Logger } from './util/logger';
 import { errorHandler, ErrorWithStatus } from './util/errorhandler';
-import verifyToken from './middleware/verifytoken';
+import { verifyToken } from './middleware/verifytoken';
 import { db } from './db/config';
 import { createShareDir } from './util/share';
 import { authRouter } from './routes/auth';
