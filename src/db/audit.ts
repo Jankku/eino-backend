@@ -38,6 +38,10 @@ export type DbAudit = Audit & {
   created_on: Date;
 };
 
+export const getAllAudits = async (t: ITask<unknown>): Promise<DbAudit[]> => {
+  return await t.any('SELECT * FROM audit_log ORDER BY created_on ASC');
+};
+
 export const getAuditsByUsername = async (
   t: ITask<unknown>,
   username: string,
