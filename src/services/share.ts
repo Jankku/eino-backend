@@ -1,16 +1,16 @@
-import { NextFunction, Response } from 'express';
+import { NextFunction } from 'express';
 import * as fs from 'node:fs/promises';
 import { getShare } from '../db/share';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { Logger } from '../util/logger';
 import { getShareItemPath } from '../util/share';
-import { TypedRequest } from '../util/zod';
+import { TypedRequest, TypedResponse } from '../util/zod';
 import { getShareImageSchema } from '../routes/share';
 import { db } from '../db/config';
 
 export const getShareImage = async (
   req: TypedRequest<typeof getShareImageSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { id } = req.params;

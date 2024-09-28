@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Request } from 'express';
 import { success } from '../util/response';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { generateTOTP, validateEmailOTP, validateTOTP } from '../util/totp';
@@ -16,7 +16,7 @@ import {
   updateEmailAddress,
   updateEmailVerifiedTimestamp,
 } from '../db/users';
-import { TypedRequest } from '../util/zod';
+import { TypedRequest, TypedResponse } from '../util/zod';
 import { updateEmailSchema, verifyEmailSchema } from '../routes/email';
 import { DateTime } from 'luxon';
 import { isVerificationExpired } from '../util/verification';
@@ -27,7 +27,7 @@ import { addAudit } from '../db/audit';
 
 export const updateEmail = async (
   req: TypedRequest<typeof updateEmailSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const username: string = res.locals.username;
@@ -104,7 +104,11 @@ export const updateEmail = async (
   }
 };
 
-export const sendConfirmationEmail = async (req: Request, res: Response, next: NextFunction) => {
+export const sendConfirmationEmail = async (
+  req: Request,
+  res: TypedResponse,
+  next: NextFunction,
+) => {
   const username: string = res.locals.username;
 
   try {
@@ -163,7 +167,7 @@ export const sendConfirmationEmail = async (req: Request, res: Response, next: N
 
 export const verifyEmail = async (
   req: TypedRequest<typeof verifyEmailSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const username: string = res.locals.username;

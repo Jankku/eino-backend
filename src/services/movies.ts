@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Request } from 'express';
 import { Logger } from '../util/logger';
 import {
   getAllMovies,
@@ -21,7 +21,7 @@ import {
   searchSchema,
   updateOneSchema,
 } from '../routes/movies';
-import { TypedRequest } from '../util/zod';
+import { TypedRequest, TypedResponse } from '../util/zod';
 import {
   DbMovie,
   movieNumberKeySchema,
@@ -33,7 +33,7 @@ import { addAudit } from '../db/audit';
 
 export const fetchOne = async (
   req: TypedRequest<typeof fetchOneSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { movieId } = req.params;
@@ -51,7 +51,7 @@ export const fetchOne = async (
   }
 };
 
-export const fetchAll = async (req: Request, res: Response, next: NextFunction) => {
+export const fetchAll = async (req: Request, res: TypedResponse, next: NextFunction) => {
   const username: string = res.locals.username;
 
   try {
@@ -86,7 +86,7 @@ export const fetchAll = async (req: Request, res: Response, next: NextFunction) 
 
 export const fetchByStatus = async (
   req: TypedRequest<typeof fetchByStatusSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const username: string = res.locals.username;
@@ -127,7 +127,7 @@ export const fetchByStatus = async (
 
 export const addOne = async (
   req: TypedRequest<typeof addOneSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const username: string = res.locals.username;
@@ -157,7 +157,7 @@ export const addOne = async (
 
 export const updateOne = async (
   req: TypedRequest<typeof updateOneSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { movieId } = req.params;
@@ -221,7 +221,7 @@ export const updateOne = async (
 
 export const deleteOne = async (
   req: TypedRequest<typeof deleteOneSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { movieId } = req.params;
@@ -255,7 +255,7 @@ export const deleteOne = async (
 
 export const search = async (
   req: TypedRequest<typeof searchSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   try {
@@ -339,7 +339,7 @@ export const search = async (
 
 export const fetchImages = async (
   req: TypedRequest<typeof fetchImagesSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const query = req.query.query;

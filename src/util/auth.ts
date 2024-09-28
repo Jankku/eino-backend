@@ -6,6 +6,7 @@ import * as zxcvbnCommon from '@zxcvbn-ts/language-common';
 import * as zxcvbnEn from '@zxcvbn-ts/language-en';
 import * as zxcvbnFi from '@zxcvbn-ts/language-fi';
 import { User } from '../db/users';
+import { roleIdToName } from './role';
 
 const { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, ACCESS_TOKEN_VALIDITY, REFRESH_TOKEN_VALIDITY } =
   config;
@@ -15,6 +16,7 @@ export const generateAccessToken = (user: User): string =>
     {
       userId: user.user_id,
       username: user.username,
+      role: roleIdToName(user.role_id),
       email: user.email,
       is2FAEnabled: user.totp_enabled_on ? true : false,
     },

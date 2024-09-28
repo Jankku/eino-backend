@@ -1,5 +1,6 @@
 import { ZodError, ZodIssue, z } from 'zod';
-import { Request } from 'express';
+import { Request, Response } from 'express';
+import { Role } from '../db/role';
 
 export type TypedRequest<T extends z.Schema<unknown>> = Omit<
   Request,
@@ -27,4 +28,11 @@ export const formatZodErrors = (error: ZodError) => {
   });
 
   return formattedErrors;
+};
+
+export type TypedResponse = Response & {
+  locals: {
+    username: string;
+    role: Role['name'];
+  };
 };

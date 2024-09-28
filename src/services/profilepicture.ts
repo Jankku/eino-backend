@@ -1,15 +1,15 @@
-import { Response, NextFunction } from 'express';
+import { NextFunction } from 'express';
 import * as fs from 'node:fs/promises';
 import { db } from '../db/config';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { findProfilePicturePathByFileName } from '../db/users';
 import { Logger } from '../util/logger';
-import { TypedRequest } from '../util/zod';
+import { TypedRequest, TypedResponse } from '../util/zod';
 import { getProfilePictureSchema } from '../routes/profilepicture/schema';
 
 export const getProfilePicture = async (
   req: TypedRequest<typeof getProfilePictureSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { fileName } = req.params;

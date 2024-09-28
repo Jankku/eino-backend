@@ -17,6 +17,7 @@ import { initZxcvbn } from './util/auth';
 import closeWithGrace from 'close-with-grace';
 import { initDiscordAuditProcessing } from './services/audit';
 import { createProfilePictureDir } from './util/profilepicture';
+import { initRoleMap } from './db/role';
 
 initZxcvbn();
 createShareDir().catch((error) => Logger.error('Error creating share dir', { error }));
@@ -55,6 +56,16 @@ app.use(errorHandler);
 const server = app.listen(config.PORT, () =>
   Logger.info(`Server Listening to port ${config.PORT}`),
 );
+
+db.connect()
+  .then(async (c) => {
+    Logger.info('Connected to database');
+    await c.task(initRoleMap);
+    await c.done();
+  })
+  .catch((error: Error) => {
+    throw error;
+  });
 
 closeWithGrace({ logger: Logger }, ({ err }) => {
   if (err) {

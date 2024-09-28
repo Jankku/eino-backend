@@ -1,5 +1,5 @@
 import * as bcrypt from 'bcrypt';
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Request } from 'express';
 import jwt from 'jsonwebtoken';
 import {
   disableTOTP,
@@ -22,7 +22,7 @@ import {
 } from '../util/auth';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { config } from '../config';
-import { TypedRequest } from '../util/zod';
+import { TypedRequest, TypedResponse } from '../util/zod';
 import {
   enable2FASchema,
   forgotPasswordSchema,
@@ -47,10 +47,11 @@ import { isVerificationExpired } from '../util/verification';
 import { sendEmail } from '../util/email';
 import { resetPasswordTemplate } from '../util/emailtemplates';
 import { addAudit } from '../db/audit';
+import { getDefaultRoleId } from '../db/role';
 
 export const register = async (
   req: TypedRequest<typeof registerSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { username, password, email } = req.body;
@@ -58,10 +59,11 @@ export const register = async (
   try {
     await db.task('register', async (t) => {
       const hashedPassword = await generatePasswordHash(password);
+      const defaultRoleId = await getDefaultRoleId(t);
       await t.none({
-        text: `INSERT INTO users (username, password, email)
+        text: `INSERT INTO users (username, password, email, role_id)
              VALUES ($1, $2, $3)`,
-        values: [username, hashedPassword, email || undefined],
+        values: [username, hashedPassword, email || undefined, defaultRoleId],
       });
       await addAudit(t, { username, action: 'register' });
     });
@@ -81,7 +83,7 @@ export const register = async (
 
 export const login = async (
   req: TypedRequest<typeof loginSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { username: usernameOrEmail, password, twoFactorCode } = req.body;
@@ -131,7 +133,7 @@ export const login = async (
 
 export const loginConfig = async (
   req: TypedRequest<typeof loginConfigSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { username: usernameOrEmail, password } = req.body;
@@ -166,7 +168,7 @@ export const loginConfig = async (
 
 export const generateNewAccessToken = async (
   req: TypedRequest<typeof refreshTokenSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { refreshToken } = req.body;
@@ -192,7 +194,7 @@ export const generateNewAccessToken = async (
 
 export const passwordStrength = (
   req: TypedRequest<typeof passwordStrengthSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { password } = req.body;
@@ -214,7 +216,7 @@ export const passwordStrength = (
 
 export const forgotPassword = async (
   req: TypedRequest<typeof forgotPasswordSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { email } = req.body;
@@ -297,7 +299,7 @@ export const forgotPassword = async (
 
 export const resetPassword = async (
   req: TypedRequest<typeof resetPasswordSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { email, newPassword, otp, twoFactorCode } = req.body;
@@ -360,7 +362,7 @@ export const resetPassword = async (
   }
 };
 
-export const generate2FAUrl = async (req: Request, res: Response, next: NextFunction) => {
+export const generate2FAUrl = async (req: Request, res: TypedResponse, next: NextFunction) => {
   const username: string = res.locals.username;
 
   try {
@@ -414,7 +416,7 @@ export const generate2FAUrl = async (req: Request, res: Response, next: NextFunc
 
 export const enable2FA = async (
   req: TypedRequest<typeof enable2FASchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { twoFactorCode } = req.body;
@@ -450,7 +452,7 @@ export const enable2FA = async (
 
 export const disable2FA = async (
   req: TypedRequest<typeof enable2FASchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { twoFactorCode } = req.body;
