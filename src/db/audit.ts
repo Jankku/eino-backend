@@ -15,6 +15,7 @@ export const auditAction = {
   PROFILE_PICTURE_UPDATED: 'profile_picture_updated',
   PROFILE_DATA_EXPORTED: 'profile_data_exported',
   PROFILE_DATA_IMPORTED: 'profile_data_imported',
+  ACCOUNT_UPDATED: 'account_updated',
   ACCOUNT_DELETED: 'account_deleted',
   ACCESS_TOKEN_REFRESHED: 'access_token_refresh',
   CREATE: 'create',

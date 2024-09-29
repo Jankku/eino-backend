@@ -129,7 +129,11 @@ export const deleteAccount = async (
       }
 
       await t.none('DELETE FROM users WHERE username = $1', username);
-      await addAudit(t, { username, action: 'account_deleted' });
+      await addAudit(t, {
+        username,
+        action: 'account_deleted',
+        old_data: { ...user, password: undefined },
+      });
     });
 
     const shareImagePath = getShareItemPath(username);
