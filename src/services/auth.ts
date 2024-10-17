@@ -120,7 +120,7 @@ export const login = async (
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
-    return res.status(200).json({ accessToken, refreshToken });
+    res.status(200).json({ accessToken, refreshToken });
   } catch (error) {
     if (error instanceof ErrorWithStatus) {
       next(error);
@@ -153,7 +153,7 @@ export const loginConfig = async (
       return { user };
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       is2FAEnabled: user.totp_enabled_on ? true : false,
     });
   } catch (error) {
@@ -186,7 +186,7 @@ export const generateNewAccessToken = async (
       return accessToken;
     });
 
-    return res.status(200).json({ accessToken });
+    res.status(200).json({ accessToken });
   } catch (error) {
     next(new ErrorWithStatus(422, 'jwt_refresh_error', (error as Error)?.message));
   }

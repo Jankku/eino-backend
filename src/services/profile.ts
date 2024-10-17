@@ -425,7 +425,7 @@ export const importProfileData = async (
       await addAudit(t, { username, action: 'profile_data_imported' });
     });
 
-    return res.status(200).json(success([{ name: 'import_success', message: 'Profile imported' }]));
+    res.status(200).json(success([{ name: 'import_success', message: 'Profile imported' }]));
   } catch (error) {
     Logger.error(error);
     next(new ErrorWithStatus(500, 'profile_import_error', "Couldn't import user data"));
