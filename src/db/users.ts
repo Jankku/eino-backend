@@ -14,6 +14,7 @@ export type User = {
   profile_picture_path: string | null;
   email: string | null;
   email_verified_on: Date;
+  disabled_on: Date;
   totp_enabled_on: Date;
   last_login_on: Date;
   created_on: Date;
@@ -23,7 +24,7 @@ export type UserWithRoleName = User & { role: string };
 
 export const getAllUsers = async (t: ITask<unknown>): Promise<UserWithRoleName[]> => {
   return await t.map(
-    'SELECT user_id, username, role_id, profile_picture_path, email, email_verified_on, totp_enabled_on, last_login_on, created_on FROM users ORDER BY username ASC',
+    'SELECT user_id, username, role_id, profile_picture_path, email, email_verified_on, disabled_on, totp_enabled_on, last_login_on, created_on FROM users ORDER BY username ASC',
     undefined,
     (row) => ({ ...row, role: roleIdToName(row.role_id as number) }),
   );

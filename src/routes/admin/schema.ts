@@ -29,6 +29,18 @@ export const editUserSchema = z
     },
   );
 
+export const enableUserSchema = z.object({
+  params: z.object({
+    userId: z.string().uuid(errorMessages.UUID_INVALID),
+  }),
+});
+
+export const disableUserSchema = z.object({
+  params: z.object({
+    userId: z.string().uuid(errorMessages.UUID_INVALID),
+  }),
+});
+
 export const deleteUserSchema = z.object({
   params: z.object({
     userId: z.string().uuid(errorMessages.UUID_INVALID),

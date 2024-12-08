@@ -12,6 +12,7 @@ import swaggerUi from 'swagger-ui-express';
 import yaml from 'yaml';
 import { readFileSync } from 'node:fs';
 import { requireAdmin } from '../middleware/requirerole';
+import { userEnabled } from '../middleware/userenabled';
 
 export const routerV2 = express.Router();
 
@@ -27,10 +28,10 @@ routerV2.get('/docs.json', (_, res) => {
 });
 
 routerV2.use('/auth', authRouter);
-routerV2.use('/admin', verifyToken, requireAdmin, adminRouter);
-routerV2.use('/list/books', verifyToken, bookRouter);
-routerV2.use('/list/movies', verifyToken, movieRouter);
-routerV2.use('/profile', verifyToken, profileRouterV2);
+routerV2.use('/admin', verifyToken, userEnabled, requireAdmin, adminRouter);
+routerV2.use('/list/books', verifyToken, userEnabled, bookRouter);
+routerV2.use('/list/movies', verifyToken, userEnabled, movieRouter);
+routerV2.use('/profile', verifyToken, userEnabled, profileRouterV2);
 routerV2.use('/profilepicture', profilePictureRouter);
 routerV2.use('/share', shareRouter);
-routerV2.use('/email', verifyToken, emailRouter);
+routerV2.use('/email', verifyToken, userEnabled, emailRouter);

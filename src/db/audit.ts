@@ -16,6 +16,8 @@ export const auditAction = {
   PROFILE_DATA_EXPORTED: 'profile_data_exported',
   PROFILE_DATA_IMPORTED: 'profile_data_imported',
   ACCOUNT_UPDATED: 'account_updated',
+  ACCOUNT_ENABLED: 'account_enabled',
+  ACCOUNT_DISABLED: 'account_disabled',
   ACCOUNT_DELETED: 'account_deleted',
   ACCESS_TOKEN_REFRESHED: 'access_token_refresh',
   CREATE: 'create',

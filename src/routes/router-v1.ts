@@ -8,6 +8,7 @@ import { verifyToken } from '../middleware/verifytoken';
 import swaggerUi from 'swagger-ui-express';
 import yaml from 'yaml';
 import { readFileSync } from 'node:fs';
+import { userEnabled } from '../middleware/userenabled';
 
 export const routerV1 = express.Router();
 
@@ -23,7 +24,7 @@ routerV1.get('/docs.json', (_, res) => {
 });
 
 routerV1.use('/auth', authRouter);
-routerV1.use('/list/books', verifyToken, bookRouter);
-routerV1.use('/list/movies', verifyToken, movieRouter);
-routerV1.use('/profile', verifyToken, profileRouter);
+routerV1.use('/list/books', verifyToken, userEnabled, bookRouter);
+routerV1.use('/list/movies', verifyToken, userEnabled, movieRouter);
+routerV1.use('/profile', verifyToken, userEnabled, profileRouter);
 routerV1.use('/share', shareRouter);

@@ -84,6 +84,75 @@ export const editUser = async (
   }
 };
 
+export const enableUser = async (
+  req: TypedRequest<typeof deleteUserSchema>,
+  res: TypedResponse,
+  next: NextFunction,
+) => {
+  const adminUsername = res.locals.username;
+  const { userId } = req.params;
+  try {
+    await db.tx(async (t) => {
+      const adminUser = await getUserByUsername(t, adminUsername);
+      const user = await getUserById(t, userId);
+      if (adminUser.user_id === user.user_id) {
+        throw new ErrorWithStatus(400, 'admin_error', 'You cannot enable yourself');
+      }
+      if (!user.disabled_on) return;
+      await t.none('UPDATE users SET disabled_on = null WHERE user_id = $1', user.user_id);
+      await addAudit(t, {
+        username: adminUsername,
+        action: 'account_enabled',
+        table_name: 'users',
+        record_id: user.user_id,
+      });
+    });
+    res.status(200).json(success([{ name: 'user_enabled', message: 'User enabled successfully' }]));
+  } catch (error) {
+    if (error instanceof ErrorWithStatus) {
+      next(error);
+    } else {
+      Logger.error((error as Error).stack);
+      next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to enable user'));
+    }
+  }
+};
+
+export const disableUser = async (
+  req: TypedRequest<typeof deleteUserSchema>,
+  res: TypedResponse,
+  next: NextFunction,
+) => {
+  const adminUsername = res.locals.username;
+  const { userId } = req.params;
+  try {
+    await db.tx(async (t) => {
+      const adminUser = await getUserByUsername(t, adminUsername);
+      const user = await getUserById(t, userId);
+      if (adminUser.user_id === user.user_id) {
+        throw new ErrorWithStatus(400, 'admin_error', 'You cannot disable yourself');
+      }
+      await t.none('UPDATE users SET disabled_on = NOW() WHERE user_id = $1', user.user_id);
+      await addAudit(t, {
+        username: adminUsername,
+        action: 'account_disabled',
+        table_name: 'users',
+        record_id: user.user_id,
+      });
+    });
+    res
+      .status(200)
+      .json(success([{ name: 'user_disabled', message: 'User disabled successfully' }]));
+  } catch (error) {
+    if (error instanceof ErrorWithStatus) {
+      next(error);
+    } else {
+      Logger.error((error as Error).stack);
+      next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to disable user'));
+    }
+  }
+};
+
 export const deleteUser = async (
   req: TypedRequest<typeof deleteUserSchema>,
   res: TypedResponse,

@@ -95,6 +95,10 @@ export const login = async (
         throw new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password');
       }
 
+      if (user.disabled_on) {
+        throw new ErrorWithStatus(422, 'authentication_error', 'Account disabled');
+      }
+
       const isCorrect = await bcrypt.compare(password, user.password);
       if (!isCorrect) {
         throw new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password');
@@ -145,6 +149,10 @@ export const loginConfig = async (
         throw new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password');
       }
 
+      if (user.disabled_on) {
+        throw new ErrorWithStatus(422, 'authentication_error', 'Account disabled');
+      }
+
       const isCorrect = await bcrypt.compare(password, user.password);
       if (!isCorrect) {
         throw new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password');
@@ -181,6 +189,9 @@ export const generateNewAccessToken = async (
 
     const accessToken = await db.task('generateNewAccessToken', async (t) => {
       const user = await getUserByUsername(t, username);
+      if (user.disabled_on) {
+        throw new ErrorWithStatus(422, 'authentication_error', 'Account disabled');
+      }
       const accessToken = generateAccessToken(user);
       await addAudit(t, { username: user.username, action: 'access_token_refresh' });
       return accessToken;
@@ -188,7 +199,11 @@ export const generateNewAccessToken = async (
 
     res.status(200).json({ accessToken });
   } catch (error) {
-    next(new ErrorWithStatus(422, 'jwt_refresh_error', (error as Error)?.message));
+    if (error instanceof ErrorWithStatus) {
+      next(error);
+    } else {
+      next(new ErrorWithStatus(422, 'jwt_refresh_error', (error as Error)?.message));
+    }
   }
 };
 
@@ -226,6 +241,10 @@ export const forgotPassword = async (
       const user = await findUserByEmail(t, email);
       if (!user || !user.email) {
         throw new ErrorWithStatus(422, 'forget_password_error', 'Account not found');
+      }
+
+      if (user.disabled_on) {
+        throw new ErrorWithStatus(422, 'forget_password_error', 'Account disabled');
       }
 
       if (!user.email_verified_on) {
@@ -307,6 +326,10 @@ export const resetPassword = async (
   try {
     await db.tx('resetPassword', async (t) => {
       const user = await getUserByEmail(t, email);
+
+      if (user.disabled_on) {
+        throw new ErrorWithStatus(422, 'reset_password_error', 'Account disabled');
+      }
 
       if (user.totp_enabled_on) {
         if (!twoFactorCode) {
