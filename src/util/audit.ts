@@ -30,6 +30,13 @@ export const wait = async (ms: number): Promise<void> =>
 export const truncate = (text: string, length: number): string =>
   text.length > length ? `${text.slice(0, length - 3)}...` : text;
 
+export const redactEmail = (email: string) => {
+  const [localPart, domain] = email.split('@');
+  if (localPart.length <= 5) return `*****@${domain}`;
+  const redactedLocalPart = localPart.at(0) + '*'.repeat(localPart.length - 2) + localPart.at(-1);
+  return `${redactedLocalPart}@${domain}`;
+};
+
 type DiscordEmbed = {
   timestamp: string;
   color: number;
@@ -67,6 +74,9 @@ export const auditToDiscordEmbed = (audit: DbAudit): DiscordEmbed => {
   }
 
   if (audit.old_data) {
+    if (audit.old_data.email) {
+      audit.old_data.email = redactEmail(audit.old_data.email as string);
+    }
     fields.push({
       name: 'Old Data',
       value: truncate(JSON.stringify(audit.old_data), 1024),
@@ -75,6 +85,9 @@ export const auditToDiscordEmbed = (audit: DbAudit): DiscordEmbed => {
   }
 
   if (audit.new_data) {
+    if (audit.new_data.email) {
+      audit.new_data.email = redactEmail(audit.new_data.email as string);
+    }
     fields.push({
       name: 'New Data',
       value: truncate(JSON.stringify(audit.new_data), 1024),

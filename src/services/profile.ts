@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Request } from 'express';
 import { db, pgp } from '../db/config';
 import {
   findProfilePictureByUsername,
@@ -32,7 +32,7 @@ import {
   moviesListCs,
 } from '../util/profile';
 import { config } from '../config';
-import { TypedRequest } from '../util/zod';
+import { TypedRequest, TypedResponse } from '../util/zod';
 import { getVerification } from '../db/verification';
 import { validateTOTP } from '../util/totp';
 import { addAudit, getAuditsByUsername } from '../db/audit';
@@ -41,7 +41,7 @@ import sharp from 'sharp';
 
 export const getProfile = async (
   _req: TypedRequest<typeof getProfileSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const username: string = res.locals.username;
@@ -72,7 +72,7 @@ export const getProfile = async (
   }
 };
 
-export const getProfileV2 = async (_req: Request, res: Response, next: NextFunction) => {
+export const getProfileV2 = async (_req: Request, res: TypedResponse, next: NextFunction) => {
   const username: string = res.locals.username;
   try {
     const { userInfo, bookData, bookScores, movieData, movieScores } = await db.task(
@@ -99,7 +99,7 @@ export const getProfileV2 = async (_req: Request, res: Response, next: NextFunct
 
 export const deleteAccount = async (
   req: TypedRequest<typeof deleteAccountSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const username: string = res.locals.username;
@@ -129,7 +129,11 @@ export const deleteAccount = async (
       }
 
       await t.none('DELETE FROM users WHERE username = $1', username);
-      await addAudit(t, { username, action: 'account_deleted' });
+      await addAudit(t, {
+        username,
+        action: 'account_deleted',
+        old_data: { ...user, password: undefined },
+      });
     });
 
     const shareImagePath = getShareItemPath(username);
@@ -148,7 +152,7 @@ export const deleteAccount = async (
   }
 };
 
-export const generateShareImage = async (_req: Request, res: Response, next: NextFunction) => {
+export const generateShareImage = async (_req: Request, res: TypedResponse, next: NextFunction) => {
   try {
     const username: string = res.locals.username;
     const { bookTitles, movieTitles } = await db.task('generateShareImage', async (t) => {
@@ -295,7 +299,7 @@ export const generateShareImage = async (_req: Request, res: Response, next: Nex
 
 export const exportProfileData = async (
   req: TypedRequest<typeof getProfileSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const username: string = res.locals.username;
@@ -354,7 +358,7 @@ export const exportProfileData = async (
 
 export const importProfileData = async (
   req: TypedRequest<typeof importProfileSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { body } = req;
@@ -421,14 +425,14 @@ export const importProfileData = async (
       await addAudit(t, { username, action: 'profile_data_imported' });
     });
 
-    return res.status(200).json(success([{ name: 'import_success', message: 'Profile imported' }]));
+    res.status(200).json(success([{ name: 'import_success', message: 'Profile imported' }]));
   } catch (error) {
     Logger.error(error);
     next(new ErrorWithStatus(500, 'profile_import_error', "Couldn't import user data"));
   }
 };
 
-export const saveProfilePicture = async (req: Request, res: Response, next: NextFunction) => {
+export const saveProfilePicture = async (req: Request, res: TypedResponse, next: NextFunction) => {
   const file = req.file;
   const username: string = res.locals.username;
   try {

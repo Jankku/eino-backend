@@ -12,6 +12,7 @@ import {
   resetPasswordSchema,
 } from './schema';
 import { verifyToken } from '../../middleware/verifytoken';
+import { userEnabled } from '../../middleware/userenabled';
 
 export const authRouter = express.Router();
 
@@ -23,6 +24,18 @@ authRouter.post('/passwordstrength', validateSchema(passwordStrengthSchema), aut
 authRouter.post('/password/forgot', validateSchema(forgotPasswordSchema), auth.forgotPassword);
 authRouter.post('/password/reset', validateSchema(resetPasswordSchema), auth.resetPassword);
 
-authRouter.post('/2fa/generate', verifyToken, auth.generate2FAUrl);
-authRouter.post('/2fa/enable', verifyToken, validateSchema(enable2FASchema), auth.enable2FA);
-authRouter.post('/2fa/disable', verifyToken, validateSchema(enable2FASchema), auth.disable2FA);
+authRouter.post('/2fa/generate', verifyToken, userEnabled, auth.generate2FAUrl);
+authRouter.post(
+  '/2fa/enable',
+  verifyToken,
+  userEnabled,
+  validateSchema(enable2FASchema),
+  auth.enable2FA,
+);
+authRouter.post(
+  '/2fa/disable',
+  verifyToken,
+  userEnabled,
+  validateSchema(enable2FASchema),
+  auth.disable2FA,
+);

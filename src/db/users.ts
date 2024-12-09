@@ -3,16 +3,31 @@ import { generatePasswordHash } from '../util/auth';
 import { Logger } from '../util/logger';
 import * as bcrypt from 'bcrypt';
 import { getProfilePicturePathByFileName } from '../util/profilepicture';
+import { roleIdToName } from '../util/role';
 
 export type User = {
   user_id: string;
   username: string;
   password: string;
+  role_id: number;
+  role_modified_on: Date;
+  profile_picture_path: string | null;
   email: string | null;
   email_verified_on: Date;
+  disabled_on: Date;
   totp_enabled_on: Date;
   last_login_on: Date;
   created_on: Date;
+};
+
+export type UserWithRoleName = User & { role: string };
+
+export const getAllUsers = async (t: ITask<unknown>): Promise<UserWithRoleName[]> => {
+  return await t.map(
+    'SELECT user_id, username, role_id, profile_picture_path, email, email_verified_on, disabled_on, totp_enabled_on, last_login_on, created_on FROM users ORDER BY username ASC',
+    undefined,
+    (row) => ({ ...row, role: roleIdToName(row.role_id as number) }),
+  );
 };
 
 export const findUserByCredential = async (
@@ -24,6 +39,15 @@ export const findUserByCredential = async (
            FROM users
            WHERE username = $1 OR email = $1`,
     values: [usernameOrEmail],
+  });
+};
+
+export const getUserById = async (t: ITask<unknown>, userId: string): Promise<User> => {
+  return await t.one({
+    text: `SELECT *
+           FROM users
+           WHERE user_id = $1`,
+    values: [userId],
   });
 };
 

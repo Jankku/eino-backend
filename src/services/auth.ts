@@ -1,5 +1,5 @@
 import * as bcrypt from 'bcrypt';
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Request } from 'express';
 import jwt from 'jsonwebtoken';
 import {
   disableTOTP,
@@ -22,7 +22,7 @@ import {
 } from '../util/auth';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { config } from '../config';
-import { TypedRequest } from '../util/zod';
+import { TypedRequest, TypedResponse } from '../util/zod';
 import {
   enable2FASchema,
   forgotPasswordSchema,
@@ -47,10 +47,11 @@ import { isVerificationExpired } from '../util/verification';
 import { sendEmail } from '../util/email';
 import { resetPasswordTemplate } from '../util/emailtemplates';
 import { addAudit } from '../db/audit';
+import { getDefaultRoleId } from '../db/role';
 
 export const register = async (
   req: TypedRequest<typeof registerSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { username, password, email } = req.body;
@@ -58,10 +59,11 @@ export const register = async (
   try {
     await db.task('register', async (t) => {
       const hashedPassword = await generatePasswordHash(password);
+      const defaultRoleId = await getDefaultRoleId(t);
       await t.none({
-        text: `INSERT INTO users (username, password, email)
+        text: `INSERT INTO users (username, password, email, role_id)
              VALUES ($1, $2, $3)`,
-        values: [username, hashedPassword, email || undefined],
+        values: [username, hashedPassword, email || undefined, defaultRoleId],
       });
       await addAudit(t, { username, action: 'register' });
     });
@@ -81,7 +83,7 @@ export const register = async (
 
 export const login = async (
   req: TypedRequest<typeof loginSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { username: usernameOrEmail, password, twoFactorCode } = req.body;
@@ -91,6 +93,10 @@ export const login = async (
       const user = await findUserByCredential(t, usernameOrEmail);
       if (!user) {
         throw new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password');
+      }
+
+      if (user.disabled_on) {
+        throw new ErrorWithStatus(422, 'authentication_error', 'Account disabled');
       }
 
       const isCorrect = await bcrypt.compare(password, user.password);
@@ -118,7 +124,7 @@ export const login = async (
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
 
-    return res.status(200).json({ accessToken, refreshToken });
+    res.status(200).json({ accessToken, refreshToken });
   } catch (error) {
     if (error instanceof ErrorWithStatus) {
       next(error);
@@ -131,7 +137,7 @@ export const login = async (
 
 export const loginConfig = async (
   req: TypedRequest<typeof loginConfigSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { username: usernameOrEmail, password } = req.body;
@@ -143,6 +149,10 @@ export const loginConfig = async (
         throw new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password');
       }
 
+      if (user.disabled_on) {
+        throw new ErrorWithStatus(422, 'authentication_error', 'Account disabled');
+      }
+
       const isCorrect = await bcrypt.compare(password, user.password);
       if (!isCorrect) {
         throw new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password');
@@ -151,7 +161,7 @@ export const loginConfig = async (
       return { user };
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       is2FAEnabled: user.totp_enabled_on ? true : false,
     });
   } catch (error) {
@@ -166,7 +176,7 @@ export const loginConfig = async (
 
 export const generateNewAccessToken = async (
   req: TypedRequest<typeof refreshTokenSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { refreshToken } = req.body;
@@ -179,20 +189,27 @@ export const generateNewAccessToken = async (
 
     const accessToken = await db.task('generateNewAccessToken', async (t) => {
       const user = await getUserByUsername(t, username);
+      if (user.disabled_on) {
+        throw new ErrorWithStatus(422, 'authentication_error', 'Account disabled');
+      }
       const accessToken = generateAccessToken(user);
       await addAudit(t, { username: user.username, action: 'access_token_refresh' });
       return accessToken;
     });
 
-    return res.status(200).json({ accessToken });
+    res.status(200).json({ accessToken });
   } catch (error) {
-    next(new ErrorWithStatus(422, 'jwt_refresh_error', (error as Error)?.message));
+    if (error instanceof ErrorWithStatus) {
+      next(error);
+    } else {
+      next(new ErrorWithStatus(422, 'jwt_refresh_error', (error as Error)?.message));
+    }
   }
 };
 
 export const passwordStrength = (
   req: TypedRequest<typeof passwordStrengthSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { password } = req.body;
@@ -214,7 +231,7 @@ export const passwordStrength = (
 
 export const forgotPassword = async (
   req: TypedRequest<typeof forgotPasswordSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { email } = req.body;
@@ -224,6 +241,10 @@ export const forgotPassword = async (
       const user = await findUserByEmail(t, email);
       if (!user || !user.email) {
         throw new ErrorWithStatus(422, 'forget_password_error', 'Account not found');
+      }
+
+      if (user.disabled_on) {
+        throw new ErrorWithStatus(422, 'forget_password_error', 'Account disabled');
       }
 
       if (!user.email_verified_on) {
@@ -297,7 +318,7 @@ export const forgotPassword = async (
 
 export const resetPassword = async (
   req: TypedRequest<typeof resetPasswordSchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { email, newPassword, otp, twoFactorCode } = req.body;
@@ -305,6 +326,10 @@ export const resetPassword = async (
   try {
     await db.tx('resetPassword', async (t) => {
       const user = await getUserByEmail(t, email);
+
+      if (user.disabled_on) {
+        throw new ErrorWithStatus(422, 'reset_password_error', 'Account disabled');
+      }
 
       if (user.totp_enabled_on) {
         if (!twoFactorCode) {
@@ -360,7 +385,7 @@ export const resetPassword = async (
   }
 };
 
-export const generate2FAUrl = async (req: Request, res: Response, next: NextFunction) => {
+export const generate2FAUrl = async (req: Request, res: TypedResponse, next: NextFunction) => {
   const username: string = res.locals.username;
 
   try {
@@ -414,7 +439,7 @@ export const generate2FAUrl = async (req: Request, res: Response, next: NextFunc
 
 export const enable2FA = async (
   req: TypedRequest<typeof enable2FASchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { twoFactorCode } = req.body;
@@ -450,7 +475,7 @@ export const enable2FA = async (
 
 export const disable2FA = async (
   req: TypedRequest<typeof enable2FASchema>,
-  res: Response,
+  res: TypedResponse,
   next: NextFunction,
 ) => {
   const { twoFactorCode } = req.body;

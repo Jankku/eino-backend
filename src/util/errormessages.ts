@@ -22,4 +22,5 @@ export const errorMessages = {
   OTP_INVALID: 'Invalid one-time password',
   TWO_FACTOR_CODE_REQUIRED: 'Two-factor code required',
   FILE_EXTENSION_INVALID: 'Invalid file extension',
+  UUID_INVALID: 'Invalid UUID',
 };

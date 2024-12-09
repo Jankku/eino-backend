@@ -22,6 +22,7 @@ const tokenSchema = z.object({
 export type JwtPayload = {
   userId: string;
   username: string;
+  role: string;
   email?: string;
 };
 
@@ -31,12 +32,13 @@ export type JwtPayload = {
 export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   try {
     const accessToken = tokenSchema.parse(req).headers.authorization;
-    const { username } = jwt.verify(accessToken, config.ACCESS_TOKEN_SECRET, {
+    const { username, role } = jwt.verify(accessToken, config.ACCESS_TOKEN_SECRET, {
       audience: 'eino',
       issuer: 'eino-backend',
     }) as JwtPayload;
 
     res.locals.username = username;
+    res.locals.role = role;
     next();
   } catch (error) {
     if (error instanceof ZodError) {

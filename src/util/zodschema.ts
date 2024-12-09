@@ -68,7 +68,16 @@ export const optionalEmailSchema = z
   .max(255, {
     message: errorMessages.EMAIL_INVALID,
   })
-  .nullish();
+  .nullish()
+  .refine(
+    (value) => {
+      if (!value) return true;
+      return value.includes('@');
+    },
+    {
+      message: errorMessages.EMAIL_INVALID,
+    },
+  );
 
 export const usernameOrEmailSchema = z.union([usernameSchema, emailSchema]);
 
