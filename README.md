@@ -44,6 +44,10 @@ POSTGRES_USER=<username>
 POSTGRES_PASSWORD=<password>
 POSTGRES_DB=eino
 
+# Credentials for admin user
+ADMIN_USERNAME=
+ADMIN_PASSWORD=
+
 # 5000 is default app port
 PORT=5000
 
@@ -73,6 +77,9 @@ REQUEST_BODY_MAX_SIZE=10mb
 # Books and movies have max count to prevent abuse
 USER_LIST_ITEM_MAX_COUNT=100000
 ```
+
+> [!NOTE]
+> You may want to edit `docker-compose.yml` and remove `nginx` container. It has been configured for my own use.
 
 Start database and app container.
 ```
