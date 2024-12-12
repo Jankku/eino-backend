@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: Eino
   description: Eino API docs
-  version: 2.2.0
+  version: 2.3.0
   license:
     name: MIT
     url: https://github.com/Jankku/eino-backend/blob/master/LICENSE.md
@@ -22,6 +22,8 @@ servers:
 tags:
   - name: docs
     description: Documentation endpoints
+  - name: admin
+    description: Admin endpoints
   - name: auth
     description: Authentication endpoints
   - name: email
@@ -48,6 +50,159 @@ paths:
           content:
             application/json:
               schema: {}
+  /admin/audits:
+    get:
+      tags:
+        - admin
+      summary: Get all audit log entries
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /admin/users:
+    get:
+      tags:
+        - admin
+      summary: Get all users
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /admin/users/{id}/enable:
+    post:
+      summary: Enable user account
+      security:
+        - BearerAuth: []
+      tags:
+        - admin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /admin/users/{id}/disable:
+    post:
+      summary: Disable user account
+      security:
+        - BearerAuth: []
+      tags:
+        - admin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /admin/users/{id}:
+    put:
+      summary: Edit user information
+      security:
+        - BearerAuth: []
+      tags:
+        - admin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditUserRequest'
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    delete:
+      summary: Delete user account
+      security:
+        - BearerAuth: []
+      tags:
+        - admin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
   /auth/register:
     post:
       tags:
@@ -1446,6 +1601,103 @@ components:
       description: 6 digit One-time password. Used to login with 2FA and for email verification
       minLength: 6
       maxLength: 6
+    AuditLogResponse:
+      type: object
+      required:
+        - results
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: number
+              username:
+                type: string
+              action:
+                type: string
+              table_name:
+                type: string
+                nullable: true
+              record_id:
+                type: string
+                nullable: true
+              old_data:
+                type: object
+                nullable: true
+              new_data:
+                type: object
+                nullable: true
+              created_on:
+                type: string
+                format: date-time
+    EditUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          nullable: true
+        email_verified_on:
+          type: string
+          format: date-time
+          nullable: true
+        role_id:
+          type: number
+          minimum: 1
+        profile_picture_path:
+          type: string
+          nullable: true
+        totp_enabled_on:
+          type: string
+          format: date-time
+          nullable: true
+    UsersResponse:
+      type: object
+      required:
+        - results
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              user_id:
+                type: string
+                format: uuid
+              username:
+                type: string
+              role_id:
+                type: number
+              role:
+                type: string
+              profile_picture_path:
+                type: string
+                nullable: true
+              email:
+                type: string
+                nullable: true
+              email_verified_on:
+                type: string
+                format: date-time
+                nullable: true
+              disabled_on:
+                type: string
+                format: date-time
+                nullable: true
+              totp_enabled_on:
+                type: string
+                format: date-time
+                nullable: true
+              last_login_on:
+                type: string
+                format: date-time
+                nullable: true
+              created_on:
+                type: string
+                format: date-time
   requestBodies:
     Book:
       content:
