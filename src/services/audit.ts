@@ -23,7 +23,7 @@ const discordAuditActions: AuditAction[] = [
 let lastProcessed = DateTime.utc();
 
 const processAuditsDiscord = async () => {
-  Logger.profile('processAuditsDiscord');
+  Logger.profile('processAuditsDiscord', { level: 'debug' });
 
   const audits = await db.task(
     'processAuditsDiscord',
@@ -38,7 +38,7 @@ const processAuditsDiscord = async () => {
 
   lastProcessed = DateTime.utc();
 
-  Logger.info(`Processing ${audits.length} audits and sending to Discord`);
+  Logger.debug(`Processing ${audits.length} audits and sending to Discord`);
 
   const chunkedAudits = chunkArray(audits, 10);
   await sequentially(chunkedAudits, async (chunk) => {
