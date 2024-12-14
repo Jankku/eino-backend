@@ -17,6 +17,8 @@ export const initRoleMap = async (t: ITask<unknown>): Promise<void> => {
   Logger.info('Role map initialized');
 };
 
-export const getDefaultRoleId = async (t: ITask<unknown>): Promise<Role['id']> => {
-  return await t.one('SELECT id FROM roles WHERE name = $1', 'basic');
+export const getDefaultRoleId = (): Role['id'] => {
+  const hasRole = roleMap.has('basic');
+  if (!hasRole) throw new Error('Role map not initialized');
+  return roleMap.get('basic')!.id;
 };

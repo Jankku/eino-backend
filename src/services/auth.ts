@@ -59,10 +59,10 @@ export const register = async (
   try {
     await db.task('register', async (t) => {
       const hashedPassword = await generatePasswordHash(password);
-      const defaultRoleId = await getDefaultRoleId(t);
+      const defaultRoleId = getDefaultRoleId();
       await t.none({
         text: `INSERT INTO users (username, password, email, role_id)
-             VALUES ($1, $2, $3)`,
+             VALUES ($1, $2, $3, $4)`,
         values: [username, hashedPassword, email || undefined, defaultRoleId],
       });
       await addAudit(t, { username, action: 'register' });
