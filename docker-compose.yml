@@ -16,7 +16,7 @@ services:
 
   database:
     container_name: database
-    image: postgres:14
+    image: postgres:17
     restart: unless-stopped
     env_file: .env
     volumes:
