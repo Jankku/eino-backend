@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: Eino
   description: Eino API docs
-  version: 2.3.0
+  version: 2.4.0
   license:
     name: MIT
     url: https://github.com/Jankku/eino-backend/blob/master/LICENSE.md
@@ -744,6 +744,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+  /list/books/count:
+    get:
+      tags:
+        - books
+      summary: Get book count by status
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  all:
+                    type: integer
+                  reading:
+                    type: integer
+                  completed:
+                    type: integer
+                  on-hold:
+                    type: integer
+                  dropped:
+                    type: integer
+                  planned:
+                    type: integer
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
   /list/books/{status}:
     get:
       parameters:
@@ -938,6 +971,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResult'
+  /list/movies/count:
+    get:
+      tags:
+        - movies
+      summary: Get movie count by status
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  all:
+                    type: integer
+                  watching:
+                    type: integer
+                  completed:
+                    type: integer
+                  on-hold:
+                    type: integer
+                  dropped:
+                    type: integer
+                  planned:
+                    type: integer
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
   /list/movies/{status}:
     get:
       parameters:
