@@ -1,9 +1,11 @@
 import { NextFunction, Request } from 'express';
 import { Logger } from '../util/logger';
 import {
+  ftsSearch,
   getAllMovies,
   getMovieById,
   getMoviesByStatus,
+  likeSearch,
   postMovie,
   postMovieToUserList,
 } from '../db/movies';
@@ -172,6 +174,7 @@ export const updateOne = async (
     year,
     status,
     score,
+    note,
     start_date,
     end_date,
   } = req.body;
@@ -196,10 +199,11 @@ export const updateOne = async (
         text: `UPDATE user_movie_list
            SET status=$1,
                score=$2,
-               start_date=$3,
-               end_date=$4
-           WHERE movie_id = $5`,
-        values: [status, score, start_date, end_date, movieId],
+               note=$3,
+               start_date=$4,
+               end_date=$5
+           WHERE movie_id = $6`,
+        values: [status, score, note, start_date, end_date, movieId],
       });
       const updatedMovie = await getMovieById(t, { movieId, username });
       await addAudit(t, {
@@ -263,75 +267,32 @@ export const search = async (
     const queryAsArray = queryString.split(' ');
     const username: string = res.locals.username;
 
-    const { resultArray } = await db.task('search', async (t) => {
-      const resultArray: DbMovie[] = [];
+    const { results } = await db.task('search', async (t) => {
+      const results: DbMovie[] = [];
 
       for (const queryPart of queryAsArray) {
-        // accurate query
-        const rows = await t.any<DbMovie>({
-          text: `SELECT m.movie_id,
-                  m.title,
-                  m.studio,
-                  m.director,
-                  m.writer,
-                  m.image_url,
-                  m.duration,
-                  m.year,
-                  uml.status,
-                  uml.score,
-                  uml.start_date,
-                  uml.end_date,
-                  uml.created_on
-               FROM movies m INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
-               WHERE document @@ to_tsquery('english', $2)
-                 AND submitter = $1
-               ORDER BY ts_rank(document, plainto_tsquery($2)) DESC;`,
-          values: [username, `${queryPart}:*`],
-        });
+        const rows = await ftsSearch(t, { username, query: queryPart });
         // Push only unique results
         for (const row of rows) {
-          if (!resultArray.some((item) => item.movie_id === row.movie_id)) {
-            resultArray.push(row);
+          if (!results.some((item) => item.movie_id === row.movie_id)) {
+            results.push(row);
           }
         }
       }
 
-      if (resultArray.length === 0) {
-        // less accurate query
-        const rows = await t.any<DbMovie>({
-          text: `SELECT m.movie_id,
-                  m.title,
-                  m.studio,
-                  m.director,
-                  m.writer,
-                  m.image_url,
-                  m.duration,
-                  m.year,
-                  uml.status,
-                  uml.score,
-                  uml.start_date,
-                  uml.end_date,
-                  uml.created_on
-               FROM movies m INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
-               WHERE submitter = $1 AND (
-                title ILIKE $2
-                  OR studio ILIKE $2
-                  OR director ILIKE $2
-                  OR writer ILIKE $2)
-               LIMIT 100;`,
-          values: [username, `%${queryString}%`],
-        });
+      if (results.length === 0) {
+        const rows = await likeSearch(t, { username, query: queryString });
         // Push only unique results
         for (const row of rows) {
-          if (!resultArray.some((item) => item.movie_id === row.movie_id)) {
-            resultArray.push(row);
+          if (!results.some((item) => item.movie_id === row.movie_id)) {
+            results.push(row);
           }
         }
       }
-      return { resultArray };
+      return { results };
     });
 
-    res.status(200).json(success(resultArray));
+    res.status(200).json(success(results));
   } catch {
     next(new ErrorWithStatus(500, 'movie_list_error', 'Search failed'));
   }
@@ -345,13 +306,10 @@ export const fetchImages = async (
   const query = req.query.query;
 
   try {
-    const responses = (await Promise.allSettled([
+    const responses = await Promise.allSettled([
       fetchTmdbImages(query),
       fetchFinnaImages(query, 'video'),
-    ])) as {
-      status: 'fulfilled' | 'rejected';
-      value: string[];
-    }[];
+    ]);
 
     const images: string[] = responses
       .filter((response) => response.status === 'fulfilled')

@@ -1,9 +1,11 @@
 import { NextFunction, Request } from 'express';
 import { Logger } from '../util/logger';
 import {
+  ftsSearch,
   getAllBooks,
   getBookById,
   getBooksByStatus,
+  likeSearch,
   postBook,
   postBookToUserList,
 } from '../db/books';
@@ -158,6 +160,7 @@ export const updateOne = async (
     year,
     status,
     score,
+    note,
     start_date,
     end_date,
   } = req.body;
@@ -182,10 +185,11 @@ export const updateOne = async (
         text: `UPDATE user_book_list
            SET status=$1,
                score=$2,
-               start_date=$3,
-               end_date=$4
-           WHERE book_id = $5`,
-        values: [status, score, start_date, end_date, bookId],
+               note=$3,
+               start_date=$4,
+               end_date=$5
+           WHERE book_id = $6`,
+        values: [status, score, note, start_date, end_date, bookId],
       });
       const updatedBook = await getBookById(t, { bookId, username });
       await addAudit(t, {
@@ -250,75 +254,33 @@ export const search = async (
     const queryAsArray = queryString.split(' ');
     const username: string = res.locals.username;
 
-    const { resultArray } = await db.task('search', async (t) => {
-      const resultArray: DbBook[] = [];
+    const { results } = await db.task('search', async (t) => {
+      const results: DbBook[] = [];
 
       for (const queryPart of queryAsArray) {
-        // accurate query
-        const rows = await t.any<DbBook>({
-          text: `SELECT b.book_id,
-                  b.isbn,
-                  b.title,
-                  b.author,
-                  b.publisher,
-                  b.image_url,
-                  b.pages,
-                  b.year,
-                  ubl.status,
-                  ubl.score,
-                  ubl.start_date,
-                  ubl.end_date,
-                  ubl.created_on
-               FROM books b INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
-               WHERE document @@ to_tsquery('english', $2)
-                 AND submitter = $1
-               ORDER BY ts_rank(document, plainto_tsquery($2)) DESC;`,
-          values: [username, `${queryPart}:*`],
-        });
+        const rows = await ftsSearch(t, { username, query: queryPart });
         // Push only unique results
         for (const row of rows) {
-          if (!resultArray.some((item) => item.book_id === row.book_id)) {
-            resultArray.push(row);
+          if (!results.some((item) => item.book_id === row.book_id)) {
+            results.push(row);
           }
         }
       }
 
-      if (resultArray.length === 0) {
-        // less accurate query
-        const rows = await t.any<DbBook>({
-          text: `SELECT b.book_id,
-                  b.isbn,
-                  b.title,
-                  b.author,
-                  b.publisher,
-                  b.image_url,
-                  b.pages,
-                  b.year,
-                  ubl.status,
-                  ubl.score,
-                  ubl.start_date,
-                  ubl.end_date,
-                  ubl.created_on
-               FROM books b INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
-               WHERE submitter = $1 AND (
-                  title ILIKE $2
-                  OR author ILIKE $2
-                  OR publisher ILIKE $2)
-               LIMIT 100;`,
-          values: [username, `%${queryString}%`],
-        });
+      if (results.length === 0) {
+        const rows = await likeSearch(t, { username, query: queryString });
         // Push only unique results
         for (const row of rows) {
-          if (!resultArray.some((item) => item.book_id === row.book_id)) {
-            resultArray.push(row);
+          if (!results.some((item) => item.book_id === row.book_id)) {
+            results.push(row);
           }
         }
       }
 
-      return { resultArray };
+      return { results };
     });
 
-    res.status(200).json(success(resultArray));
+    res.status(200).json(success(results));
   } catch {
     next(new ErrorWithStatus(500, 'book_list_error', 'Search failed'));
   }
@@ -332,10 +294,10 @@ export const fetchImages = async (
   const query = req.query.query;
 
   try {
-    const responses = (await Promise.allSettled([
+    const responses = await Promise.allSettled([
       fetchFinnaImages(query, 'book'),
       fetchOpenLibraryImages(query),
-    ])) as { status: 'fulfilled' | 'rejected'; value: string[] }[];
+    ]);
 
     const images: string[] = responses
       .filter((response) => response.status === 'fulfilled')

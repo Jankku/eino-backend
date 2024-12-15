@@ -29,6 +29,7 @@ export const coverUrlSchema = z.union([
   z.string().url().startsWith('https'),
   z.literal(''),
   z.null(),
+  z.undefined(),
 ]);
 
 export const usernameSchema = z

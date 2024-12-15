@@ -12,6 +12,7 @@ export const getAllMovies = async (t: ITask<unknown>, username: string): Promise
                   m.image_url,
                   m.duration,
                   m.year,
+                  uml.note,
                   uml.status,
                   uml.score,
                   uml.start_date,
@@ -39,6 +40,7 @@ export const getMovieById = async (
                   m.image_url,
                   m.duration,
                   m.year,
+                  uml.note,
                   uml.status,
                   uml.score,
                   uml.start_date,
@@ -66,6 +68,7 @@ export const getMoviesByStatus = async (
                   m.image_url,
                   m.duration,
                   m.year,
+                  uml.note,
                   uml.status,
                   uml.score,
                   uml.start_date,
@@ -102,9 +105,66 @@ export const postMovieToUserList = async (
   username: string,
 ): Promise<void> => {
   await t.none({
-    text: `INSERT INTO user_movie_list (movie_id, username, status, score, start_date, end_date)
-             VALUES ($1, $2, $3, $4, $5, $6)`,
-    values: [movieId, username, m.status, m.score, m.start_date, m.end_date],
+    text: `INSERT INTO user_movie_list (movie_id, username, status, score, note, start_date, end_date)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    values: [movieId, username, m.status, m.score, m.note, m.start_date, m.end_date],
+  });
+};
+
+export const ftsSearch = async (
+  t: ITask<unknown>,
+  { username, query }: { username: string; query: string },
+): Promise<DbMovie[]> => {
+  return await t.any<DbMovie>({
+    text: `SELECT m.movie_id,
+                  m.title,
+                  m.studio,
+                  m.director,
+                  m.writer,
+                  m.image_url,
+                  m.duration,
+                  m.year,
+                  uml.note,
+                  uml.status,
+                  uml.score,
+                  uml.start_date,
+                  uml.end_date,
+                  uml.created_on
+               FROM movies m INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
+               WHERE document @@ to_tsquery('english', $2)
+                 AND submitter = $1
+               ORDER BY ts_rank(document, plainto_tsquery($2)) DESC;`,
+    values: [username, `${query}:*`],
+  });
+};
+
+export const likeSearch = async (
+  t: ITask<unknown>,
+  { username, query }: { username: string; query: string },
+): Promise<DbMovie[]> => {
+  return await t.any<DbMovie>({
+    text: `SELECT m.movie_id,
+                  m.title,
+                  m.studio,
+                  m.director,
+                  m.writer,
+                  m.image_url,
+                  m.duration,
+                  m.year,
+                  uml.note,
+                  uml.status,
+                  uml.score,
+                  uml.start_date,
+                  uml.end_date,
+                  uml.created_on
+               FROM movies m INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
+               WHERE submitter = $1 AND (
+                title ILIKE $2
+                  OR studio ILIKE $2
+                  OR director ILIKE $2
+                  OR writer ILIKE $2)
+               LIMIT 100;`,
+    values: [username, `%${query}%`],
   });
 };
 

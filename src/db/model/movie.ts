@@ -20,6 +20,7 @@ export const movieSchema = z.object({
   duration: nonnegativeNumberSchema,
   year: nonnegativeNumberSchema,
   status: movieStatusEnum,
+  note: z.string().nullish(),
   score: scoreSchema,
   start_date: dateSchema,
   end_date: dateSchema,
@@ -30,7 +31,9 @@ export const dbMovieSchema = movieSchema.extend({
   created_on: dateStringSchema,
 });
 
-const movieSortableKeySchema = dbMovieSchema.omit({ movie_id: true, image_url: true }).keyof();
+const movieSortableKeySchema = dbMovieSchema
+  .omit({ movie_id: true, image_url: true, note: true })
+  .keyof();
 
 export const movieStringKeySchema = movieSortableKeySchema.exclude(['duration', 'year', 'score']);
 export const movieNumberKeySchema = movieSortableKeySchema.extract(['duration', 'year', 'score']);

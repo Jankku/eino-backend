@@ -17,6 +17,7 @@ export const bookSchema = z.object({
   author: fixedStringSchema,
   publisher: fixedStringSchema,
   image_url: coverUrlSchema,
+  note: z.string().nullish(),
   pages: nonnegativeNumberSchema,
   year: nonnegativeNumberSchema,
   status: bookStatusEnum,
@@ -31,7 +32,7 @@ export const dbBookSchema = bookSchema.extend({
 });
 
 const bookSortableKeySchema = dbBookSchema
-  .omit({ book_id: true, image_url: true, isbn: true })
+  .omit({ book_id: true, image_url: true, isbn: true, note: true })
   .keyof();
 
 export const bookStringKeySchema = bookSortableKeySchema.exclude(['pages', 'year', 'score']);

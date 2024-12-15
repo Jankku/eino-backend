@@ -12,6 +12,7 @@ export const getAllBooks = async (t: ITask<unknown>, username: string): Promise<
                   b.image_url,
                   b.pages,
                   b.year,
+                  ubl.note,
                   ubl.status,
                   ubl.score,
                   ubl.start_date,
@@ -40,6 +41,7 @@ export const getBookById = async (
                   b.image_url,
                   b.pages,
                   b.year,
+                  ubl.note,
                   ubl.status,
                   ubl.score,
                   ubl.start_date,
@@ -67,6 +69,7 @@ export const getBooksByStatus = async (
                   b.image_url,
                   b.pages,
                   b.year,
+                  ubl.note,
                   ubl.status,
                   ubl.score,
                   ubl.start_date,
@@ -99,9 +102,65 @@ export const postBookToUserList = async (
   username: string,
 ): Promise<void> => {
   await t.none({
-    text: `INSERT INTO user_book_list (book_id, username, status, score, start_date, end_date)
-             VALUES ($1, $2, $3, $4, $5, $6)`,
-    values: [bookId, username, b.status, b.score, b.start_date, b.end_date],
+    text: `INSERT INTO user_book_list (book_id, username, status, score, note, start_date, end_date)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    values: [bookId, username, b.status, b.score, b.note, b.start_date, b.end_date],
+  });
+};
+
+export const ftsSearch = async (
+  t: ITask<unknown>,
+  { username, query }: { username: string; query: string },
+): Promise<DbBook[]> => {
+  return await t.any<DbBook>({
+    text: `SELECT b.book_id,
+                  b.isbn,
+                  b.title,
+                  b.author,
+                  b.publisher,
+                  b.image_url,
+                  b.pages,
+                  b.year,
+                  ubl.note,
+                  ubl.status,
+                  ubl.score,
+                  ubl.start_date,
+                  ubl.end_date,
+                  ubl.created_on
+               FROM books b INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
+               WHERE document @@ to_tsquery('english', $2)
+                 AND submitter = $1
+               ORDER BY ts_rank(document, plainto_tsquery($2)) DESC;`,
+    values: [username, `${query}:*`],
+  });
+};
+
+export const likeSearch = async (
+  t: ITask<unknown>,
+  { username, query }: { username: string; query: string },
+): Promise<DbBook[]> => {
+  return await t.any<DbBook>({
+    text: `SELECT b.book_id,
+                  b.isbn,
+                  b.title,
+                  b.author,
+                  b.publisher,
+                  b.image_url,
+                  b.pages,
+                  b.year,
+                  ubl.note,
+                  ubl.status,
+                  ubl.score,
+                  ubl.start_date,
+                  ubl.end_date,
+                  ubl.created_on
+               FROM books b INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
+               WHERE submitter = $1 AND (
+                  title ILIKE $2
+                  OR author ILIKE $2
+                  OR publisher ILIKE $2)
+               LIMIT 100;`,
+    values: [username, `%${query}%`],
   });
 };
 
