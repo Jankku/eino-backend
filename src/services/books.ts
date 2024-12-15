@@ -27,6 +27,7 @@ import {
 import { bookSortSchema, bookNumberKeySchema, bookStringKeySchema, DbBook } from '../db/model/book';
 import { itemSorter, getItemFilter } from '../util/sort';
 import { addAudit } from '../db/audit';
+import { fillBookStatuses, StatusCountRow } from '../util/status';
 
 export const fetchOne = async (
   req: TypedRequest<typeof fetchOneSchema>,
@@ -306,5 +307,28 @@ export const fetchImages = async (
     res.status(200).json(success(images));
   } catch {
     next(new ErrorWithStatus(500, 'book_list_error', 'Failed to fetch images'));
+  }
+};
+
+export const countByStatus = async (req: Request, res: TypedResponse, next: NextFunction) => {
+  const username: string = res.locals.username;
+
+  try {
+    const rows = await db.any<StatusCountRow>(
+      `SELECT status, COUNT(*) AS count
+        FROM user_book_list
+        WHERE username = $1
+        GROUP BY status`,
+      [username],
+    );
+
+    const total = rows.reduce((acc, curr) => acc + curr.count, 0);
+    const statuses = [...fillBookStatuses(rows), { status: 'all', count: total }];
+    const result = Object.fromEntries(statuses.map(({ status, count }) => [status, count]));
+
+    res.status(200).json(result);
+  } catch (error) {
+    Logger.error((error as Error).stack);
+    next(new ErrorWithStatus(500, 'book_list_error', "Couldn't count books"));
   }
 };

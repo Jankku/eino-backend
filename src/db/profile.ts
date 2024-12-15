@@ -1,7 +1,6 @@
 import { fillAndSortResponse } from '../util/profile';
-import { movieStatuses } from './model/moviestatus';
-import { bookStatuses } from './model/bookstatus';
 import { ITask } from 'pg-promise';
+import { fillBookStatuses, fillMovieStatuses, StatusCountRow } from '../util/status';
 
 type UserInfo = {
   user_id: string;
@@ -47,22 +46,10 @@ const getBookData = async (t: ITask<unknown>, username: string): Promise<BookDat
   return response;
 };
 
-type StatusRow = {
-  status: string;
-  count: number;
-};
-
 type BookDataV2 = {
   count: Record<string, number>;
   pages_read: number;
   score_average: number;
-};
-
-const fillBookStatuses = (rows: StatusRow[]): StatusRow[] => {
-  return bookStatuses.map((status) => {
-    const row = rows.find((row) => row.status === status);
-    return { status, count: row?.count || 0 };
-  });
 };
 
 const getBookDataV2 = async (t: ITask<unknown>, username: string): Promise<BookDataV2> => {
@@ -119,13 +106,6 @@ type MovieDataV2 = {
   score_average: number;
 };
 
-const fillMovieStatuses = (rows: StatusRow[]): StatusRow[] => {
-  return movieStatuses.map((status) => {
-    const row = rows.find((row) => row.status === status);
-    return { status, count: row?.count || 0 };
-  });
-};
-
 const getMovieDataV2 = async (client: ITask<unknown>, username: string): Promise<MovieDataV2> => {
   const rows = await client.any({
     text: `SELECT * FROM
@@ -142,7 +122,7 @@ const getMovieDataV2 = async (client: ITask<unknown>, username: string): Promise
   });
 
   const totalMovieCount = rows.reduce((acc, curr) => acc + curr.count, 0);
-  const statuses: StatusRow[] = [
+  const statuses: StatusCountRow[] = [
     ...fillMovieStatuses(rows),
     { status: 'all', count: totalMovieCount },
   ];

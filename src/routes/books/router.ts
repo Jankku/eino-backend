@@ -13,6 +13,7 @@ import {
 
 export const bookRouter = express.Router();
 
+bookRouter.get('/count', books.countByStatus);
 bookRouter.get('/search', validateSchema(searchSchema), books.search);
 bookRouter.get('/book/:bookId', validateSchema(fetchOneSchema), books.fetchOne);
 bookRouter.post('/add', validateSchema(addOneSchema), books.addOne);

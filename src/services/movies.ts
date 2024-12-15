@@ -32,6 +32,7 @@ import {
 } from '../db/model/movie';
 import { getItemFilter, itemSorter } from '../util/sort';
 import { addAudit } from '../db/audit';
+import { fillMovieStatuses, StatusCountRow } from '../util/status';
 
 export const fetchOne = async (
   req: TypedRequest<typeof fetchOneSchema>,
@@ -318,5 +319,28 @@ export const fetchImages = async (
     res.status(200).json(success(images));
   } catch {
     next(new ErrorWithStatus(500, 'movie_list_error', 'Failed to fetch images'));
+  }
+};
+
+export const countByStatus = async (req: Request, res: TypedResponse, next: NextFunction) => {
+  const username: string = res.locals.username;
+
+  try {
+    const rows = await db.any<StatusCountRow>(
+      `SELECT status, COUNT(*) AS count
+        FROM user_movie_list
+        WHERE username = $1
+        GROUP BY status`,
+      [username],
+    );
+
+    const total = rows.reduce((acc, curr) => acc + curr.count, 0);
+    const statuses = [...fillMovieStatuses(rows), { status: 'all', count: total }];
+    const result = Object.fromEntries(statuses.map(({ status, count }) => [status, count]));
+
+    res.status(200).json(result);
+  } catch (error) {
+    Logger.error((error as Error).stack);
+    next(new ErrorWithStatus(500, 'movie_list_error', "Couldn't count books"));
   }
 };

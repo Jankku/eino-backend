@@ -13,6 +13,7 @@ import {
 
 export const movieRouter = express.Router();
 
+movieRouter.get('/count', movies.countByStatus);
 movieRouter.get('/search', validateSchema(searchSchema), movies.search);
 movieRouter.get('/movie/:movieId', validateSchema(fetchOneSchema), movies.fetchOne);
 movieRouter.post('/add', validateSchema(addOneSchema), movies.addOne);
