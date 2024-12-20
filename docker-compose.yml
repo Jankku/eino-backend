@@ -24,7 +24,7 @@ services:
 
   nginx:
     container_name: nginx
-    image: nginx:1.26
+    image: fholzer/nginx-brotli:v1.26.2
     ports:
       - '127.0.0.1:8443:443'
     volumes:
