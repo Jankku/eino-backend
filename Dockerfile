@@ -4,7 +4,7 @@ RUN apk add --no-cache build-base g++ cairo-dev jpeg-dev pango-dev
 COPY package*.json tsconfig.json ./
 COPY src ./src
 COPY migrations ./migrations
-RUN npm ci --build-from-source && npm run build
+RUN npm ci --build-from-source && npm run build && npm prune --omit=dev
 
 FROM node:lts-alpine
 WORKDIR /home/node/eino
