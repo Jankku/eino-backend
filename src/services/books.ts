@@ -35,18 +35,19 @@ export const fetchOne = async (
   next: NextFunction,
 ) => {
   const { bookId } = req.params;
-  const username: string = res.locals.username;
+  const username = res.locals.username;
 
   try {
     const book = await db.task('fetchOne', async (t) => await getBookById(t, { bookId, username }));
     res.status(200).json(success([book]));
-  } catch {
+  } catch (error) {
+    Logger.error((error as Error).stack);
     next(new ErrorWithStatus(422, 'book_list_error', "Couldn't find book"));
   }
 };
 
 export const fetchAll = async (req: Request, res: TypedResponse, next: NextFunction) => {
-  const username: string = res.locals.username;
+  const username = res.locals.username;
 
   try {
     let books = await db.task('fetchAll', async (t) => await getAllBooks(t, username));
@@ -83,7 +84,7 @@ export const fetchByStatus = async (
   res: TypedResponse,
   next: NextFunction,
 ) => {
-  const username: string = res.locals.username;
+  const username = res.locals.username;
   const status = req.params.status;
 
   try {
@@ -121,7 +122,7 @@ export const addOne = async (
   res: TypedResponse,
   next: NextFunction,
 ) => {
-  const username: string = res.locals.username;
+  const username = res.locals.username;
   const book = req.body;
 
   try {
@@ -149,7 +150,7 @@ export const updateOne = async (
   res: TypedResponse,
   next: NextFunction,
 ) => {
-  const username: string = res.locals.username;
+  const username = res.locals.username;
   const { bookId } = req.params;
   const {
     isbn,
@@ -207,7 +208,7 @@ export const updateOne = async (
     res.status(200).json(success([updatedBook]));
   } catch (error) {
     Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(422, 'book_list_error', "Couldn't update book"));
+    next(new ErrorWithStatus(500, 'book_list_error', "Couldn't update book"));
   }
 };
 
@@ -217,7 +218,7 @@ export const deleteOne = async (
   next: NextFunction,
 ) => {
   const { bookId } = req.params;
-  const username: string = res.locals.username;
+  const username = res.locals.username;
 
   try {
     await db.tx('deleteOne', async (t) => {
@@ -241,7 +242,7 @@ export const deleteOne = async (
     res.status(200).json(success([{ name: 'book_deleted', message: 'Book deleted' }]));
   } catch (error) {
     Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(422, 'book_list_error', "Couldn't delete book"));
+    next(new ErrorWithStatus(500, 'book_list_error', "Couldn't delete book"));
   }
 };
 
@@ -253,7 +254,7 @@ export const search = async (
   try {
     const queryString = String(req.query.query).trim();
     const queryAsArray = queryString.split(' ');
-    const username: string = res.locals.username;
+    const username = res.locals.username;
 
     const { results } = await db.task('search', async (t) => {
       const results: DbBook[] = [];
@@ -282,7 +283,8 @@ export const search = async (
     });
 
     res.status(200).json(success(results));
-  } catch {
+  } catch (error) {
+    Logger.error((error as Error).stack);
     next(new ErrorWithStatus(500, 'book_list_error', 'Search failed'));
   }
 };
@@ -305,13 +307,14 @@ export const fetchImages = async (
       .flatMap((response) => response.value);
 
     res.status(200).json(success(images));
-  } catch {
+  } catch (error) {
+    Logger.error((error as Error).stack);
     next(new ErrorWithStatus(500, 'book_list_error', 'Failed to fetch images'));
   }
 };
 
 export const countByStatus = async (req: Request, res: TypedResponse, next: NextFunction) => {
-  const username: string = res.locals.username;
+  const username = res.locals.username;
 
   try {
     const rows = await db.any<StatusCountRow>(

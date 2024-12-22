@@ -11,3 +11,4 @@ adminRouter.post('/users/:userId/disable', validateSchema(disableUserSchema), ad
 adminRouter.put('/users/:userId', validateSchema(editUserSchema), admin.editUser);
 adminRouter.delete('/users/:userId', validateSchema(deleteUserSchema), admin.deleteUser);
 adminRouter.get('/audits', admin.getAuditLogs);
+adminRouter.post('/bulletins', admin.postBulletin);

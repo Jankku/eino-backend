@@ -44,7 +44,7 @@ export const getProfile = async (
   res: TypedResponse,
   next: NextFunction,
 ) => {
-  const username: string = res.locals.username;
+  const username = res.locals.username;
 
   try {
     const { userInfo, bookData, bookScores, movieData, movieScores } = await db.task(
@@ -68,12 +68,12 @@ export const getProfile = async (
     });
   } catch (error) {
     Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(422, 'profile_error', "Couldn't fetch profile"));
+    next(new ErrorWithStatus(500, 'profile_error', "Couldn't fetch profile"));
   }
 };
 
 export const getProfileV2 = async (_req: Request, res: TypedResponse, next: NextFunction) => {
-  const username: string = res.locals.username;
+  const username = res.locals.username;
   try {
     const { userInfo, bookData, bookScores, movieData, movieScores } = await db.task(
       async (t) => await getProfileDataV2(t, username),
@@ -93,7 +93,7 @@ export const getProfileV2 = async (_req: Request, res: TypedResponse, next: Next
     });
   } catch (error) {
     Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(422, 'profile_error', "Couldn't fetch profile"));
+    next(new ErrorWithStatus(500, 'profile_error', "Couldn't fetch profile"));
   }
 };
 
@@ -102,7 +102,7 @@ export const deleteAccount = async (
   res: TypedResponse,
   next: NextFunction,
 ) => {
-  const username: string = res.locals.username;
+  const username = res.locals.username;
   const { password, twoFactorCode } = req.body;
 
   try {
@@ -147,14 +147,14 @@ export const deleteAccount = async (
       next(error);
     } else {
       Logger.error(error);
-      next(new ErrorWithStatus(422, 'delete_account_error', "Couldn't delete account"));
+      next(new ErrorWithStatus(500, 'delete_account_error', "Couldn't delete account"));
     }
   }
 };
 
 export const generateShareImage = async (_req: Request, res: TypedResponse, next: NextFunction) => {
   try {
-    const username: string = res.locals.username;
+    const username = res.locals.username;
     const { bookTitles, movieTitles } = await db.task('generateShareImage', async (t) => {
       const bookTitles = await getTop10BookTitles(t, username);
       const movieTitles = await getTop10MovieTitles(t, username);
@@ -302,7 +302,7 @@ export const exportProfileData = async (
   res: TypedResponse,
   next: NextFunction,
 ) => {
-  const username: string = res.locals.username;
+  const username = res.locals.username;
   const { password } = req.body;
 
   try {
@@ -362,7 +362,7 @@ export const importProfileData = async (
   next: NextFunction,
 ) => {
   const { body } = req;
-  const username: string = res.locals.username;
+  const username = res.locals.username;
 
   try {
     await db.tx('importProfileData', async (t) => {
@@ -434,7 +434,7 @@ export const importProfileData = async (
 
 export const saveProfilePicture = async (req: Request, res: TypedResponse, next: NextFunction) => {
   const file = req.file;
-  const username: string = res.locals.username;
+  const username = res.locals.username;
   try {
     if (!file) {
       await db.tx('saveProfilePicture', async (t) => {
@@ -490,6 +490,6 @@ export const saveProfilePicture = async (req: Request, res: TypedResponse, next:
       .json(success([{ name: 'profile_picture_uploaded', message: 'Profile picture uploaded' }]));
   } catch (error) {
     Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(422, 'profile_picture_error', "Couldn't save profile picture"));
+    next(new ErrorWithStatus(500, 'profile_picture_error', "Couldn't save profile picture"));
   }
 };

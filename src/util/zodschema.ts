@@ -8,7 +8,7 @@ export const dateStringSchema = z.string().refine((arg) => {
 
 export const dateSchema = z.preprocess((arg) => {
   if (typeof arg == 'string' || arg instanceof Date) return new Date(arg);
-}, z.date()) as z.ZodType<Date | undefined>; // fix for preprocess
+}, z.date()) as z.ZodType<Date>;
 
 export const nonEmptyString = z.string().min(1);
 

@@ -1,6 +1,11 @@
 import z from 'zod';
 import { errorMessages } from '../../util/errormessages';
-import { dateSchema, optionalEmailSchema, usernameSchema } from '../../util/zodschema';
+import {
+  dateSchema,
+  nonEmptyString,
+  optionalEmailSchema,
+  usernameSchema,
+} from '../../util/zodschema';
 import { db } from '../../db/config';
 import { isEmailUnique } from '../../db/users';
 
@@ -44,5 +49,16 @@ export const disableUserSchema = z.object({
 export const deleteUserSchema = z.object({
   params: z.object({
     userId: z.string().uuid(errorMessages.UUID_INVALID),
+  }),
+});
+
+export const createBulletinSchema = z.object({
+  body: z.object({
+    title: nonEmptyString,
+    content: z.string().nullish(),
+    visibility: z.enum(['public', 'user', 'condition']),
+    condition: z.enum(['2fa_not_enabled', 'email_not_verified']).nullish(),
+    start_date: dateSchema,
+    end_date: dateSchema,
   }),
 });

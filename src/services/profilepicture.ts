@@ -27,6 +27,6 @@ export const getProfilePicture = async (
     res.set({ 'Content-Type': 'image/avif' }).send(profilePicture);
   } catch (error) {
     Logger.error((error as Error).stack);
-    next(new ErrorWithStatus(422, 'profile_picture_error', "Couldn't fetch profile picture"));
+    next(new ErrorWithStatus(500, 'profile_picture_error', "Couldn't fetch profile picture"));
   }
 };

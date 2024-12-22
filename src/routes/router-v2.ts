@@ -13,6 +13,7 @@ import yaml from 'yaml';
 import { readFileSync } from 'node:fs';
 import { requireAdmin } from '../middleware/requirerole';
 import { userEnabled } from '../middleware/userenabled';
+import { bulletinsRouter } from './bulletins';
 
 export const routerV2 = express.Router();
 
@@ -35,3 +36,4 @@ routerV2.use('/profile', verifyToken, userEnabled, profileRouterV2);
 routerV2.use('/profilepicture', profilePictureRouter);
 routerV2.use('/share', shareRouter);
 routerV2.use('/email', verifyToken, userEnabled, emailRouter);
+routerV2.use('/bulletins', bulletinsRouter);

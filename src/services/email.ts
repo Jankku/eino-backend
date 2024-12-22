@@ -30,7 +30,7 @@ export const updateEmail = async (
   res: TypedResponse,
   next: NextFunction,
 ) => {
-  const username: string = res.locals.username;
+  const username = res.locals.username;
   const { email, twoFactorCode } = req.body;
   try {
     await db.tx('updateEmail', async (t) => {
@@ -99,7 +99,7 @@ export const updateEmail = async (
       next(error);
     } else {
       Logger.error((error as Error).stack);
-      next(new ErrorWithStatus(422, 'update_email_error', "Couldn't update email"));
+      next(new ErrorWithStatus(500, 'update_email_error', "Couldn't update email"));
     }
   }
 };
@@ -109,7 +109,7 @@ export const sendConfirmationEmail = async (
   res: TypedResponse,
   next: NextFunction,
 ) => {
-  const username: string = res.locals.username;
+  const username = res.locals.username;
 
   try {
     await db.tx('sendConfirmationEmail', async (t) => {
@@ -160,7 +160,7 @@ export const sendConfirmationEmail = async (
       next(error);
     } else {
       Logger.error((error as Error).stack);
-      next(new ErrorWithStatus(422, 'email_error', "Couldn't send confirmation email"));
+      next(new ErrorWithStatus(500, 'email_error', "Couldn't send confirmation email"));
     }
   }
 };
@@ -170,7 +170,7 @@ export const verifyEmail = async (
   res: TypedResponse,
   next: NextFunction,
 ) => {
-  const username: string = res.locals.username;
+  const username = res.locals.username;
   const { otp } = req.body;
 
   try {
@@ -205,7 +205,7 @@ export const verifyEmail = async (
       next(error);
     } else {
       Logger.error((error as Error).stack);
-      next(new ErrorWithStatus(422, 'email_verification_error', "Couldn't verify email"));
+      next(new ErrorWithStatus(500, 'email_verification_error', "Couldn't verify email"));
     }
   }
 };

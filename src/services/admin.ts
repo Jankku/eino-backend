@@ -12,8 +12,9 @@ import {
   getUserByUsername,
   updateProfilePicturePath,
 } from '../db/users';
-import { deleteUserSchema, editUserSchema } from '../routes/admin/schema';
+import { createBulletinSchema, deleteUserSchema, editUserSchema } from '../routes/admin/schema';
 import * as fs from 'node:fs/promises';
+import { createBulletin } from '../db/bulletins';
 
 export const getUsers = async (_: Request, res: TypedResponse, next: NextFunction) => {
   try {
@@ -44,7 +45,7 @@ export const editUser = async (
   const { userId } = req.params;
   const newUser = req.body;
   try {
-    await db.tx(async (t) => {
+    await db.tx('editUser', async (t) => {
       const currentUser = await getUserById(t, userId);
       const currentPfpPath = await findProfilePictureByUsername(t, currentUser.username);
       if (currentPfpPath && !newUser.profile_picture_path) {
@@ -92,7 +93,7 @@ export const enableUser = async (
   const adminUsername = res.locals.username;
   const { userId } = req.params;
   try {
-    await db.tx(async (t) => {
+    await db.tx('enableUser', async (t) => {
       const adminUser = await getUserByUsername(t, adminUsername);
       const user = await getUserById(t, userId);
       if (adminUser.user_id === user.user_id) {
@@ -126,7 +127,7 @@ export const disableUser = async (
   const adminUsername = res.locals.username;
   const { userId } = req.params;
   try {
-    await db.tx(async (t) => {
+    await db.tx('disableUser', async (t) => {
       const adminUser = await getUserByUsername(t, adminUsername);
       const user = await getUserById(t, userId);
       if (adminUser.user_id === user.user_id) {
@@ -161,7 +162,7 @@ export const deleteUser = async (
   const adminUsername = res.locals.username;
   const { userId } = req.params;
   try {
-    await db.tx(async (t) => {
+    await db.tx('deleteUser', async (t) => {
       const adminUser = await getUserByUsername(t, adminUsername);
       const user = await getUserById(t, userId);
       if (adminUser.user_id === user.user_id) {
@@ -183,6 +184,29 @@ export const deleteUser = async (
     } else {
       Logger.error((error as Error).stack);
       next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to delete user'));
+    }
+  }
+};
+
+export const postBulletin = async (
+  req: TypedRequest<typeof createBulletinSchema>,
+  res: TypedResponse,
+  next: NextFunction,
+) => {
+  const bulletin = req.body;
+  try {
+    await db.tx('postBulletin', async (t) => await createBulletin(t, bulletin));
+    res
+      .status(200)
+      .json(success([{ name: 'bulletin_created', message: 'Bulletin created successfully' }]));
+  } catch (error) {
+    if (error instanceof ErrorWithStatus) {
+      next(error);
+    } else {
+      Logger.error((error as Error).stack);
+      next(
+        new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to create bulletin'),
+      );
     }
   }
 };

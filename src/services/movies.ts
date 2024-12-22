@@ -40,7 +40,7 @@ export const fetchOne = async (
   next: NextFunction,
 ) => {
   const { movieId } = req.params;
-  const username: string = res.locals.username;
+  const username = res.locals.username;
 
   try {
     const movie = await db.task(
@@ -55,7 +55,7 @@ export const fetchOne = async (
 };
 
 export const fetchAll = async (req: Request, res: TypedResponse, next: NextFunction) => {
-  const username: string = res.locals.username;
+  const username = res.locals.username;
 
   try {
     let movies = await db.task('fetchAll', async (t) => await getAllMovies(t, username));
@@ -92,7 +92,7 @@ export const fetchByStatus = async (
   res: TypedResponse,
   next: NextFunction,
 ) => {
-  const username: string = res.locals.username;
+  const username = res.locals.username;
   const status = req.params.status;
 
   try {
@@ -133,7 +133,7 @@ export const addOne = async (
   res: TypedResponse,
   next: NextFunction,
 ) => {
-  const username: string = res.locals.username;
+  const username = res.locals.username;
   const movie = req.body;
 
   try {
@@ -164,7 +164,7 @@ export const updateOne = async (
   next: NextFunction,
 ) => {
   const { movieId } = req.params;
-  const username: string = res.locals.username;
+  const username = res.locals.username;
   const {
     title,
     studio,
@@ -230,7 +230,7 @@ export const deleteOne = async (
   next: NextFunction,
 ) => {
   const { movieId } = req.params;
-  const username: string = res.locals.username;
+  const username = res.locals.username;
 
   try {
     await db.tx('deleteOne', async (t) => {
@@ -266,7 +266,7 @@ export const search = async (
   try {
     const queryString = String(req.query.query).trim();
     const queryAsArray = queryString.split(' ');
-    const username: string = res.locals.username;
+    const username = res.locals.username;
 
     const { results } = await db.task('search', async (t) => {
       const results: DbMovie[] = [];
@@ -294,7 +294,8 @@ export const search = async (
     });
 
     res.status(200).json(success(results));
-  } catch {
+  } catch (error) {
+    Logger.error((error as Error).stack);
     next(new ErrorWithStatus(500, 'movie_list_error', 'Search failed'));
   }
 };
@@ -317,13 +318,14 @@ export const fetchImages = async (
       .flatMap((response) => response.value);
 
     res.status(200).json(success(images));
-  } catch {
+  } catch (error) {
+    Logger.error((error as Error).stack);
     next(new ErrorWithStatus(500, 'movie_list_error', 'Failed to fetch images'));
   }
 };
 
 export const countByStatus = async (req: Request, res: TypedResponse, next: NextFunction) => {
-  const username: string = res.locals.username;
+  const username = res.locals.username;
 
   try {
     const rows = await db.any<StatusCountRow>(
