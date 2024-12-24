@@ -23,4 +23,5 @@ export const errorMessages = {
   TWO_FACTOR_CODE_REQUIRED: 'Two-factor code required',
   FILE_EXTENSION_INVALID: 'Invalid file extension',
   UUID_INVALID: 'Invalid UUID',
+  DATE_IN_PAST: 'Date should be in the future',
 };

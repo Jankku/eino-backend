@@ -14,7 +14,7 @@ import {
 } from '../db/users';
 import { createBulletinSchema, deleteUserSchema, editUserSchema } from '../routes/admin/schema';
 import * as fs from 'node:fs/promises';
-import { createBulletin } from '../db/bulletins';
+import { createBulletin, getAllBulletins, insertBulletinUsers } from '../db/bulletins';
 
 export const getUsers = async (_: Request, res: TypedResponse, next: NextFunction) => {
   try {
@@ -188,25 +188,34 @@ export const deleteUser = async (
   }
 };
 
+export const getBulletins = async (_: Request, res: TypedResponse, next: NextFunction) => {
+  try {
+    const bulletins = await db.task('getBulletins', async (t) => await getAllBulletins(t));
+    res.status(200).json(success(bulletins));
+  } catch (error) {
+    Logger.error((error as Error).stack);
+    next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to get bulletins'));
+  }
+};
+
 export const postBulletin = async (
   req: TypedRequest<typeof createBulletinSchema>,
   res: TypedResponse,
   next: NextFunction,
 ) => {
-  const bulletin = req.body;
+  const { visibleToUserIds, ...bulletin } = req.body;
   try {
-    await db.tx('postBulletin', async (t) => await createBulletin(t, bulletin));
+    await db.tx('postBulletin', async (t) => {
+      const bulletinId = await createBulletin(t, bulletin);
+      if (bulletin.visibility === 'user') {
+        await insertBulletinUsers(t, { bulletinId, userIds: visibleToUserIds! });
+      }
+    });
     res
       .status(200)
       .json(success([{ name: 'bulletin_created', message: 'Bulletin created successfully' }]));
   } catch (error) {
-    if (error instanceof ErrorWithStatus) {
-      next(error);
-    } else {
-      Logger.error((error as Error).stack);
-      next(
-        new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to create bulletin'),
-      );
-    }
+    Logger.error((error as Error).stack);
+    next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to create bulletin'));
   }
 };

@@ -1,12 +1,20 @@
 import { ITask } from 'pg-promise';
+import { pgp } from './config';
 
-export type BulletinVisiblity = 'public' | 'user' | 'condition';
+export const bulletinTypes = ['success', 'info', 'warning', 'error'] as const;
+export type BulletinType = (typeof bulletinTypes)[number];
 
-export type BulletinCondition = '2fa_not_enabled' | 'email_not_verified';
+export const bulletinVisibilities = ['public', 'user', 'condition'] as const;
+export type BulletinVisiblity = (typeof bulletinVisibilities)[number];
+
+export const bulletinConditions = ['2fa_not_enabled', 'email_not_verified'] as const;
+export type BulletinCondition = (typeof bulletinConditions)[number];
 
 export type Bulletin = {
   title: string;
-  content: string | null;
+  message: string | null;
+  name: string | null;
+  type: BulletinType;
   visibility: BulletinVisiblity;
   condition: BulletinCondition | null;
   start_date: Date;
@@ -18,25 +26,45 @@ export type DbBulletin = Bulletin & {
   created_on: Date;
 };
 
+export const getAllBulletins = async (t: ITask<unknown>): Promise<DbBulletin[]> => {
+  return await t.any('SELECT * FROM bulletins');
+};
+
 export const getPublicBulletins = async (t: ITask<unknown>): Promise<DbBulletin[]> => {
   return await t.any(
-    "SELECT id, title, content FROM bulletins WHERE visibility = 'public' AND start_date <= NOW() AND end_date >= NOW()",
+    "SELECT id, title, message, name, type FROM bulletins WHERE visibility = 'public' AND start_date <= NOW() AND end_date >= NOW()",
   );
 };
 
 export const getUserBulletins = async (
   t: ITask<unknown>,
-  { username }: { username: string },
+  userId: string,
 ): Promise<DbBulletin[]> => {
   return await t.any(
-    "SELECT id, title, content FROM bulletins WHERE visibility = 'user' AND start_date <= NOW() AND end_date >= NOW()",
-    { username },
+    'SELECT b.id, b.title, b.message, b.name, b.type FROM bulletins b JOIN bulletin_users bu ON b.id = bu.bulletin_id WHERE bu.user_id = $1 AND b.start_date <= NOW() AND b.end_date >= NOW()',
+    [userId],
   );
 };
 
-export const createBulletin = async (t: ITask<unknown>, bulletin: Partial<Bulletin>) => {
-  await t.none(
-    'INSERT INTO bulletins(title, content, visibility, condition, start_date, end_date) VALUES(${title}, ${content}, ${visibility}, ${condition}, ${start_date}, ${end_date})',
+export const createBulletin = async (
+  t: ITask<unknown>,
+  bulletin: Partial<Bulletin>,
+): Promise<DbBulletin['id']> => {
+  const result = await t.one(
+    'INSERT INTO bulletins(title, message, name, type, visibility, condition, start_date, end_date) VALUES(${title}, ${message}, ${name}, ${type}, ${visibility}, ${condition}, ${start_date}, ${end_date}) RETURNING id',
     bulletin,
   );
+  return result.id;
+};
+
+const bulletinUsersCs = new pgp.helpers.ColumnSet(['bulletin_id', 'user_id'], {
+  table: 'bulletin_users',
+});
+
+export const insertBulletinUsers = async (
+  t: ITask<unknown>,
+  { bulletinId, userIds }: { bulletinId: DbBulletin['id']; userIds: string[] },
+) => {
+  const values = userIds.map((userId) => ({ bulletin_id: bulletinId, user_id: userId }));
+  await t.none(pgp.helpers.insert(values, bulletinUsersCs));
 };

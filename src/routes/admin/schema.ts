@@ -8,6 +8,7 @@ import {
 } from '../../util/zodschema';
 import { db } from '../../db/config';
 import { isEmailUnique } from '../../db/users';
+import { bulletinConditions, bulletinTypes, bulletinVisibilities } from '../../db/bulletins';
 
 export const editUserSchema = z
   .object({
@@ -52,13 +53,38 @@ export const deleteUserSchema = z.object({
   }),
 });
 
-export const createBulletinSchema = z.object({
-  body: z.object({
-    title: nonEmptyString,
-    content: z.string().nullish(),
-    visibility: z.enum(['public', 'user', 'condition']),
-    condition: z.enum(['2fa_not_enabled', 'email_not_verified']).nullish(),
-    start_date: dateSchema,
-    end_date: dateSchema,
-  }),
-});
+export const createBulletinSchema = z
+  .object({
+    body: z.object({
+      title: nonEmptyString,
+      message: z.string().nullish(),
+      name: z.string().nullish(),
+      type: z.enum(bulletinTypes),
+      visibility: z.enum(bulletinVisibilities),
+      visibleToUserIds: z.array(z.string().uuid()).nullish(),
+      condition: z.enum(bulletinConditions).nullish(),
+      start_date: dateSchema.refine((date) => date.getTime() >= Date.now(), {
+        params: { name: 'start_date' },
+        message: errorMessages.DATE_IN_PAST,
+      }),
+      end_date: dateSchema.refine((date) => date.getTime() >= Date.now(), {
+        params: { name: 'end_date' },
+        message: errorMessages.DATE_IN_PAST,
+      }),
+    }),
+  })
+  .refine(
+    ({ body }) => {
+      if (
+        body.visibility === 'user' &&
+        (!body.visibleToUserIds || body.visibleToUserIds.length === 0)
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      params: { name: 'visibleToUserIds' },
+      message: 'visibleToUserIds required for user visibility',
+    },
+  );

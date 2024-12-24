@@ -8,7 +8,7 @@ import { getPublicBulletins, getUserBulletins } from '../db/bulletins';
 
 export const publicBulletins = async (_: Request, res: TypedResponse, next: NextFunction) => {
   try {
-    const bulletins = await db.task(async (t) => await getPublicBulletins(t));
+    const bulletins = await db.task('publicBulletins', async (t) => await getPublicBulletins(t));
     res.status(200).json(success(bulletins));
   } catch (error) {
     Logger.error((error as Error).stack);
@@ -17,14 +17,12 @@ export const publicBulletins = async (_: Request, res: TypedResponse, next: Next
 };
 
 export const userBulletins = async (_: Request, res: TypedResponse, next: NextFunction) => {
-  const username = res.locals.username;
+  const userId = res.locals.userId;
   try {
-    const bulletins = await db.task(async (t) => {
+    const bulletins = await db.task('userBulletins', async (t) => {
       let bulletins = await getPublicBulletins(t);
-      if (username) {
-        const userBulletins = await getUserBulletins(t, { username });
-        bulletins = [...bulletins, ...userBulletins];
-      }
+      const userBulletins = await getUserBulletins(t, userId);
+      bulletins = [...bulletins, ...userBulletins];
       return bulletins;
     });
 

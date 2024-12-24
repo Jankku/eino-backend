@@ -1,7 +1,13 @@
 import express from 'express';
 import * as admin from '../../services/admin';
 import { validateSchema } from '../../middleware/validateschema';
-import { deleteUserSchema, disableUserSchema, editUserSchema, enableUserSchema } from './schema';
+import {
+  createBulletinSchema,
+  deleteUserSchema,
+  disableUserSchema,
+  editUserSchema,
+  enableUserSchema,
+} from './schema';
 
 export const adminRouter = express.Router();
 
@@ -11,4 +17,5 @@ adminRouter.post('/users/:userId/disable', validateSchema(disableUserSchema), ad
 adminRouter.put('/users/:userId', validateSchema(editUserSchema), admin.editUser);
 adminRouter.delete('/users/:userId', validateSchema(deleteUserSchema), admin.deleteUser);
 adminRouter.get('/audits', admin.getAuditLogs);
-adminRouter.post('/bulletins', admin.postBulletin);
+adminRouter.get('/bulletins', admin.getBulletins);
+adminRouter.post('/bulletins', validateSchema(createBulletinSchema), admin.postBulletin);

@@ -10,7 +10,9 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     {
       id: { type: 'uuid', primaryKey: true, default: pgm.func('uuid_generate_v4()') },
       title: { type: 'text', notNull: true },
-      content: { type: 'text' },
+      message: { type: 'text' },
+      name: { type: 'text' },
+      type: { type: 'text', notNull: true },
       visibility: { type: 'text', notNull: true },
       condition: { type: 'text' },
       start_date: {
@@ -32,29 +34,35 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     },
   );
 
-  pgm.createTable('bulletin_users', {
-    id: { type: 'serial', primaryKey: true },
-    bulletin_id: {
-      type: 'uuid',
-      notNull: true,
-      references: 'bulletins',
-      onDelete: 'CASCADE',
+  pgm.createTable(
+    'bulletin_users',
+    {
+      id: { type: 'serial', primaryKey: true },
+      bulletin_id: {
+        type: 'uuid',
+        notNull: true,
+        references: 'bulletins',
+        onDelete: 'CASCADE',
+      },
+      user_id: {
+        type: 'uuid',
+        notNull: true,
+        references: 'users',
+        onDelete: 'CASCADE',
+      },
+      created_on: {
+        type: 'timestamptz',
+        notNull: true,
+        default: pgm.func('CURRENT_TIMESTAMP'),
+      },
     },
-    user_id: {
-      type: 'uuid',
-      notNull: true,
-      references: 'users',
-      onDelete: 'CASCADE',
+    {
+      ifNotExists: true,
     },
-    created_on: {
-      type: 'timestamptz',
-      notNull: true,
-      default: pgm.func('CURRENT_TIMESTAMP'),
-    },
-  });
+  );
 }
 
 export async function down(pgm: MigrationBuilder): Promise<void> {
-  pgm.dropTable('bulletins');
-  pgm.dropTable('bulletin_users');
+  pgm.dropTable('bulletin_users', { ifExists: true, cascade: true });
+  pgm.dropTable('bulletins', { ifExists: true });
 }
