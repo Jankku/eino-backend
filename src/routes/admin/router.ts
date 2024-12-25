@@ -3,6 +3,7 @@ import * as admin from '../../services/admin';
 import { validateSchema } from '../../middleware/validateschema';
 import {
   createBulletinSchema,
+  deleteBulletinSchema,
   deleteUserSchema,
   disableUserSchema,
   editUserSchema,
@@ -19,3 +20,8 @@ adminRouter.delete('/users/:userId', validateSchema(deleteUserSchema), admin.del
 adminRouter.get('/audits', admin.getAuditLogs);
 adminRouter.get('/bulletins', admin.getBulletins);
 adminRouter.post('/bulletins', validateSchema(createBulletinSchema), admin.postBulletin);
+adminRouter.delete(
+  '/bulletins/:bulletinId',
+  validateSchema(deleteBulletinSchema),
+  admin.removeBulletin,
+);

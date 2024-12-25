@@ -12,9 +12,19 @@ import {
   getUserByUsername,
   updateProfilePicturePath,
 } from '../db/users';
-import { createBulletinSchema, deleteUserSchema, editUserSchema } from '../routes/admin/schema';
+import {
+  createBulletinSchema,
+  deleteBulletinSchema,
+  deleteUserSchema,
+  editUserSchema,
+} from '../routes/admin/schema';
 import * as fs from 'node:fs/promises';
-import { createBulletin, getAllBulletins, insertBulletinUsers } from '../db/bulletins';
+import {
+  createBulletin,
+  deleteBulletin,
+  getAllBulletins,
+  insertBulletinUsers,
+} from '../db/bulletins';
 
 export const getUsers = async (_: Request, res: TypedResponse, next: NextFunction) => {
   try {
@@ -214,6 +224,23 @@ export const postBulletin = async (
     res
       .status(200)
       .json(success([{ name: 'bulletin_created', message: 'Bulletin created successfully' }]));
+  } catch (error) {
+    Logger.error((error as Error).stack);
+    next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to create bulletin'));
+  }
+};
+
+export const removeBulletin = async (
+  req: TypedRequest<typeof deleteBulletinSchema>,
+  res: TypedResponse,
+  next: NextFunction,
+) => {
+  const { bulletinId } = req.params;
+  try {
+    await db.tx('deleteBulletin', async (t) => await deleteBulletin(t, bulletinId));
+    res
+      .status(200)
+      .json(success([{ name: 'bulletin_deleted', message: 'Bulletin deleted successfully' }]));
   } catch (error) {
     Logger.error((error as Error).stack);
     next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to create bulletin'));

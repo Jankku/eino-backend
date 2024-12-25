@@ -68,3 +68,7 @@ export const insertBulletinUsers = async (
   const values = userIds.map((userId) => ({ bulletin_id: bulletinId, user_id: userId }));
   await t.none(pgp.helpers.insert(values, bulletinUsersCs));
 };
+
+export const deleteBulletin = async (t: ITask<unknown>, bulletinId: string) => {
+  await t.none('DELETE FROM bulletins WHERE id = $1', bulletinId);
+};
