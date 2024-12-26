@@ -24,6 +24,8 @@ import {
   deleteBulletin,
   getAllBulletins,
   insertBulletinUsers,
+  updateBulletin,
+  updateBulletinUsers,
 } from '../db/bulletins';
 
 export const getUsers = async (_: Request, res: TypedResponse, next: NextFunction) => {
@@ -227,6 +229,29 @@ export const postBulletin = async (
   } catch (error) {
     Logger.error((error as Error).stack);
     next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to create bulletin'));
+  }
+};
+
+export const editBulletin = async (
+  req: TypedRequest<typeof createBulletinSchema>,
+  res: TypedResponse,
+  next: NextFunction,
+) => {
+  const { bulletinId } = req.params;
+  const { visibleToUserIds, ...bulletin } = req.body;
+  try {
+    await db.tx('editBulletin', async (t) => {
+      await updateBulletin(t, { bulletinId, bulletin });
+      if (bulletin.visibility === 'user') {
+        await updateBulletinUsers(t, { bulletinId, userIds: visibleToUserIds! });
+      }
+    });
+    res
+      .status(200)
+      .json(success([{ name: 'bulletin_updated', message: 'Bulletin updated successfully' }]));
+  } catch (error) {
+    Logger.error((error as Error).stack);
+    next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to update bulletin'));
   }
 };
 

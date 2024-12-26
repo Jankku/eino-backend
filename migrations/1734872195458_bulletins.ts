@@ -28,6 +28,11 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         notNull: true,
         default: pgm.func('CURRENT_TIMESTAMP'),
       },
+      updated_on: {
+        type: 'timestamptz',
+        notNull: true,
+        default: pgm.func('CURRENT_TIMESTAMP'),
+      },
     },
     {
       ifNotExists: true,

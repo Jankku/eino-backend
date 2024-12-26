@@ -24,6 +24,7 @@ export type Bulletin = {
 export type DbBulletin = Bulletin & {
   id: string;
   created_on: Date;
+  updated_on: Date;
 };
 
 export const getAllBulletins = async (t: ITask<unknown>): Promise<DbBulletin[]> => {
@@ -57,9 +58,28 @@ export const createBulletin = async (
   return result.id;
 };
 
+export const updateBulletin = async (
+  t: ITask<unknown>,
+  { bulletinId, bulletin }: { bulletinId: DbBulletin['id']; bulletin: Partial<Bulletin> },
+) => {
+  await t.none(
+    'UPDATE bulletins SET title = ${title}, message = ${message}, name = ${name}, type = ${type}, visibility = ${visibility}, condition = ${condition}, start_date = ${start_date}, end_date = ${end_date}, updated_on = CURRENT_TIMESTAMP WHERE id = ${bulletinId}',
+    { bulletinId, ...bulletin },
+  );
+};
+
 const bulletinUsersCs = new pgp.helpers.ColumnSet(['bulletin_id', 'user_id'], {
   table: 'bulletin_users',
 });
+
+export const updateBulletinUsers = async (
+  t: ITask<unknown>,
+  { bulletinId, userIds }: { bulletinId: DbBulletin['id']; userIds: string[] },
+) => {
+  await t.none('DELETE FROM bulletin_users WHERE bulletin_id = $1', bulletinId);
+  const values = userIds.map((userId) => ({ bulletin_id: bulletinId, user_id: userId }));
+  await t.none(pgp.helpers.insert(values, bulletinUsersCs));
+};
 
 export const insertBulletinUsers = async (
   t: ITask<unknown>,

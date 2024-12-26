@@ -63,14 +63,8 @@ export const createBulletinSchema = z
       visibility: z.enum(bulletinVisibilities),
       visibleToUserIds: z.array(z.string().uuid()).nullish(),
       condition: z.enum(bulletinConditions).nullish(),
-      start_date: dateSchema.refine((date) => date.getTime() >= Date.now(), {
-        params: { name: 'start_date' },
-        message: errorMessages.DATE_IN_PAST,
-      }),
-      end_date: dateSchema.refine((date) => date.getTime() >= Date.now(), {
-        params: { name: 'end_date' },
-        message: errorMessages.DATE_IN_PAST,
-      }),
+      start_date: dateSchema,
+      end_date: dateSchema,
     }),
   })
   .refine(
