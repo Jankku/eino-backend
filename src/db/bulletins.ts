@@ -7,7 +7,11 @@ export type BulletinType = (typeof bulletinTypes)[number];
 export const bulletinVisibilities = ['public', 'user', 'condition'] as const;
 export type BulletinVisiblity = (typeof bulletinVisibilities)[number];
 
-export const bulletinConditions = ['2fa_not_enabled', 'email_not_verified'] as const;
+export const bulletinConditions = [
+  '2fa_not_enabled',
+  'email_not_verified',
+  'account_anniversary',
+] as const;
 export type BulletinCondition = (typeof bulletinConditions)[number];
 
 export type Bulletin = {
@@ -44,6 +48,12 @@ export const getUserBulletins = async (
   return await t.any(
     'SELECT b.id, b.title, b.message, b.name, b.type FROM bulletins b JOIN bulletin_users bu ON b.id = bu.bulletin_id WHERE bu.user_id = $1 AND b.start_date <= NOW() AND b.end_date >= NOW()',
     [userId],
+  );
+};
+
+export const getConditionBulletins = async (t: ITask<unknown>): Promise<DbBulletin[]> => {
+  return await t.any(
+    "SELECT id, title, message, name, type, condition FROM bulletins WHERE visibility = 'condition' AND start_date <= NOW() AND end_date >= NOW()",
   );
 };
 
