@@ -13,6 +13,45 @@ Eino
 
 You can find the Swagger API documentation [here](https://eino.jankku.fi/api/v2/docs/).
 
+## Features
+
+- Authentication and authorization
+  - Register and login
+  - Password strength checker
+  - User roles
+  - TOTP two-factor authentication
+  - Password reset via email, using Mailtrap
+- Admin
+  - Audit log
+    - See user actions
+    - Discord webhook support
+  - Users
+    - Modify user details
+    - Enable/disable user account
+  - Bulletins
+    - Public, specific users, on predefined condition
+    - Conditions
+      - 2FA not enabled
+      - Email not verified
+      - Account anniversary
+- Books and movies
+  - CRUD operations
+  - Sorting, ordering and filtering
+  - Third-party integrations for images
+    - Finna
+    - Open Library
+    - TMDB
+- Profile
+  - Account information
+  - Profile picture
+  - Generate an image of top 10 books/movies
+  - Statistics for books and movies
+    - Count by status
+    - Pages read / hours watched
+    - Average score and score distribution
+  - Export/import account data
+  - Delete account
+
 ## Get started
 
 Eino uses Docker Compose, so getting it up and running is simple.
