@@ -51,6 +51,7 @@ db.connect()
     await c.done();
   })
   .catch((error: Error) => {
+    Logger.error('Error connecting to database', { error });
     throw error;
   });
 

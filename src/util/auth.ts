@@ -11,6 +11,13 @@ import { roleIdToName } from './role';
 const { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, ACCESS_TOKEN_VALIDITY, REFRESH_TOKEN_VALIDITY } =
   config;
 
+export type AccessTokenPayload = {
+  userId: string;
+  username: string;
+  role: string;
+  email?: string;
+};
+
 export const generateAccessToken = (user: User): string =>
   jwt.sign(
     {
@@ -28,13 +35,14 @@ export const generateAccessToken = (user: User): string =>
     },
   );
 
+export type RefreshTokenPayload = {
+  username: string;
+};
+
 export const generateRefreshToken = (user: User): string =>
   jwt.sign(
     {
-      userId: user.user_id,
       username: user.username,
-      email: user.email,
-      is2FAEnabled: user.totp_enabled_on ? true : false,
     },
     REFRESH_TOKEN_SECRET,
     {

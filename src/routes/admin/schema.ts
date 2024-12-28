@@ -1,8 +1,14 @@
 import z from 'zod';
 import { errorMessages } from '../../util/errormessages';
-import { dateSchema, optionalEmailSchema, usernameSchema } from '../../util/zodschema';
+import {
+  dateSchema,
+  nonEmptyString,
+  optionalEmailSchema,
+  usernameSchema,
+} from '../../util/zodschema';
 import { db } from '../../db/config';
 import { isEmailUnique } from '../../db/users';
+import { bulletinConditions, bulletinTypes, bulletinVisibilities } from '../../db/bulletins';
 
 export const editUserSchema = z
   .object({
@@ -44,5 +50,53 @@ export const disableUserSchema = z.object({
 export const deleteUserSchema = z.object({
   params: z.object({
     userId: z.string().uuid(errorMessages.UUID_INVALID),
+  }),
+});
+
+export const createBulletinSchema = z
+  .object({
+    body: z.object({
+      title: nonEmptyString,
+      message: z.string().nullish(),
+      name: z.string().nullish(),
+      type: z.enum(bulletinTypes),
+      visibility: z.enum(bulletinVisibilities),
+      visibleToUserIds: z.array(z.string().uuid()).nullish(),
+      condition: z.enum(bulletinConditions).nullish(),
+      start_date: dateSchema,
+      end_date: dateSchema,
+    }),
+  })
+  .refine(
+    ({ body }) => {
+      if (body.visibility === 'condition' && !body.condition) {
+        return false;
+      }
+      return true;
+    },
+    {
+      params: { name: 'condition' },
+      message: 'Condition required for condition visibility',
+    },
+  )
+  .refine(
+    ({ body }) => {
+      if (
+        body.visibility === 'user' &&
+        (!body.visibleToUserIds || body.visibleToUserIds.length === 0)
+      ) {
+        return false;
+      }
+      return true;
+    },
+    {
+      params: { name: 'visibleToUserIds' },
+      message: 'VisibleToUserIds required for user visibility',
+    },
+  );
+
+export const deleteBulletinSchema = z.object({
+  params: z.object({
+    bulletinId: z.string().uuid(errorMessages.UUID_INVALID),
   }),
 });

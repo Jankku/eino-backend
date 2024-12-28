@@ -4,6 +4,7 @@ import { z, ZodError } from 'zod';
 import { config } from '../config';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { formatZodErrors } from '../util/zod';
+import { AccessTokenPayload } from '../util/auth';
 
 const tokenSchema = z.object({
   headers: z.object({
@@ -19,26 +20,21 @@ const tokenSchema = z.object({
   }),
 });
 
-export type JwtPayload = {
-  userId: string;
-  username: string;
-  role: string;
-  email?: string;
-};
-
 /**
  * Verifies that user's access token is valid
  */
 export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   try {
     const accessToken = tokenSchema.parse(req).headers.authorization;
-    const { username, role } = jwt.verify(accessToken, config.ACCESS_TOKEN_SECRET, {
+    const { userId, username, role, email } = jwt.verify(accessToken, config.ACCESS_TOKEN_SECRET, {
       audience: 'eino',
       issuer: 'eino-backend',
-    }) as JwtPayload;
+    }) as AccessTokenPayload;
 
+    res.locals.userId = userId;
     res.locals.username = username;
     res.locals.role = role;
+    res.locals.email = email;
     next();
   } catch (error) {
     if (error instanceof ZodError) {

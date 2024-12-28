@@ -15,6 +15,15 @@ export type TypedRequest<T extends z.Schema<unknown>> = Omit<
   query: T extends z.Schema<infer Q> ? (Q extends { query: unknown } ? Q['query'] : never) : never;
 };
 
+export type TypedResponse = Response & {
+  locals: {
+    userId: string;
+    username: string;
+    role: Role['name'];
+    email: string | null;
+  };
+};
+
 export const formatZodErrors = (error: ZodError) => {
   const errors = Object.values(error.issues);
   const formattedErrors = errors.map((e: ZodIssue) => {
@@ -28,11 +37,4 @@ export const formatZodErrors = (error: ZodError) => {
   });
 
   return formattedErrors;
-};
-
-export type TypedResponse = Response & {
-  locals: {
-    username: string;
-    role: Role['name'];
-  };
 };

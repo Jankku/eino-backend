@@ -19,6 +19,7 @@ import {
   generatePasswordHash,
   generateRefreshToken,
   getPasswordStrength,
+  RefreshTokenPayload,
 } from '../util/auth';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { config } from '../config';
@@ -41,7 +42,6 @@ import {
 } from '../db/verification';
 import { generateTOTP, validateTOTP } from '../util/totp';
 import QRCode from 'qrcode';
-import { JwtPayload } from '../middleware/verifytoken';
 import { DateTime } from 'luxon';
 import { isVerificationExpired } from '../util/verification';
 import { sendEmail } from '../util/email';
@@ -185,7 +185,7 @@ export const generateNewAccessToken = async (
     const { username } = jwt.verify(refreshToken, config.REFRESH_TOKEN_SECRET, {
       audience: 'eino',
       issuer: 'eino-backend',
-    }) as JwtPayload;
+    }) as RefreshTokenPayload;
 
     const accessToken = await db.task('generateNewAccessToken', async (t) => {
       const user = await getUserByUsername(t, username);
@@ -202,7 +202,8 @@ export const generateNewAccessToken = async (
     if (error instanceof ErrorWithStatus) {
       next(error);
     } else {
-      next(new ErrorWithStatus(422, 'jwt_refresh_error', (error as Error)?.message));
+      Logger.error((error as Error).stack);
+      next(new ErrorWithStatus(500, 'jwt_refresh_error', (error as Error)?.message));
     }
   }
 };
@@ -220,9 +221,9 @@ export const passwordStrength = (
       res.status(200).json(success([{ message: error, score }]));
       return;
     }
-
     res.status(200).json(success([{ message: 'Password is strong', score }]));
-  } catch {
+  } catch (error) {
+    Logger.error((error as Error).stack);
     next(
       new ErrorWithStatus(500, 'password_strength_error', 'Unknown error while checking password'),
     );
@@ -386,7 +387,7 @@ export const resetPassword = async (
 };
 
 export const generate2FAUrl = async (req: Request, res: TypedResponse, next: NextFunction) => {
-  const username: string = res.locals.username;
+  const username = res.locals.username;
 
   try {
     const { totpUrl } = await db.tx('generate2FAUrl', async (t) => {
@@ -443,7 +444,7 @@ export const enable2FA = async (
   next: NextFunction,
 ) => {
   const { twoFactorCode } = req.body;
-  const username: string = res.locals.username;
+  const username = res.locals.username;
 
   try {
     await db.tx('enable2FA', async (t) => {
@@ -479,7 +480,7 @@ export const disable2FA = async (
   next: NextFunction,
 ) => {
   const { twoFactorCode } = req.body;
-  const username: string = res.locals.username;
+  const username = res.locals.username;
 
   try {
     await db.tx('disable2FA', async (t) => {
