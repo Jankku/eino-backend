@@ -8,6 +8,7 @@ import {
   likeSearch,
   postMovie,
   postMovieToUserList,
+  updateMovie,
 } from '../db/movies';
 import { success } from '../util/response';
 import { db } from '../db/config';
@@ -165,47 +166,12 @@ export const updateOne = async (
 ) => {
   const { movieId } = req.params;
   const username = res.locals.username;
-  const {
-    title,
-    studio,
-    director,
-    writer,
-    image_url,
-    duration,
-    year,
-    status,
-    score,
-    note,
-    start_date,
-    end_date,
-  } = req.body;
+  const movie = req.body;
 
   try {
     const { updatedMovie } = await db.tx('updateOne', async (t) => {
       const oldMovie = await getMovieById(t, { movieId, username });
-      await t.none({
-        text: `UPDATE movies
-        SET title=$1,
-            studio=$2,
-            director=$3,
-            writer=$4,
-            image_url=$5,
-            duration=$6,
-            year=$7
-        WHERE movie_id=$8
-          AND submitter=$9`,
-        values: [title, studio, director, writer, image_url, duration, year, movieId, username],
-      });
-      await t.none({
-        text: `UPDATE user_movie_list
-           SET status=$1,
-               score=$2,
-               note=$3,
-               start_date=$4,
-               end_date=$5
-           WHERE movie_id = $6`,
-        values: [status, score, note, start_date, end_date, movieId],
-      });
+      await updateMovie(t, { movie, movieId, username });
       const updatedMovie = await getMovieById(t, { movieId, username });
       await addAudit(t, {
         username,

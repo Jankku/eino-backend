@@ -6,13 +6,14 @@ import z from 'zod';
 const isDate = (value: unknown): value is Date =>
   value instanceof Date && !Number.isNaN(value.getTime());
 
-const isString = (value: unknown): value is string => typeof value === 'string';
+const isString = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
 
 const isNumber = (value: unknown): value is number =>
   typeof value === 'number' && !Number.isNaN(value);
 
+const collator = new Intl.Collator('en');
 const stringSort = (a: string, b: string, order: SortOrder) => {
-  return order === 'ascending' ? a.localeCompare(b) : b.localeCompare(a);
+  return order === 'ascending' ? collator.compare(a, b) : collator.compare(b, a);
 };
 
 const numberSort = (a: number, b: number, order: SortOrder) => {

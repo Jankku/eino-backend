@@ -10,6 +10,8 @@ import {
   sortOrderSchema,
 } from '../../util/zodschema';
 import { parseFilter } from '../../util/sort';
+import { languageCodes } from '../../util/languages';
+import { errorMessages } from '../../util/errormessages';
 
 export const bookSchema = z.object({
   isbn: fixedStringSchema,
@@ -18,6 +20,7 @@ export const bookSchema = z.object({
   publisher: fixedStringSchema,
   image_url: coverUrlSchema,
   note: z.string().nullish(),
+  language_code: z.enum(languageCodes, { message: errorMessages.LANGUAGE_CODE_INVALID }).nullish(),
   pages: nonnegativeNumberSchema,
   year: nonnegativeNumberSchema,
   status: bookStatusEnum,
@@ -32,7 +35,7 @@ export const dbBookSchema = bookSchema.extend({
 });
 
 const bookSortableKeySchema = dbBookSchema
-  .omit({ book_id: true, image_url: true, isbn: true, note: true })
+  .omit({ book_id: true, image_url: true, isbn: true, note: true, language_code: true })
   .keyof();
 
 export const bookStringKeySchema = bookSortableKeySchema.exclude(['pages', 'year', 'score']);

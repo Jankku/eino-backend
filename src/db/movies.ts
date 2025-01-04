@@ -111,6 +111,45 @@ export const postMovieToUserList = async (
   });
 };
 
+export const updateMovie = async (
+  t: ITask<unknown>,
+  { movie, movieId, username }: { movie: Movie; movieId: string; username: string },
+): Promise<void> => {
+  await t.none({
+    text: `UPDATE movies
+         SET title=$1,
+             studio=$2,
+             director=$3,
+             writer=$4,
+             image_url=$5,
+             duration=$6,
+             year=$7
+         WHERE movie_id=$8
+           AND submitter=$9`,
+    values: [
+      movie.title,
+      movie.studio,
+      movie.director,
+      movie.writer,
+      movie.image_url,
+      movie.duration,
+      movie.year,
+      movieId,
+      username,
+    ],
+  });
+  await t.none({
+    text: `UPDATE user_movie_list
+            SET status=$1,
+                score=$2,
+                note=$3,
+                start_date=$4,
+                end_date=$5
+            WHERE movie_id = $6`,
+    values: [movie.status, movie.score, movie.note, movie.start_date, movie.end_date, movieId],
+  });
+};
+
 export const ftsSearch = async (
   t: ITask<unknown>,
   { username, query }: { username: string; query: string },

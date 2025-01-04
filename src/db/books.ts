@@ -12,6 +12,7 @@ export const getAllBooks = async (t: ITask<unknown>, username: string): Promise<
                   b.image_url,
                   b.pages,
                   b.year,
+                  b.language_code,
                   ubl.note,
                   ubl.status,
                   ubl.score,
@@ -41,6 +42,7 @@ export const getBookById = async (
                   b.image_url,
                   b.pages,
                   b.year,
+                  b.language_code,
                   ubl.note,
                   ubl.status,
                   ubl.score,
@@ -69,6 +71,7 @@ export const getBooksByStatus = async (
                   b.image_url,
                   b.pages,
                   b.year,
+                  b.language_code,
                   ubl.note,
                   ubl.status,
                   ubl.score,
@@ -87,10 +90,20 @@ export const getBooksByStatus = async (
 
 export const postBook = async (t: ITask<unknown>, b: Book, submitter: string): Promise<string> => {
   const result = await t.one({
-    text: `INSERT INTO books (isbn, title, author, publisher, image_url, pages, year, submitter)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    text: `INSERT INTO books (isbn, title, author, publisher, image_url, pages, year, language_code, submitter)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
            RETURNING book_id`,
-    values: [b.isbn, b.title, b.author, b.publisher, b.image_url, b.pages, b.year, submitter],
+    values: [
+      b.isbn,
+      b.title,
+      b.author,
+      b.publisher,
+      b.image_url,
+      b.pages,
+      b.year,
+      b.language_code,
+      submitter,
+    ],
   });
   return result.book_id;
 };
@@ -108,6 +121,47 @@ export const postBookToUserList = async (
   });
 };
 
+export const updateBook = async (
+  t: ITask<unknown>,
+  { book, bookId, username }: { book: Book; bookId: string; username: string },
+): Promise<void> => {
+  await t.none({
+    text: `UPDATE books
+             SET title=$1,
+                 author=$2,
+                 publisher=$3,
+                 image_url=$4,
+                 pages=$5,
+                 isbn=$6,
+                 year=$7,
+                 language_code=$8
+             WHERE book_id = $9
+               AND submitter = $10`,
+    values: [
+      book.title,
+      book.author,
+      book.publisher,
+      book.image_url,
+      book.pages,
+      book.isbn,
+      book.year,
+      book.language_code,
+      bookId,
+      username,
+    ],
+  });
+  await t.none({
+    text: `UPDATE user_book_list
+             SET status=$1,
+                 score=$2,
+                 note=$3,
+                 start_date=$4,
+                 end_date=$5
+             WHERE book_id = $6`,
+    values: [book.status, book.score, book.note, book.start_date, book.end_date, bookId],
+  });
+};
+
 export const ftsSearch = async (
   t: ITask<unknown>,
   { username, query }: { username: string; query: string },
@@ -121,6 +175,7 @@ export const ftsSearch = async (
                   b.image_url,
                   b.pages,
                   b.year,
+                  b.language_code,
                   ubl.note,
                   ubl.status,
                   ubl.score,
@@ -148,6 +203,7 @@ export const likeSearch = async (
                   b.image_url,
                   b.pages,
                   b.year,
+                  b.language_code,
                   ubl.note,
                   ubl.status,
                   ubl.score,

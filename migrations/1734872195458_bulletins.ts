@@ -15,55 +15,23 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       type: { type: 'text', notNull: true },
       visibility: { type: 'text', notNull: true },
       condition: { type: 'text' },
-      start_date: {
-        type: 'timestamptz',
-        notNull: true,
-      },
-      end_date: {
-        type: 'timestamptz',
-        notNull: true,
-      },
-      created_on: {
-        type: 'timestamptz',
-        notNull: true,
-        default: pgm.func('CURRENT_TIMESTAMP'),
-      },
-      updated_on: {
-        type: 'timestamptz',
-        notNull: true,
-        default: pgm.func('CURRENT_TIMESTAMP'),
-      },
+      start_date: { type: 'timestamptz', notNull: true },
+      end_date: { type: 'timestamptz', notNull: true },
+      created_on: { type: 'timestamptz', notNull: true, default: pgm.func('CURRENT_TIMESTAMP') },
+      updated_on: { type: 'timestamptz', notNull: true, default: pgm.func('CURRENT_TIMESTAMP') },
     },
-    {
-      ifNotExists: true,
-    },
+    { ifNotExists: true },
   );
 
   pgm.createTable(
     'bulletin_users',
     {
       id: { type: 'serial', primaryKey: true },
-      bulletin_id: {
-        type: 'uuid',
-        notNull: true,
-        references: 'bulletins',
-        onDelete: 'CASCADE',
-      },
-      user_id: {
-        type: 'uuid',
-        notNull: true,
-        references: 'users',
-        onDelete: 'CASCADE',
-      },
-      created_on: {
-        type: 'timestamptz',
-        notNull: true,
-        default: pgm.func('CURRENT_TIMESTAMP'),
-      },
+      bulletin_id: { type: 'uuid', notNull: true, references: 'bulletins', onDelete: 'CASCADE' },
+      user_id: { type: 'uuid', notNull: true, references: 'users', onDelete: 'CASCADE' },
+      created_on: { type: 'timestamptz', notNull: true, default: pgm.func('CURRENT_TIMESTAMP') },
     },
-    {
-      ifNotExists: true,
-    },
+    { ifNotExists: true },
   );
 }
 

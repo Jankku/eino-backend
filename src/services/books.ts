@@ -8,6 +8,7 @@ import {
   likeSearch,
   postBook,
   postBookToUserList,
+  updateBook,
 } from '../db/books';
 import { success } from '../util/response';
 import { db } from '../db/config';
@@ -152,47 +153,12 @@ export const updateOne = async (
 ) => {
   const username = res.locals.username;
   const { bookId } = req.params;
-  const {
-    isbn,
-    title,
-    author,
-    publisher,
-    image_url,
-    pages,
-    year,
-    status,
-    score,
-    note,
-    start_date,
-    end_date,
-  } = req.body;
+  const book = req.body;
 
   try {
     const { updatedBook } = await db.tx('updateOne', async (t) => {
       const oldBook = await getBookById(t, { bookId, username });
-      await t.none({
-        text: `UPDATE books
-           SET title=$1,
-               author=$2,
-               publisher=$3,
-               image_url=$4,
-               pages=$5,
-               isbn=$6,
-               year=$7
-           WHERE book_id = $8
-             AND submitter = $9`,
-        values: [title, author, publisher, image_url, pages, isbn, year, bookId, username],
-      });
-      await t.none({
-        text: `UPDATE user_book_list
-           SET status=$1,
-               score=$2,
-               note=$3,
-               start_date=$4,
-               end_date=$5
-           WHERE book_id = $6`,
-        values: [status, score, note, start_date, end_date, bookId],
-      });
+      await updateBook(t, { book, bookId, username });
       const updatedBook = await getBookById(t, { bookId, username });
       await addAudit(t, {
         username,
