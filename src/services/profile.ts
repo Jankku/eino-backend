@@ -20,7 +20,7 @@ import { DateTime } from 'luxon';
 import { getProfileData, getProfileDataV2 } from '../db/profile';
 import {
   deleteAccountSchema,
-  getProfileSchema,
+  exportProfileSchema,
   importProfileSchema,
 } from '../routes/profile/schema';
 import {
@@ -39,11 +39,7 @@ import { addAudit, getAuditsByUsername } from '../db/audit';
 import { generateProfilePicturePath } from '../util/profilepicture';
 import sharp from 'sharp';
 
-export const getProfile = async (
-  _req: TypedRequest<typeof getProfileSchema>,
-  res: TypedResponse,
-  next: NextFunction,
-) => {
+export const getProfile = async (_: Request, res: TypedResponse, next: NextFunction) => {
   const username = res.locals.username;
 
   try {
@@ -298,12 +294,12 @@ export const generateShareImage = async (_req: Request, res: TypedResponse, next
 };
 
 export const exportProfileData = async (
-  req: TypedRequest<typeof getProfileSchema>,
+  req: TypedRequest<typeof exportProfileSchema>,
   res: TypedResponse,
   next: NextFunction,
 ) => {
   const username = res.locals.username;
-  const { password } = req.body;
+  const { password, includeAuditLog } = req.body;
 
   try {
     const [books, movies, profile, shares, audits] = await db.task(
@@ -321,7 +317,7 @@ export const exportProfileData = async (
           getAllMovies(t, username),
           getProfileDataV2(t, username),
           getSharesByUsername(t, username),
-          getAuditsByUsername(t, username),
+          includeAuditLog ? getAuditsByUsername(t, username) : [],
         ]);
       },
     );

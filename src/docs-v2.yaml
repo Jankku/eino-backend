@@ -682,6 +682,8 @@ paths:
               properties:
                 password:
                   type: string
+                includeAuditLog:
+                  type: boolean
       responses:
         '200':
           description: Successful response

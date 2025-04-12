@@ -7,7 +7,6 @@ import {
 } from '../../util/zodschema';
 import { dbBookSchema } from '../../db/model/book';
 import { dbMovieSchema } from '../../db/model/movie';
-import { shareSchema } from '../../db/model/dbshare';
 
 export const deleteAccountSchema = z.object({
   body: z.object({
@@ -16,9 +15,10 @@ export const deleteAccountSchema = z.object({
   }),
 });
 
-export const getProfileSchema = z.object({
+export const exportProfileSchema = z.object({
   body: z.object({
     password: passwordSchema,
+    includeAuditLog: z.boolean().optional(),
   }),
 });
 
