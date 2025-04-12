@@ -11,12 +11,7 @@ import { roleIdToName } from './role';
 const { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, ACCESS_TOKEN_VALIDITY, REFRESH_TOKEN_VALIDITY } =
   config;
 
-export type AccessTokenPayload = {
-  userId: string;
-  username: string;
-  role: string;
-  email?: string;
-};
+export type AccessTokenPayload = { userId: string; username: string; role: string; email?: string };
 
 export const generateAccessToken = (user: User): string =>
   jwt.sign(
@@ -29,28 +24,20 @@ export const generateAccessToken = (user: User): string =>
     },
     ACCESS_TOKEN_SECRET,
     {
-      expiresIn: ACCESS_TOKEN_VALIDITY,
+      expiresIn: ACCESS_TOKEN_VALIDITY as jwt.SignOptions['expiresIn'],
       audience: 'eino',
       issuer: 'eino-backend',
     },
   );
 
-export type RefreshTokenPayload = {
-  username: string;
-};
+export type RefreshTokenPayload = { username: string };
 
 export const generateRefreshToken = (user: User): string =>
-  jwt.sign(
-    {
-      username: user.username,
-    },
-    REFRESH_TOKEN_SECRET,
-    {
-      expiresIn: REFRESH_TOKEN_VALIDITY,
-      audience: 'eino',
-      issuer: 'eino-backend',
-    },
-  );
+  jwt.sign({ username: user.username }, REFRESH_TOKEN_SECRET, {
+    expiresIn: REFRESH_TOKEN_VALIDITY as jwt.SignOptions['expiresIn'],
+    audience: 'eino',
+    issuer: 'eino-backend',
+  });
 
 export const generatePasswordHash = (password: string): Promise<string> =>
   bcrypt.hash(password, 12);
@@ -58,11 +45,7 @@ export const generatePasswordHash = (password: string): Promise<string> =>
 export const initZxcvbn = () => {
   const options: Partial<Options> = {
     graphs: zxcvbnCommon.adjacencyGraphs,
-    dictionary: {
-      ...zxcvbnCommon.dictionary,
-      ...zxcvbnEn.dictionary,
-      ...zxcvbnFi.dictionary,
-    },
+    dictionary: { ...zxcvbnCommon.dictionary, ...zxcvbnEn.dictionary, ...zxcvbnFi.dictionary },
     translations: zxcvbnEn.translations,
   };
   zxcvbnOptions.setOptions(options);

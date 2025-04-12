@@ -1,5 +1,5 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["src/**/*.ts", "test/*.ts", "migrations/*.ts"],
+  "include": ["src/**/*.ts", "migrations/*.ts"],
   "exclude": ["src/fonts/*.ttf"]
 }

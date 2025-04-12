@@ -11,6 +11,7 @@ export type EmailTemplate = {
 const client = new MailtrapClient({
   token: config.EMAIL_MAILTRAP_TOKEN || '',
   testInboxId: config.EMAIL_MAILTRAP_TEST_INBOX_ID,
+  sandbox: !config.isProduction,
 });
 
 export const sendEmail = async ({
@@ -31,7 +32,7 @@ export const sendEmail = async ({
       return config.isProduction
         ? client.send(mail)
         : config.EMAIL_MAILTRAP_TEST_INBOX_ID
-          ? client.testing.send(mail)
+          ? client.send(mail)
           : { success: false, errors: [] };
     } catch (error) {
       Logger.info((error as Error).message);

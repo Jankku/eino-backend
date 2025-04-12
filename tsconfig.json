@@ -5,6 +5,7 @@
     "rootDir": ".",
     "outDir": "./dist",
     "removeComments": true,
-    "importHelpers": true
+    "importHelpers": true,
+    "erasableSyntaxOnly": true
   }
 }
