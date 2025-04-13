@@ -2,17 +2,10 @@ import { ZodError, ZodIssue, z } from 'zod';
 import { Request, Response } from 'express';
 import { Role } from '../db/role';
 
-export type TypedRequest<T extends z.Schema<unknown>> = Omit<
-  Request,
-  'body' | 'params' | 'query'
-> & {
-  body: T extends z.Schema<infer B> ? (B extends { body: unknown } ? B['body'] : never) : never;
-  params: T extends z.Schema<infer P>
-    ? P extends { params: unknown }
-      ? P['params']
-      : never
-    : never;
-  query: T extends z.Schema<infer Q> ? (Q extends { query: unknown } ? Q['query'] : never) : never;
+export type TypedRequest<T extends z.ZodTypeAny> = Omit<Request, 'body' | 'params' | 'query'> & {
+  body: z.infer<T> extends { body: unknown } ? z.infer<T>['body'] : never;
+  params: z.infer<T> extends { params: unknown } ? z.infer<T>['params'] : never;
+  query: z.infer<T> extends { query: unknown } ? z.infer<T>['query'] : never;
 };
 
 export type TypedResponse = Response & {
