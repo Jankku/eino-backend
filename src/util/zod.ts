@@ -13,7 +13,6 @@ export type TypedResponse = Response & {
     userId: string;
     username: string;
     role: Role['name'];
-    email: string | null;
   };
 };
 

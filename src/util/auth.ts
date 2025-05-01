@@ -11,7 +11,12 @@ import { roleIdToName } from './role';
 const { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, ACCESS_TOKEN_VALIDITY, REFRESH_TOKEN_VALIDITY } =
   config;
 
-export type AccessTokenPayload = { userId: string; username: string; role: string; email?: string };
+export type AccessTokenPayload = {
+  userId: string;
+  username: string;
+  role: string;
+  is2FAEnabled: boolean;
+};
 
 export const generateAccessToken = (user: User): string =>
   jwt.sign(
@@ -19,9 +24,8 @@ export const generateAccessToken = (user: User): string =>
       userId: user.user_id,
       username: user.username,
       role: roleIdToName(user.role_id),
-      email: user.email,
       is2FAEnabled: user.totp_enabled_on ? true : false,
-    },
+    } satisfies AccessTokenPayload,
     ACCESS_TOKEN_SECRET,
     {
       expiresIn: ACCESS_TOKEN_VALIDITY as jwt.SignOptions['expiresIn'],
