@@ -225,6 +225,25 @@ export const isEmailUnique = async (t: ITask<unknown>, email: string): Promise<b
   }
 };
 
+export const isEmailUniqueExcludeUsername = async (
+  t: ITask<unknown>,
+  username: string,
+  email: string,
+): Promise<boolean> => {
+  try {
+    const result = await t.result<{ username: string; email: string }>({
+      text: `SELECT username, email
+           FROM users
+           WHERE email = $1 AND username != $2`,
+      values: [email, username],
+    });
+    return result.rowCount === 0;
+  } catch (error) {
+    Logger.error((error as Error).stack);
+    return false;
+  }
+};
+
 export const updateLastLogin = async (t: ITask<unknown>, userId: string): Promise<void> => {
   await t.none({
     text: `UPDATE users

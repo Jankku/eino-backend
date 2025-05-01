@@ -7,7 +7,7 @@ import {
   usernameSchema,
 } from '../../util/zodschema';
 import { db } from '../../db/config';
-import { isEmailUnique } from '../../db/users';
+import { isEmailUniqueExcludeUsername } from '../../db/users';
 import { bulletinConditions, bulletinTypes, bulletinVisibilities } from '../../db/bulletins';
 
 export const editUserSchema = z
@@ -27,7 +27,9 @@ export const editUserSchema = z
   .refine(
     async (data) => {
       if (!data.body.email) return true;
-      return await db.task(async (t) => await isEmailUnique(t, data.body.email!));
+      return await db.task(
+        async (t) => await isEmailUniqueExcludeUsername(t, data.body.username, data.body.email!),
+      );
     },
     {
       params: { name: 'admin_error' },
