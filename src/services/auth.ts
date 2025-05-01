@@ -193,6 +193,7 @@ export const generateNewAccessToken = async (
         throw new ErrorWithStatus(422, 'authentication_error', 'Account disabled');
       }
       const accessToken = generateAccessToken(user);
+      await updateLastLogin(t, user.user_id);
       await addAudit(t, { username: user.username, action: 'access_token_refresh' });
       return accessToken;
     });
@@ -420,14 +421,7 @@ export const generate2FAUrl = async (req: Request, res: TypedResponse, next: Nex
 
     const qrCodeUrl = await QRCode.toDataURL(totpUrl);
 
-    res.status(200).json(
-      success([
-        {
-          totpUrl,
-          qrCodeUrl,
-        },
-      ]),
-    );
+    res.status(200).json(success([{ totpUrl, qrCodeUrl }]));
   } catch (error) {
     if (error instanceof ErrorWithStatus) {
       next(error);
