@@ -1,3 +1,5 @@
+export type LanguageCode = (typeof languageCodes)[number];
+
 /**
  * https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes
  */

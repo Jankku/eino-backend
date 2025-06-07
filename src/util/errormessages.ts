@@ -24,4 +24,8 @@ export const errorMessages = {
   FILE_EXTENSION_INVALID: 'Invalid file extension',
   UUID_INVALID: 'Invalid UUID',
   LANGUAGE_CODE_INVALID: 'Invalid language code',
+  ISBN_REQUIRED: 'ISBN required',
+  ISBN_INVALID: 'Invalid ISBN',
+  ISBN_LENGTH_INVALID: 'ISBN length should be 10 or 13 digits',
+  ISBN_TYPE_ERROR: 'ISBN should be a string',
 };

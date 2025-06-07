@@ -33,6 +33,24 @@ export const deleteOneSchema = z.object({
   }),
 });
 
+export const searchIsbnSchema = z.object({
+  params: z.object({
+    isbn: z
+      .string({
+        required_error: errorMessages.ISBN_REQUIRED,
+        invalid_type_error: errorMessages.ISBN_TYPE_ERROR,
+      })
+      .trim()
+      .transform((value) => value.replaceAll(/[\s-]/g, ''))
+      .refine((value) => value.length === 10 || value.length === 13, {
+        message: errorMessages.ISBN_LENGTH_INVALID,
+      })
+      .refine((value) => /^\d+$/.test(value), {
+        message: errorMessages.ISBN_INVALID,
+      }),
+  }),
+});
+
 export const fetchByStatusSchema = z.object({
   params: z.object({
     status: bookStatusEnum,

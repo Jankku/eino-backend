@@ -2,7 +2,7 @@ import axios from 'axios';
 import { z } from 'zod';
 import { config } from '../../config';
 import { cachified } from '@epic-web/cachified';
-import { cache, cacheSchema, getCacheKey } from '../../util/cache';
+import { cache, stringArrayCacheSchema, getCacheKey } from '../../util/cache';
 
 const tmdbSearchSchema = z.object({
   results: z.array(z.object({ poster_path: z.string().nullish() })),
@@ -14,7 +14,7 @@ export const fetchTmdbImages = async (query: string): Promise<string[]> => {
   return cachified({
     cache: cache,
     key: getCacheKey('tmdb', query),
-    checkValue: cacheSchema,
+    checkValue: stringArrayCacheSchema,
     async getFreshValue(context) {
       const response = await axios.get('https://api.themoviedb.org/3/search/movie', {
         params: {

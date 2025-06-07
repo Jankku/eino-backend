@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { errorMessages } from './errormessages';
+import { languageCodes } from './languages';
 
 export const dateStringSchema = z.string().refine((arg) => {
   if (!arg) return false;
@@ -31,6 +32,10 @@ export const coverUrlSchema = z.union([
   z.null(),
   z.undefined(),
 ]);
+
+export const languageCodeSchema = z.enum(languageCodes, {
+  message: errorMessages.LANGUAGE_CODE_INVALID,
+});
 
 export const usernameSchema = z
   .string({
@@ -66,18 +71,14 @@ export const optionalEmailSchema = z
   .string()
   .trim()
   .min(0)
-  .max(255, {
-    message: errorMessages.EMAIL_INVALID,
-  })
+  .max(255, { message: errorMessages.EMAIL_INVALID })
   .nullish()
   .refine(
     (value) => {
       if (!value) return true;
       return value.includes('@');
     },
-    {
-      message: errorMessages.EMAIL_INVALID,
-    },
+    { message: errorMessages.EMAIL_INVALID },
   );
 
 export const usernameOrEmailSchema = z.union([usernameSchema, emailSchema]);

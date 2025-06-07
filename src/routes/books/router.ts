@@ -9,12 +9,14 @@ import {
   fetchOneSchema,
   searchSchema,
   updateOneSchema,
+  searchIsbnSchema,
 } from './schema';
 
 export const bookRouter = express.Router();
 
 bookRouter.get('/count', books.countByStatus);
 bookRouter.get('/search', validateSchema(searchSchema), books.search);
+bookRouter.get('/search/isbn/:isbn', validateSchema(searchIsbnSchema), books.searchIsbn);
 bookRouter.get('/book/:bookId', validateSchema(fetchOneSchema), books.fetchOne);
 bookRouter.post('/add', validateSchema(addOneSchema), books.addOne);
 bookRouter.put('/update/:bookId', validateSchema(updateOneSchema), books.updateOne);

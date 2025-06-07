@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { z } from 'zod';
 import { cachified } from '@epic-web/cachified';
-import { cache, cacheSchema, getCacheKey } from '../../util/cache';
+import { cache, stringArrayCacheSchema, getCacheKey } from '../../util/cache';
 
 const finnaImagesSchema = z.object({
   resultCount: z.number(),
@@ -19,7 +19,7 @@ export const fetchFinnaImages = async (
   return cachified({
     cache: cache,
     key: getCacheKey(isBookFilter ? 'finna-book' : 'finna-video', query),
-    checkValue: cacheSchema,
+    checkValue: stringArrayCacheSchema,
     async getFreshValue(context) {
       const response = await axios.get('https://api.finna.fi/api/v1/search', {
         params: {

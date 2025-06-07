@@ -14,7 +14,7 @@ import { success } from '../util/response';
 import { db } from '../db/config';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { fetchFinnaImages } from './third-party/finna';
-import { fetchOpenLibraryImages } from './third-party/openlibrary';
+import { fetchOpenLibraryEditionsByIsbn, fetchOpenLibraryImages } from './third-party/openlibrary';
 import { TypedRequest, TypedResponse } from '../util/zod';
 import {
   addOneSchema,
@@ -22,6 +22,7 @@ import {
   fetchByStatusSchema,
   fetchImagesSchema,
   fetchOneSchema,
+  searchIsbnSchema,
   searchSchema,
   updateOneSchema,
 } from '../routes/books';
@@ -29,6 +30,8 @@ import { bookSortSchema, bookNumberKeySchema, bookStringKeySchema, DbBook } from
 import { itemSorter, getItemFilter } from '../util/sort';
 import { addAudit } from '../db/audit';
 import { fillBookStatuses, StatusCountRow } from '../util/status';
+import { fetchGoogleBooksByIsbn } from './third-party/googlebooks';
+import { firstNonEmpty } from '../util/promise';
 
 export const fetchOne = async (
   req: TypedRequest<typeof fetchOneSchema>,
@@ -252,6 +255,25 @@ export const search = async (
   } catch (error) {
     Logger.error((error as Error).stack);
     next(new ErrorWithStatus(500, 'book_list_error', 'Search failed'));
+  }
+};
+
+export const searchIsbn = async (
+  req: TypedRequest<typeof searchIsbnSchema>,
+  res: TypedResponse,
+  next: NextFunction,
+) => {
+  const { isbn } = req.params;
+
+  try {
+    const books = await firstNonEmpty([
+      () => fetchGoogleBooksByIsbn(isbn),
+      () => fetchOpenLibraryEditionsByIsbn(isbn),
+    ]);
+    res.status(200).json(success(books));
+  } catch (error) {
+    Logger.error((error as Error).stack);
+    next(new ErrorWithStatus(422, 'isbn_search_error', "Couldn't find book with this ISBN"));
   }
 };
 
