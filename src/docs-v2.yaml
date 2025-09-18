@@ -38,6 +38,8 @@ tags:
     description: Public profile share endpoints
   - name: profilepicture
     description: Public profile picture endpoints
+  - name: bulletins
+    description: Bulletin endpoints
 paths:
   /docs.json:
     get:
@@ -1253,6 +1255,50 @@ paths:
                 format: binary
         '422':
           description: Couldn't get profile picture
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /bulletins/public:
+    get:
+      tags:
+        - bulletins
+      summary: Get public bulletins
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /bulletins/user:
+    get:
+      tags:
+        - bulletins
+      summary: Get user-specific bulletins
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '401':
+          description: Invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Server error
           content:
             application/json:
               schema:
