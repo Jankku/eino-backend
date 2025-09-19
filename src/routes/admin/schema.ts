@@ -1,4 +1,4 @@
-import z from 'zod';
+import { z } from 'zod';
 import { errorMessages } from '../../util/errormessages';
 import {
   dateSchema,
@@ -33,7 +33,7 @@ export const editUserSchema = z
     },
     {
       params: { name: 'admin_error' },
-      message: errorMessages.EMAIL_ALREADY_USED,
+      error: errorMessages.EMAIL_ALREADY_USED,
     },
   );
 

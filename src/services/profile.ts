@@ -38,6 +38,7 @@ import { validateTOTP } from '../util/totp';
 import { addAudit, getAuditsByUsername } from '../db/audit';
 import { generateProfilePicturePath } from '../util/profilepicture';
 import sharp from 'sharp';
+import { log } from 'node:console';
 
 export const getProfile = async (_: Request, res: TypedResponse, next: NextFunction) => {
   const username = res.locals.username;

@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-object-injection */
 import { DateTime } from 'luxon';
 import { SortOrder } from './zodschema';
-import z from 'zod';
+import { z } from 'zod';
 
 const isDate = (value: unknown): value is Date =>
   value instanceof Date && !Number.isNaN(value.getTime());
@@ -57,9 +57,9 @@ export const parseFilter = ({
   numberKeySchema,
 }: {
   input: string;
-  filterableKeySchema: z.ZodSchema;
-  stringKeySchema: z.ZodSchema;
-  numberKeySchema: z.ZodSchema;
+  filterableKeySchema: z.ZodType;
+  stringKeySchema: z.ZodType;
+  numberKeySchema: z.ZodType;
 }) => {
   const match = input.split(':'); // <key>:<operator>:<value>
 
@@ -115,8 +115,8 @@ export const getItemFilter = ({
   numberSchema,
 }: {
   key: string;
-  stringSchema: z.ZodSchema;
-  numberSchema: z.ZodSchema;
+  stringSchema: z.ZodType;
+  numberSchema: z.ZodType;
 }) => {
   return numberSchema.safeParse(key).success
     ? itemNumberFilter

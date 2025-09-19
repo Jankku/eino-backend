@@ -6,7 +6,10 @@ import { bookSchema } from '../../db/model/book';
 
 export const searchSchema = z.object({
   query: z.object({
-    query: z.string({ invalid_type_error: errorMessages.SEARCH_QUERY_TYPE_ERROR }),
+    query: z.string({
+      error: (issue) =>
+        issue.code === 'invalid_type' ? errorMessages.SEARCH_QUERY_TYPE_ERROR : undefined,
+    }),
   }),
 });
 
@@ -37,16 +40,16 @@ export const searchIsbnSchema = z.object({
   params: z.object({
     isbn: z
       .string({
-        required_error: errorMessages.ISBN_REQUIRED,
-        invalid_type_error: errorMessages.ISBN_TYPE_ERROR,
+        error: (issue) =>
+          issue.input === undefined ? errorMessages.ISBN_REQUIRED : errorMessages.ISBN_TYPE_ERROR,
       })
       .trim()
       .transform((value) => value.replaceAll(/[\s-]/g, ''))
       .refine((value) => value.length === 10 || value.length === 13, {
-        message: errorMessages.ISBN_LENGTH_INVALID,
+        error: errorMessages.ISBN_LENGTH_INVALID,
       })
       .refine((value) => /^\d+$/.test(value), {
-        message: errorMessages.ISBN_INVALID,
+        error: errorMessages.ISBN_INVALID,
       }),
   }),
 });
@@ -59,6 +62,9 @@ export const fetchByStatusSchema = z.object({
 
 export const fetchImagesSchema = z.object({
   query: z.object({
-    query: z.string({ invalid_type_error: errorMessages.SEARCH_QUERY_TYPE_ERROR }),
+    query: z.string({
+      error: (issue) =>
+        issue.code === 'invalid_type' ? errorMessages.SEARCH_QUERY_TYPE_ERROR : undefined,
+    }),
   }),
 });

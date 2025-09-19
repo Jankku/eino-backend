@@ -24,15 +24,15 @@ export const registerSchema = z
   })
   .refine((data) => data.body.password === data.body.password2, {
     params: { name: 'authentication_error' },
-    message: errorMessages.PASSWORDS_NO_MATCH,
+    error: errorMessages.PASSWORDS_NO_MATCH,
   })
   .refine(async (data) => await db.task(async (t) => await isUserUnique(t, data.body.username)), {
     params: { name: 'authentication_error' },
-    message: errorMessages.USER_EXISTS,
+    error: errorMessages.USER_EXISTS,
   })
   .refine((data) => !data.body.email || data.body.email?.includes('@'), {
     params: { name: 'authentication_error' },
-    message: errorMessages.EMAIL_SHOULD_CONTAIN_AT_SIGN,
+    error: errorMessages.EMAIL_SHOULD_CONTAIN_AT_SIGN,
   })
   .refine(
     async (data) => {
@@ -41,7 +41,7 @@ export const registerSchema = z
     },
     {
       params: { name: 'authentication_error' },
-      message: errorMessages.EMAIL_ALREADY_USED,
+      error: errorMessages.EMAIL_ALREADY_USED,
     },
   )
   .superRefine(({ body }, ctx) => {
@@ -71,7 +71,12 @@ export const loginConfigSchema = z.object({
 
 export const refreshTokenSchema = z.object({
   body: z.object({
-    refreshToken: z.string({ required_error: errorMessages.REFRESHTOKEN_REQUIRED }),
+    refreshToken: z
+      .string({
+        error: (issue) =>
+          issue.input === undefined ? errorMessages.REFRESHTOKEN_REQUIRED : undefined,
+      })
+      .trim(),
   }),
 });
 
@@ -79,12 +84,14 @@ export const passwordStrengthSchema = z.object({
   body: z.object({
     password: z
       .string({
-        required_error: errorMessages.PASSWORD_REQUIRED,
-        invalid_type_error: errorMessages.PASSWORD_TYPE_ERROR,
+        error: (issue) =>
+          issue.input === undefined
+            ? errorMessages.PASSWORD_REQUIRED
+            : errorMessages.PASSWORD_TYPE_ERROR,
       })
       .trim()
       .max(255, {
-        message: errorMessages.PASSWORD_LENGTH_INVALID,
+        error: errorMessages.PASSWORD_LENGTH_INVALID,
       }),
   }),
 });

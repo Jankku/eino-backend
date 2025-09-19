@@ -7,6 +7,7 @@ import * as zxcvbnEn from '@zxcvbn-ts/language-en';
 import * as zxcvbnFi from '@zxcvbn-ts/language-fi';
 import { User } from '../db/users';
 import { roleIdToName } from './role';
+import { jwtConstants } from './jwtconstants';
 
 const { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, ACCESS_TOKEN_VALIDITY, REFRESH_TOKEN_VALIDITY } =
   config;
@@ -29,8 +30,8 @@ export const generateAccessToken = (user: User): string =>
     ACCESS_TOKEN_SECRET,
     {
       expiresIn: ACCESS_TOKEN_VALIDITY as jwt.SignOptions['expiresIn'],
-      audience: 'eino',
-      issuer: 'eino-backend',
+      audience: jwtConstants.AUDIENCE,
+      issuer: jwtConstants.ISSUER,
     },
   );
 
@@ -39,8 +40,8 @@ export type RefreshTokenPayload = { username: string };
 export const generateRefreshToken = (user: User): string =>
   jwt.sign({ username: user.username }, REFRESH_TOKEN_SECRET, {
     expiresIn: REFRESH_TOKEN_VALIDITY as jwt.SignOptions['expiresIn'],
-    audience: 'eino',
-    issuer: 'eino-backend',
+    audience: jwtConstants.AUDIENCE,
+    issuer: jwtConstants.ISSUER,
   });
 
 export const generatePasswordHash = (password: string): Promise<string> =>

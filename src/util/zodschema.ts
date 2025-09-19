@@ -20,71 +20,79 @@ export const fixedNonEmptyStringSchema = z.string().min(1).max(255);
 export const nonnegativeNumberSchema = z.number().nonnegative();
 
 export const listIdSchema = z.string({
-  required_error: errorMessages.LIST_ID_REQUIRED,
-  invalid_type_error: errorMessages.LIST_ID_TYPE_ERROR,
+  error: (issue) =>
+    issue.input === undefined ? errorMessages.LIST_ID_REQUIRED : errorMessages.LIST_ID_TYPE_ERROR,
 });
 
 export const scoreSchema = z.number().min(0).max(10);
 
 export const coverUrlSchema = z.union([
-  z.string().url().startsWith('https'),
+  z.url({
+    protocol: /^https$/,
+    hostname: z.regexes.domain,
+  }),
   z.literal(''),
   z.null(),
   z.undefined(),
 ]);
 
 export const languageCodeSchema = z.enum(languageCodes, {
-  message: errorMessages.LANGUAGE_CODE_INVALID,
+  error: errorMessages.LANGUAGE_CODE_INVALID,
 });
 
 export const usernameSchema = z
   .string({
-    required_error: errorMessages.USERNAME_REQUIRED,
-    invalid_type_error: errorMessages.USERNAME_TYPE_ERROR,
+    error: (issue) =>
+      issue.input === undefined
+        ? errorMessages.USERNAME_REQUIRED
+        : errorMessages.USERNAME_TYPE_ERROR,
   })
   .trim()
-  .min(3, { message: errorMessages.USERNAME_LENGTH_INVALID })
-  .max(255, { message: errorMessages.USERNAME_LENGTH_INVALID });
+  .min(3, { error: errorMessages.USERNAME_LENGTH_INVALID })
+  .max(255, { error: errorMessages.USERNAME_LENGTH_INVALID });
 
 export const passwordSchema = z
   .string({
-    required_error: errorMessages.PASSWORD_REQUIRED,
-    invalid_type_error: errorMessages.PASSWORD_TYPE_ERROR,
+    error: (issue) =>
+      issue.input === undefined
+        ? errorMessages.PASSWORD_REQUIRED
+        : errorMessages.PASSWORD_TYPE_ERROR,
   })
   .trim()
-  .min(8, { message: errorMessages.PASSWORD_LENGTH_INVALID })
+  .min(8, { error: errorMessages.PASSWORD_LENGTH_INVALID })
   .max(255, {
-    message: errorMessages.PASSWORD_LENGTH_INVALID,
+    error: errorMessages.PASSWORD_LENGTH_INVALID,
   });
 
 export const emailSchema = z
-  .string({
-    required_error: errorMessages.EMAIL_REQUIRED,
+  .email({
+    error: (issue) => (issue.input === undefined ? errorMessages.EMAIL_REQUIRED : undefined),
   })
   .trim()
-  .email()
   .max(255, {
-    message: errorMessages.EMAIL_INVALID,
+    error: errorMessages.EMAIL_INVALID,
   });
 
 export const optionalEmailSchema = z
   .string()
   .trim()
   .min(0)
-  .max(255, { message: errorMessages.EMAIL_INVALID })
+  .max(255, { error: errorMessages.EMAIL_INVALID })
   .nullish()
   .refine(
     (value) => {
       if (!value) return true;
       return value.includes('@');
     },
-    { message: errorMessages.EMAIL_INVALID },
+    { error: errorMessages.EMAIL_INVALID },
   );
 
 export const usernameOrEmailSchema = z.union([usernameSchema, emailSchema]);
 
 export const otpSchema = z
-  .string({ required_error: errorMessages.OTP_REQUIRED })
+  .string({
+    error: (issue) => (issue.input === undefined ? errorMessages.OTP_REQUIRED : undefined),
+  })
   .min(6, errorMessages.OTP_INVALID)
   .max(6, errorMessages.OTP_INVALID);
 

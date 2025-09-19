@@ -1,4 +1,4 @@
-import z from 'zod';
+import { z } from 'zod';
 import { errorMessages } from '../../util/errormessages';
 
 export const movieStatuses = ['completed', 'watching', 'on-hold', 'dropped', 'planned'] as const;
@@ -6,7 +6,7 @@ export const movieStatuses = ['completed', 'watching', 'on-hold', 'dropped', 'pl
 export type MovieStatus = (typeof movieStatuses)[number];
 
 export const movieStatusEnum = z.enum(movieStatuses, {
-  invalid_type_error: errorMessages.LIST_STATUS_INVALID,
+  error: errorMessages.LIST_STATUS_INVALID,
 });
 
 export const isMovieStatus = (status: string): status is MovieStatus =>
