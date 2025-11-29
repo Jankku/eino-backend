@@ -105,11 +105,8 @@ export const fetchOpenLibraryEditionsByIsbn = async (isbn: string): Promise<Book
   }
   const authorKey = validatedEdition.data.authors[0].key;
   const languageKey = validatedEdition.data.languages[0].key;
-  console.log({ authorKey, languageKey });
   const authorName = await fetchOpenLibraryAuthorName(authorKey);
-  console.log({ authorName });
   const languageCode = await fetchOpenLibraryLanguageToIso639Code(languageKey);
-  console.log({ languageCode });
   return [openLibraryEditionToBook(validatedEdition.data, authorName, languageCode)];
 };
 
