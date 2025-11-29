@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { config } from '../../config';
 import { cachified } from '@epic-web/cachified';
 import { cache, stringArrayCacheSchema, getCacheKey } from '../../util/cache';
+import { Logger } from '../../util/logger';
 
 const tmdbSearchSchema = z.object({
   results: z.array(z.object({ poster_path: z.string().nullish() })),
@@ -25,6 +26,12 @@ export const fetchTmdbImages = async (query: string): Promise<string[]> => {
       const validated = tmdbSearchSchema.safeParse(response.data);
       if (!validated.success) {
         context.metadata.ttl = -1;
+        Logger.error('Invalid TMDB image data', {
+          error: {
+            message: validated.error.message,
+            stack: validated.error.stack,
+          },
+        });
         return [];
       }
 

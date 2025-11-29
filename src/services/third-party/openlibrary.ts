@@ -6,6 +6,7 @@ import { BookFormSchema } from '../../db/model/book';
 import { LanguageCode } from '../../util/languages';
 import { languageCodeSchema } from '../../util/zodschema';
 import { DateTime } from 'luxon';
+import { Logger } from '../../util/logger';
 
 const numberOrZero = (value: string) => {
   const parsed = Number(value);
@@ -54,7 +55,7 @@ const fetchOpenLibraryAuthorName = async (authorKey: string): Promise<string> =>
       const validated = openLibraryAuthorSchema.safeParse(response.data);
       if (!validated.success) {
         context.metadata.ttl = -1;
-        throw new Error('Invalid author data from Open Library');
+        throw new Error('Invalid author data from Open Library', { cause: validated.error.cause });
       }
       return validated.data.name;
     },
@@ -71,7 +72,9 @@ const fetchOpenLibraryLanguageToIso639Code = async (languageKey: string): Promis
       const validated = openLibraryLanguageSchema.safeParse(response.data);
       if (!validated.success) {
         context.metadata.ttl = -1;
-        throw new Error('Invalid language data from Open Library');
+        throw new Error('Invalid language data from Open Library', {
+          cause: validated.error.cause,
+        });
       }
       return validated.data.identifiers.iso_639_1[0];
     },
@@ -126,6 +129,12 @@ export const fetchOpenLibraryImages = async (query: string): Promise<string[]> =
       const validated = openLibraryImageSchema.safeParse(response.data);
       if (!validated.success) {
         context.metadata.ttl = -1;
+        Logger.error('Invalid Open Library image data', {
+          error: {
+            message: validated.error.message,
+            stack: validated.error.stack,
+          },
+        });
         return [];
       }
 

@@ -2,6 +2,7 @@ import axios from 'axios';
 import { z } from 'zod';
 import { cachified } from '@epic-web/cachified';
 import { cache, stringArrayCacheSchema, getCacheKey } from '../../util/cache';
+import { Logger } from '../../util/logger';
 
 const finnaImagesSchema = z.object({
   resultCount: z.number(),
@@ -32,6 +33,12 @@ export const fetchFinnaImages = async (
       const validated = finnaImagesSchema.safeParse(response.data);
       if (!validated.success) {
         context.metadata.ttl = -1;
+        Logger.error('Invalid Finna image data', {
+          error: {
+            message: validated.error.message,
+            stack: validated.error.stack,
+          },
+        });
         return [];
       }
 
