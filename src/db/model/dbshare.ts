@@ -1,4 +1,4 @@
-import z from 'zod';
+import { z } from 'zod';
 import { dateStringSchema, fixedNonEmptyStringSchema } from '../../util/zodschema';
 
 export const shareSchema = z.object({

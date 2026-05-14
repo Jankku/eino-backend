@@ -20,9 +20,15 @@ export const cache: Cache = {
   },
 };
 
-export const cacheSchema = z.array(z.string());
+export const stringArrayCacheSchema = z.array(z.string());
 
-type ThirdPartyService = 'finna-book' | 'finna-video' | 'tmdb' | 'openlibrary';
+type ThirdPartyService =
+  | 'finna-book'
+  | 'finna-video'
+  | 'tmdb'
+  | 'openlibrary-image'
+  | 'openlibrary-author'
+  | 'openlibrary-language';
 
 export const getCacheKey = (service: ThirdPartyService, query: string) => {
   const normalizedQuery = query

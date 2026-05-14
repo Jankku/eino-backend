@@ -2,10 +2,10 @@ import { z } from 'zod';
 import dotenv from 'dotenv';
 import { nonEmptyString } from './util/zodschema';
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const configSchema = z.object({
-  NODE_ENV: z.optional(nonEmptyString).default('development'),
+  NODE_ENV: z.optional(nonEmptyString.toLowerCase()).default('development'),
   DATABASE_URL: nonEmptyString.refine(
     (value) => value.startsWith('postgres://') || value.startsWith('postgresql://'),
     "Must start with 'postgres://' or 'postgresql://'",
@@ -15,7 +15,8 @@ const configSchema = z.object({
   POSTGRES_DB: nonEmptyString,
   PORT: z.coerce.number().positive().default(5000),
   TMDB_API_KEY: z.optional(nonEmptyString),
-  EMAIL_SENDER: z.optional(z.string().email().min(1)),
+  GOOGLE_BOOKS_API_KEY: z.optional(nonEmptyString),
+  EMAIL_SENDER: z.optional(z.email().min(1)),
   EMAIL_MAILTRAP_TOKEN: z.optional(nonEmptyString),
   EMAIL_MAILTRAP_TEST_INBOX_ID: z.optional(z.coerce.number().positive()),
   DISCORD_AUDIT_LOG_WEBHOOK_URL: z.optional(
@@ -32,11 +33,11 @@ const configSchema = z.object({
   USER_LIST_ITEM_MAX_COUNT: z.coerce.number().positive().default(100_000),
 });
 
-const result = configSchema.safeParse(process.env);
+const { success, data, error } = configSchema.safeParse(process.env);
 
-if (!result.success) {
-  console.log(result.error.errors);
+if (!success) {
+  console.error(z.prettifyError(error));
   throw new Error('Invalid configuration');
 }
 
-export const config = { ...result.data, isProduction: result.data.NODE_ENV === 'production' };
+export const config = { ...data, isProduction: data.NODE_ENV === 'production' };

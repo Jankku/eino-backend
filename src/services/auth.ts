@@ -48,6 +48,7 @@ import { sendEmail } from '../util/email';
 import { resetPasswordTemplate } from '../util/emailtemplates';
 import { addAudit } from '../db/audit';
 import { getDefaultRoleId } from '../db/role';
+import { jwtConstants } from '../util/jwtconstants';
 
 export const register = async (
   req: TypedRequest<typeof registerSchema>,
@@ -183,8 +184,8 @@ export const generateNewAccessToken = async (
 
   try {
     const { username } = jwt.verify(refreshToken, config.REFRESH_TOKEN_SECRET, {
-      audience: 'eino',
-      issuer: 'eino-backend',
+      audience: jwtConstants.AUDIENCE,
+      issuer: jwtConstants.ISSUER,
     }) as RefreshTokenPayload;
 
     const accessToken = await db.task('generateNewAccessToken', async (t) => {

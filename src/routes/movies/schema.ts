@@ -6,7 +6,10 @@ import { movieSchema } from '../../db/model/movie';
 
 export const searchSchema = z.object({
   query: z.object({
-    query: z.string({ invalid_type_error: errorMessages.SEARCH_QUERY_TYPE_ERROR }),
+    query: z.string({
+      error: (issue) =>
+        issue.code === 'invalid_type' ? errorMessages.SEARCH_QUERY_TYPE_ERROR : undefined,
+    }),
   }),
 });
 
@@ -41,6 +44,9 @@ export const fetchByStatusSchema = z.object({
 
 export const fetchImagesSchema = z.object({
   query: z.object({
-    query: z.string({ invalid_type_error: errorMessages.SEARCH_QUERY_TYPE_ERROR }),
+    query: z.string({
+      error: (issue) =>
+        issue.code === 'invalid_type' ? errorMessages.SEARCH_QUERY_TYPE_ERROR : undefined,
+    }),
   }),
 });

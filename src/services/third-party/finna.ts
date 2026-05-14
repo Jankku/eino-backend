@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { z } from 'zod';
 import { cachified } from '@epic-web/cachified';
-import { cache, cacheSchema, getCacheKey } from '../../util/cache';
+import { cache, stringArrayCacheSchema, getCacheKey } from '../../util/cache';
+import { Logger } from '../../util/logger';
 
 const finnaImagesSchema = z.object({
   resultCount: z.number(),
@@ -19,7 +20,7 @@ export const fetchFinnaImages = async (
   return cachified({
     cache: cache,
     key: getCacheKey(isBookFilter ? 'finna-book' : 'finna-video', query),
-    checkValue: cacheSchema,
+    checkValue: stringArrayCacheSchema,
     async getFreshValue(context) {
       const response = await axios.get('https://api.finna.fi/api/v1/search', {
         params: {
@@ -32,6 +33,12 @@ export const fetchFinnaImages = async (
       const validated = finnaImagesSchema.safeParse(response.data);
       if (!validated.success) {
         context.metadata.ttl = -1;
+        Logger.error('Invalid Finna image data', {
+          error: {
+            message: validated.error.message,
+            stack: validated.error.stack,
+          },
+        });
         return [];
       }
 

@@ -1,18 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
-import { z, ZodError, ZodSchema } from 'zod';
+import { ZodType, ZodError } from 'zod/v4';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { formatZodErrors } from '../util/zod';
+import { z } from 'zod';
 
-const customErrorMap: z.ZodErrorMap = (error, ctx) => {
-  const field = error.path.at(-1);
-  const message = error.message ?? ctx.defaultError;
-  return { message: `${field}: ${message}` };
-};
-
-z.setErrorMap(customErrorMap);
+z.config({
+  customError: (issue) => {
+    if (issue.code === 'custom') {
+      const field = issue.path?.at(-1);
+      return { message: `${String(field)}: ${issue.message}` };
+    }
+  },
+});
 
 export const validateSchema =
-  (schema: ZodSchema) => async (req: Request, res: Response, next: NextFunction) => {
+  (schema: ZodType) => async (req: Request, res: Response, next: NextFunction) => {
     try {
       await schema.parseAsync({
         body: req.body,

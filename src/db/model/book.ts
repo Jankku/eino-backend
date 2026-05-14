@@ -1,17 +1,16 @@
-import z from 'zod';
+import { z } from 'zod';
 import { bookStatusEnum } from './bookstatus';
 import {
   coverUrlSchema,
   dateSchema,
   dateStringSchema,
   fixedStringSchema,
+  languageCodeSchema,
   nonnegativeNumberSchema,
   scoreSchema,
   sortOrderSchema,
 } from '../../util/zodschema';
 import { parseFilter } from '../../util/sort';
-import { languageCodes } from '../../util/languages';
-import { errorMessages } from '../../util/errormessages';
 
 export const bookSchema = z.object({
   isbn: fixedStringSchema,
@@ -20,7 +19,7 @@ export const bookSchema = z.object({
   publisher: fixedStringSchema,
   image_url: coverUrlSchema,
   note: z.string().nullish(),
-  language_code: z.enum(languageCodes, { message: errorMessages.LANGUAGE_CODE_INVALID }).nullish(),
+  language_code: languageCodeSchema.nullish(),
   pages: nonnegativeNumberSchema,
   year: nonnegativeNumberSchema,
   status: bookStatusEnum,
@@ -58,4 +57,5 @@ export const bookSortSchema = z.object({
 });
 
 export type Book = z.infer<typeof bookSchema>;
+export type BookFormSchema = Omit<Book, 'status' | 'score' | 'start_date' | 'end_date'>;
 export type DbBook = z.infer<typeof dbBookSchema>;

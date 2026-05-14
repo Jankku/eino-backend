@@ -11,6 +11,6 @@ export const updateEmailSchema = z.object({
 
 export const verifyEmailSchema = z.object({
   body: z.object({
-    otp: z.string().length(6, { message: errorMessages.OTP_INVALID }),
+    otp: z.string().length(6, { error: errorMessages.OTP_INVALID }),
   }),
 });

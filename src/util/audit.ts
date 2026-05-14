@@ -2,6 +2,8 @@
 /* eslint-disable unicorn/numeric-separators-style */
 import { DbAudit } from '../db/audit';
 
+const DISCORD_COLOR_BLUE = 3447003;
+
 export const chunkArray = <T>(array: T[], size: number): T[][] => {
   const result: T[][] = [];
   for (let i = 0; i < array.length; i += size) {
@@ -31,10 +33,8 @@ export const truncate = (text: string, length: number): string =>
   text.length > length ? `${text.slice(0, length - 3)}...` : text;
 
 export const redactEmail = (email: string) => {
-  const [localPart, domain] = email.split('@');
-  if (localPart.length <= 5) return `*****@${domain}`;
-  const redactedLocalPart = localPart.at(0) + '*'.repeat(localPart.length - 2) + localPart.at(-1);
-  return `${redactedLocalPart}@${domain}`;
+  const [, domain] = email.split('@');
+  return `*****@${domain}`;
 };
 
 type DiscordEmbed = {
@@ -97,7 +97,7 @@ export const auditToDiscordEmbed = (audit: DbAudit): DiscordEmbed => {
 
   return {
     timestamp: audit.created_on.toISOString(),
-    color: 3447003, // Discord blue
+    color: DISCORD_COLOR_BLUE,
     fields,
   };
 };

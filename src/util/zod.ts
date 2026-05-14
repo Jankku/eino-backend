@@ -1,4 +1,6 @@
-import { ZodError, ZodIssue, z } from 'zod';
+import { z } from 'zod';
+import { ZodError } from 'zod/v4';
+import { $ZodIssue } from 'zod/v4/core';
 import { Request, Response } from 'express';
 import { Role } from '../db/role';
 
@@ -18,7 +20,7 @@ export type TypedResponse = Response & {
 
 export const formatZodErrors = (error: ZodError) => {
   const errors = Object.values(error.issues);
-  const formattedErrors = errors.map((e: ZodIssue) => {
+  const formattedErrors = errors.map((e: $ZodIssue) => {
     const isCustom = e.code === 'custom';
     const code = isCustom ? e?.params?.name : undefined;
     const name = code ?? e.code;
