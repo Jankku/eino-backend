@@ -28,7 +28,7 @@ export const scoreSchema = z.number().min(0).max(10);
 
 export const coverUrlSchema = z.union([
   z.url({
-    protocol: /^https$/,
+    protocol: /^https?$/,
     hostname: z.regexes.domain,
   }),
   z.literal(''),

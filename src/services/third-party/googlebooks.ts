@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { BookFormSchema } from '../../db/model/book';
 import { DateTime } from 'luxon';
 import { languageCodeSchema } from '../../util/zodschema';
+import { config } from '../../config';
 
 const googleBooksSchema = z.object({
   items: z.array(
@@ -10,14 +11,21 @@ const googleBooksSchema = z.object({
       volumeInfo: z.object({
         title: z.string(),
         authors: z.array(z.string()),
-        publisher: z.string(),
-        publishedDate: z.string().date(),
+        publisher: z.string().optional().default(''),
+        publishedDate: z.string().transform((value) => {
+          const isoDate = DateTime.fromISO(value);
+          if (isoDate.isValid) {
+            return isoDate;
+          }
+          const isoYear = DateTime.fromFormat(value, 'yyyy');
+          return isoYear.isValid ? isoYear : DateTime.now();
+        }),
         industryIdentifiers: z.array(
           z.object({ type: z.enum(['ISBN_10', 'ISBN_13']), identifier: z.string() }),
         ),
         pageCount: z.number(),
         language: languageCodeSchema,
-        imageLinks: z.object({ thumbnail: z.string() }),
+        imageLinks: z.object({ thumbnail: z.string() }).optional(),
       }),
     }),
   ),
@@ -38,16 +46,23 @@ const googleBookToBook = (book: GoogleBook): BookFormSchema => {
     author: volumeInfo.authors.join(', '),
     publisher: volumeInfo.publisher,
     isbn: getIsbn(book),
-    image_url: volumeInfo.imageLinks.thumbnail,
+    image_url: volumeInfo.imageLinks?.thumbnail,
     pages: volumeInfo.pageCount,
-    year: DateTime.fromISO(volumeInfo.publishedDate).year,
+    year: volumeInfo.publishedDate.year,
     language_code: volumeInfo.language,
   };
 };
 
 export const fetchGoogleBooksByIsbn = async (isbn: string): Promise<BookFormSchema[]> => {
+  if (!config.GOOGLE_BOOKS_API_KEY) {
+    return [];
+  }
   const response = await axios.get('https://www.googleapis.com/books/v1/volumes', {
-    params: { q: `isbn:${isbn}` },
+    params: {
+      key: config.GOOGLE_BOOKS_API_KEY,
+      q: `isbn:${isbn}`,
+      maxResults: 5,
+    },
   });
   const validated = googleBooksSchema.safeParse(response.data);
   if (!validated.success) {

@@ -8,12 +8,18 @@ import { languageCodeSchema } from '../../util/zodschema';
 import { DateTime } from 'luxon';
 import { Logger } from '../../util/logger';
 
-const numberOrZero = (value: string) => {
+const numberOrZero = (value: string | undefined) => {
+  if (!value) {
+    return 0;
+  }
   const parsed = Number(value);
   return Number.isNaN(parsed) ? 0 : parsed;
 };
 
-const numberOrCurrentYear = (value: string) => {
+const numberOrCurrentYear = (value: string | undefined) => {
+  if (!value) {
+    return DateTime.now().year;
+  }
   const parsed = Number(value);
   return Number.isNaN(parsed) ? DateTime.now().year : parsed;
 };
@@ -22,10 +28,10 @@ const openLibraryEditionSchema = z.object({
   title: z.string(),
   authors: z.array(z.object({ key: z.string() })),
   publishers: z.array(z.string()),
-  publish_date: z.string().transform(numberOrCurrentYear), // year only
+  publish_date: z.string().optional().transform(numberOrCurrentYear), // year only
   isbn_13: z.array(z.string()),
-  pagination: z.string().transform(numberOrZero),
-  languages: z.array(z.object({ key: z.string() })), // /languages/eng
+  pagination: z.string().optional().transform(numberOrZero),
+  languages: z.array(z.object({ key: z.string() })).optional(), // /languages/eng
   covers: z.array(z.number()),
 });
 
@@ -84,7 +90,7 @@ const fetchOpenLibraryLanguageToIso639Code = async (languageKey: string): Promis
 const openLibraryEditionToBook = (
   book: OpenLibraryEdition,
   author: string,
-  languageCode: LanguageCode,
+  languageCode: LanguageCode | undefined,
 ): BookFormSchema => {
   const { title, publishers, publish_date, isbn_13, covers } = book;
   return {
@@ -107,9 +113,11 @@ export const fetchOpenLibraryEditionsByIsbn = async (isbn: string): Promise<Book
     return [];
   }
   const authorKey = validatedEdition.data.authors[0].key;
-  const languageKey = validatedEdition.data.languages[0].key;
   const authorName = await fetchOpenLibraryAuthorName(authorKey);
-  const languageCode = await fetchOpenLibraryLanguageToIso639Code(languageKey);
+  const languageKey = validatedEdition.data?.languages?.[0]?.key;
+  const languageCode = languageKey
+    ? await fetchOpenLibraryLanguageToIso639Code(languageKey)
+    : undefined;
   return [openLibraryEditionToBook(validatedEdition.data, authorName, languageCode)];
 };
 

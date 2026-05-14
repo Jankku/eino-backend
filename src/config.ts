@@ -15,6 +15,7 @@ const configSchema = z.object({
   POSTGRES_DB: nonEmptyString,
   PORT: z.coerce.number().positive().default(5000),
   TMDB_API_KEY: z.optional(nonEmptyString),
+  GOOGLE_BOOKS_API_KEY: z.optional(nonEmptyString),
   EMAIL_SENDER: z.optional(z.email().min(1)),
   EMAIL_MAILTRAP_TOKEN: z.optional(nonEmptyString),
   EMAIL_MAILTRAP_TEST_INBOX_ID: z.optional(z.coerce.number().positive()),
