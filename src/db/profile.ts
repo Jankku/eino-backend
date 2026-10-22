@@ -53,7 +53,7 @@ type BookDataV2 = {
 };
 
 const getBookDataV2 = async (t: ITask<unknown>, username: string): Promise<BookDataV2> => {
-  const rows = await t.any({
+  const rows = await t.any<StatusCountRow & { pages_read: number; average: number }>({
     text: `SELECT * FROM
             (SELECT ubl.status, COALESCE(count(*), 0) AS count
               FROM books b
@@ -107,7 +107,7 @@ type MovieDataV2 = {
 };
 
 const getMovieDataV2 = async (client: ITask<unknown>, username: string): Promise<MovieDataV2> => {
-  const rows = await client.any({
+  const rows = await client.any<StatusCountRow & { watch_time: number; average: number }>({
     text: `SELECT * FROM
             (SELECT uml.status, COALESCE(count(*), 0) AS count
               FROM movies m

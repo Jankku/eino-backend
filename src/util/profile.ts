@@ -5,18 +5,18 @@ import { Movie } from '../db/model/movie';
 import { pgp } from '../db/config';
 
 /**
- * Fills array gaps so that there are ItemScoreRow objects which have score
- * from 1 to 10. Lastly it sorts the array by the score property.
- * @example
- * [
- *    { score: 1, count: 6 },
- *    { score: 2, count: 4 },
- *    { score: 3, count: 1 },
- *    { score: 4, count: 12 }
- *    ...
- * ]
- * @param array Initial book/movie score array
- */
+Fills array gaps so that there are ItemScoreRow objects which have score
+from 1 to 10. Lastly it sorts the array by the score property.
+@example
+[
+   { score: 1, count: 6 },
+   { score: 2, count: 4 },
+   { score: 3, count: 1 },
+   { score: 4, count: 12 }
+   ...
+]
+@param array Initial book/movie score array
+*/
 export const fillAndSortResponse = async (array: ItemScoreRow[]) =>
   new Promise<Array<ItemScoreRow>>((resolve) => {
     const resultArray: ItemScoreRow[] = [];

@@ -33,35 +33,33 @@ export const userBulletins = async (_: Request, res: TypedResponse, next: NextFu
       bulletins = [...bulletins, ...userBulletins];
 
       const conditionBulletins = await getConditionBulletins(t);
-      if (conditionBulletins.length > 0) {
-        const user = await getUserById(t, userId);
-        const trueConditionNames: Set<BulletinCondition> = new Set();
-        for (const { condition } of conditionBulletins) {
-          switch (condition) {
-            case '2fa_not_enabled': {
-              if (!user.totp_enabled_on) trueConditionNames.add(condition);
-              break;
-            }
-            case 'email_not_verified': {
-              if (user.email && !user.email_verified_on) trueConditionNames.add(condition);
-              break;
-            }
-            case 'account_anniversary': {
-              const diff = DateTime.now().diff(DateTime.fromJSDate(user.created_on), 'days');
-              if (Math.trunc(diff.days) % 365 === 0) trueConditionNames.add(condition);
-              break;
-            }
-            default: {
-              Logger.warn(`Unknown bulletin condition: ${condition}`);
-              break;
-            }
+      if (conditionBulletins.length === 0) return bulletins;
+
+      const user = await getUserById(t, userId);
+
+      const isConditionMet = (condition: BulletinCondition | null): boolean => {
+        switch (condition) {
+          case '2fa_not_enabled': {
+            return !user.totp_enabled_on;
+          }
+          case 'email_not_verified': {
+            return Boolean(user.email && !user.email_verified_on);
+          }
+          case 'account_anniversary': {
+            const diff = DateTime.now().diff(DateTime.fromJSDate(user.created_on), 'days');
+            return Math.trunc(diff.days) % 365 === 0;
+          }
+          default: {
+            Logger.warn(`Unknown bulletin condition: ${condition}`);
+            return false;
           }
         }
-        const applicableConditionBulletins = conditionBulletins.filter(
-          ({ condition }) => condition && trueConditionNames.has(condition),
-        );
-        bulletins = [...bulletins, ...applicableConditionBulletins];
-      }
+      };
+
+      const applicableConditionBulletins = conditionBulletins.filter(({ condition }) =>
+        isConditionMet(condition),
+      );
+      bulletins = [...bulletins, ...applicableConditionBulletins];
 
       return bulletins;
     });

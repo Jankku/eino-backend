@@ -163,8 +163,7 @@ export const isEmailVerified = async (t: ITask<unknown>, email: string): Promise
            WHERE email = $1`,
     values: [email],
   });
-  if (!result) return false;
-  return result.email_verified_on !== null;
+  return !!result && result.email_verified_on !== null;
 };
 
 export const updatePassword = async (

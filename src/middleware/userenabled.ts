@@ -13,15 +13,16 @@ const userIsDisabledCache = new LRUCache<string, boolean>({
 });
 
 /**
- * Use after verifyToken middleware
- */
+Use after verifyToken middleware
+*/
 export const userEnabled = async (_: Request, res: TypedResponse, next: NextFunction) => {
   try {
     const username = res.locals.username;
     const cachedIsDisabled = userIsDisabledCache.get(username);
     if (cachedIsDisabled === true) {
       throw new ErrorWithStatus(403, 'account_disabled', 'Your account is disabled');
-    } else if (cachedIsDisabled === false) {
+    }
+    if (cachedIsDisabled === false) {
       next();
       return;
     }

@@ -26,10 +26,9 @@ export const editUserSchema = z
   })
   .refine(
     async (data) => {
-      if (!data.body.email) return true;
-      return await db.task(
+      return data.body.email ? (await db.task(
         async (t) => await isEmailUniqueExcludeUsername(t, data.body.username, data.body.email!),
-      );
+      )) : true;
     },
     {
       params: { name: 'admin_error' },
@@ -71,10 +70,7 @@ export const createBulletinSchema = z
   })
   .refine(
     ({ body }) => {
-      if (body.visibility === 'condition' && !body.condition) {
-        return false;
-      }
-      return true;
+      return !(body.visibility === 'condition' && !body.condition);
     },
     {
       params: { name: 'condition' },
@@ -83,13 +79,8 @@ export const createBulletinSchema = z
   )
   .refine(
     ({ body }) => {
-      if (
-        body.visibility === 'user' &&
-        (!body.visibleToUserIds || body.visibleToUserIds.length === 0)
-      ) {
-        return false;
-      }
-      return true;
+      return !(body.visibility === 'user' &&
+        (!body.visibleToUserIds || body.visibleToUserIds.length === 0));
     },
     {
       params: { name: 'visibleToUserIds' },

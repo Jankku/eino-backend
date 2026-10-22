@@ -1,8 +1,8 @@
 export type LanguageCode = (typeof languageCodes)[number];
 
 /**
- * https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes
- */
+https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes
+*/
 export const languageCodes = [
   'aa',
   'ab',

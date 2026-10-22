@@ -33,7 +33,7 @@ export const truncate = (text: string, length: number): string =>
   text.length > length ? `${text.slice(0, length - 3)}...` : text;
 
 export const redactEmail = (email: string) => {
-  const [, domain] = email.split('@');
+  const [, domain] = email.split('@', 2);
   return `*****@${domain}`;
 };
 

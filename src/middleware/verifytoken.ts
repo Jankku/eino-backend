@@ -13,19 +13,19 @@ const tokenSchema = z.object({
       .string({
         error: (issue) => (issue.input === undefined ? 'Authorization header required' : undefined),
       })
-      .refine((val) => val.split(' ')[0] === 'Bearer', {
+      .refine((val) => val.split(' ', 1)[0] === 'Bearer', {
         params: {
           name: 'authorization_error',
         },
         message: 'Authorization header must be Bearer',
       })
-      .transform((val) => val.split(' ')[1]),
+      .transform((val) => val.split(' ', 2)[1]),
   }),
 });
 
 /**
- * Verifies that user's access token is valid
- */
+Verifies that user's access token is valid
+*/
 export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   try {
     const accessToken = tokenSchema.parse(req).headers.authorization;
@@ -39,10 +39,10 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction) => 
     res.locals.role = role;
     next();
   } catch (error) {
-    if (error instanceof ZodError) {
-      next(formatZodErrors(error));
-    } else {
-      next(new ErrorWithStatus(401, 'authorization_error', `${(error as Error)?.message}`));
-    }
+    next(
+      error instanceof ZodError
+        ? formatZodErrors(error)
+        : new ErrorWithStatus(401, 'authorization_error', (error as Error)?.message),
+    );
   }
 };

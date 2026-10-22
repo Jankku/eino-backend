@@ -36,6 +36,7 @@ const processAuditsDiscord = async () => {
 
   if (audits.length === 0) return;
 
+  // eslint-disable-next-line unicorn/no-top-level-assignment-in-function
   lastProcessed = DateTime.utc();
 
   Logger.debug(`Processing ${audits.length} audits and sending to Discord`);
@@ -50,8 +51,10 @@ const processAuditsDiscord = async () => {
 };
 
 export const initDiscordAuditProcessing = () => {
-  if (config.DISCORD_AUDIT_LOG_WEBHOOK_URL) {
-    Logger.info('Starting to send audits to Discord');
-    setInterval(processAuditsDiscord, 1000 * 60 * 1); // 1 minute
+  if (!config.DISCORD_AUDIT_LOG_WEBHOOK_URL) {
+    return;
   }
+
+  Logger.info('Starting to send audits to Discord');
+  setInterval(processAuditsDiscord, 1000 * 60 * 1); // 1 minute
 };

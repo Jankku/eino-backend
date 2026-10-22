@@ -4,9 +4,7 @@ import { MigrationBuilder, ColumnDefinitions } from 'node-pg-migrate';
 
 export const shorthands: ColumnDefinitions | undefined = undefined;
 
-/**
- * Interval 3 hours because we assume that users have created books and movies in GMT+3 timezone.
- */
+// Interval 3 hours because we assume that users have created books and movies in GMT+3 timezone.
 export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.alterColumn('user_book_list', 'start_date', {
     type: 'timestamptz',

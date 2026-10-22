@@ -16,7 +16,7 @@ export const fetchFinnaImages = async (
   finnaFilter: FinnaFilter,
 ): Promise<string[]> => {
   const isBookFilter = finnaFilter === 'book';
-  const filters = isBookFilter ? ['format:0/Book/'] : ['format:1/Video/Feature/'];
+  const filters = [isBookFilter ? 'format:0/Book/' : 'format:1/Video/Feature/'];
   return cachified({
     cache: cache,
     key: getCacheKey(isBookFilter ? 'finna-book' : 'finna-video', query),
@@ -45,7 +45,7 @@ export const fetchFinnaImages = async (
       return validated.data.records
         .filter((result) => result.images.length > 0)
         .map((result) => result.images)
-        .flatMap((images) => new URL(images[0], 'https://finna.fi/').toString());
+        .flatMap((images) => new URL(images[0], 'https://finna.fi/').href);
     },
   });
 };

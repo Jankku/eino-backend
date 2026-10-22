@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import * as bcrypt from 'bcrypt';
 import { config } from '../config';
-import { zxcvbn, zxcvbnOptions, Options } from '@zxcvbn-ts/core';
+import { ZxcvbnFactory } from '@zxcvbn-ts/core';
 import * as zxcvbnCommon from '@zxcvbn-ts/language-common';
 import * as zxcvbnEn from '@zxcvbn-ts/language-en';
 import * as zxcvbnFi from '@zxcvbn-ts/language-fi';
@@ -11,6 +11,12 @@ import { jwtConstants } from './jwtconstants';
 
 const { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, ACCESS_TOKEN_VALIDITY, REFRESH_TOKEN_VALIDITY } =
   config;
+
+const zxcvbn = new ZxcvbnFactory({
+  graphs: zxcvbnCommon.adjacencyGraphs,
+  dictionary: { ...zxcvbnCommon.dictionary, ...zxcvbnEn.dictionary, ...zxcvbnFi.dictionary },
+  translations: zxcvbnEn.translations,
+});
 
 export type AccessTokenPayload = {
   userId: string;
@@ -47,15 +53,6 @@ export const generateRefreshToken = (user: User): string =>
 export const generatePasswordHash = (password: string): Promise<string> =>
   bcrypt.hash(password, 12);
 
-export const initZxcvbn = () => {
-  const options: Partial<Options> = {
-    graphs: zxcvbnCommon.adjacencyGraphs,
-    dictionary: { ...zxcvbnCommon.dictionary, ...zxcvbnEn.dictionary, ...zxcvbnFi.dictionary },
-    translations: zxcvbnEn.translations,
-  };
-  zxcvbnOptions.setOptions(options);
-};
-
 type PasswordStrengthScore = 0 | 1 | 2 | 3 | 4;
 
 export const getPasswordStrength = ({
@@ -65,7 +62,7 @@ export const getPasswordStrength = ({
   username?: string;
   password: string;
 }): { isStrong: boolean; score: PasswordStrengthScore; error: string } => {
-  const { score, feedback } = zxcvbn(password, ['eino', username]);
+  const { score, feedback } = zxcvbn.check(password, ['eino', username]);
 
   const isStrong = score > 2; // 0-4
 

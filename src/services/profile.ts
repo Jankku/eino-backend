@@ -38,7 +38,6 @@ import { validateTOTP } from '../util/totp';
 import { addAudit, getAuditsByUsername } from '../db/audit';
 import { generateProfilePicturePath } from '../util/profilepicture';
 import sharp from 'sharp';
-import { log } from 'node:console';
 
 export const getProfile = async (_: Request, res: TypedResponse, next: NextFunction) => {
   const username = res.locals.username;
@@ -211,7 +210,7 @@ export const generateShareImage = async (_req: Request, res: TypedResponse, next
     // Bottom-right date
     ctx.fillStyle = '#b2b2b2';
     ctx.font = '10pt Roboto';
-    const date = String(DateTime.now().toISODate());
+    const date = DateTime.now().toISODate();
     const dateWidth = ctx.measureText(date).width;
     const dateX = canvasWidth - dateWidth - 20;
     const dateY = canvasHeight - 30;
@@ -396,6 +395,7 @@ export const importProfileData = async (
 
       // Map inserted books to be compatible with user_book_list table
       const bookListItems = newBooks.map((book) => ({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         ...bookHashMap[calculateBookHash(book)],
         book_id: book.book_id,
         username,
@@ -410,6 +410,7 @@ export const importProfileData = async (
 
       // Map inserted movies to be compatible with user_movie_list table
       const movieListItems = newMovies.map((movie) => ({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         ...movieHashMap[calculateMovieHash(movie)],
         movie_id: movie.movie_id,
         username,
@@ -437,14 +438,15 @@ export const saveProfilePicture = async (req: Request, res: TypedResponse, next:
       await db.tx('saveProfilePicture', async (t) => {
         const oldProfilePicturePath = await findProfilePictureByUsername(t, username);
         await updateProfilePicturePath(t, { username, path: undefined });
-        if (oldProfilePicturePath) {
-          await addAudit(t, {
-            username,
-            action: 'profile_picture_updated',
-            old_data: { path: oldProfilePicturePath },
-          });
-          await fs.rm(oldProfilePicturePath, { force: true });
+        if (!oldProfilePicturePath) {
+          return;
         }
+        await addAudit(t, {
+          username,
+          action: 'profile_picture_updated',
+          old_data: { path: oldProfilePicturePath },
+        });
+        await fs.rm(oldProfilePicturePath, { force: true });
       });
       res
         .status(200)

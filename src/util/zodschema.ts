@@ -3,8 +3,7 @@ import { errorMessages } from './errormessages';
 import { languageCodes } from './languages';
 
 export const dateStringSchema = z.string().refine((arg) => {
-  if (!arg) return false;
-  return !Number.isNaN(new Date(arg).getTime());
+  return arg ? !Number.isNaN(new Date(arg).getTime()) : false;
 });
 
 export const dateSchema = z.preprocess((arg) => {
@@ -81,8 +80,7 @@ export const optionalEmailSchema = z
   .nullish()
   .refine(
     (value) => {
-      if (!value) return true;
-      return value.includes('@');
+      return value ? value.includes('@') : true;
     },
     { error: errorMessages.EMAIL_INVALID },
   );

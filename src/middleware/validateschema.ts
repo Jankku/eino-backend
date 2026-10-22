@@ -6,10 +6,11 @@ import { z } from 'zod';
 
 z.config({
   customError: (issue) => {
-    if (issue.code === 'custom') {
-      const field = issue.path?.at(-1);
-      return { message: `${String(field)}: ${issue.message}` };
+    if (issue.code !== 'custom') {
+      return;
     }
+    const field = issue.path?.at(-1);
+    return { message: `${String(field)}: ${issue.message}` };
   },
 });
 
@@ -23,10 +24,10 @@ export const validateSchema =
       });
       next();
     } catch (error) {
-      if (error instanceof ZodError) {
-        next(formatZodErrors(error));
-      } else {
-        next(new ErrorWithStatus(500, 'schema_validation_error', `${(error as Error)?.message}`));
-      }
+      next(
+        error instanceof ZodError
+          ? formatZodErrors(error)
+          : new ErrorWithStatus(500, 'schema_validation_error', (error as Error)?.message),
+      );
     }
   };

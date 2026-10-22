@@ -8,7 +8,7 @@ export const sendAuditsToDiscord = async (audits: DbAudit[]): Promise<void> => {
   if (!config.DISCORD_AUDIT_LOG_WEBHOOK_URL) return;
 
   try {
-    await axios.post(new URL(config.DISCORD_AUDIT_LOG_WEBHOOK_URL).toString(), {
+    await axios.post(new URL(config.DISCORD_AUDIT_LOG_WEBHOOK_URL).href, {
       embeds: audits.map((audit) => auditToDiscordEmbed(audit)),
     });
   } catch (error) {

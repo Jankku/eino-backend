@@ -29,17 +29,12 @@ export const sendEmail = async ({
         to: [{ email: recipient }],
       };
 
-      return config.isProduction
-        ? client.send(mail)
-        : config.EMAIL_MAILTRAP_TEST_INBOX_ID
-          ? client.send(mail)
-          : { success: false, errors: [] };
+      return config.isProduction || config.EMAIL_MAILTRAP_TEST_INBOX_ID ? client.send(mail) : { success: false, errors: [] };
     } catch (error) {
       Logger.info((error as Error).message);
       return { success: false, errors: [] };
     }
-  } else {
-    Logger.info(`Email to ${recipient}: ${template.subject}\n${template.text}`);
-    return new Promise((resolve) => resolve({ success: true, message_ids: [] }));
   }
+  Logger.info(`Email to ${recipient}: ${template.subject}\n${template.text}`);
+  return new Promise((resolve) => resolve({ success: true, message_ids: [] }));
 };

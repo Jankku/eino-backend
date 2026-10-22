@@ -39,13 +39,11 @@ export const itemSorter = ({
 }) => {
   if (isDate(a[sort]) && isDate(b[sort])) {
     return dateSort(a[sort], b[sort], order);
-  } else if (isString(a[sort]) && isString(b[sort])) {
-    return stringSort(a[sort], b[sort], order);
-  } else if (isNumber(a[sort]) && isNumber(b[sort])) {
-    return numberSort(a[sort], b[sort], order);
-  } else {
-    return 0;
   }
+  if (isString(a[sort]) && isString(b[sort])) {
+    return stringSort(a[sort], b[sort], order);
+  }
+  return isNumber(a[sort]) && isNumber(b[sort]) ? numberSort(a[sort], b[sort], order) : 0;
 };
 
 const operatorSchema = z.union([z.literal('='), z.literal('>'), z.literal('<')]);
@@ -67,22 +65,17 @@ export const parseFilter = ({
 
   const [key, operator, value] = match;
 
-  if (!filterableKeySchema.safeParse(key).success) return [];
-
-  if (!operatorSchema.safeParse(operator).success) return [];
+  if (!filterableKeySchema.safeParse(key).success || !operatorSchema.safeParse(operator).success)
+    return [];
 
   if (numberKeySchema.safeParse(key).success && Number.isNaN(Number.parseInt(value))) {
     return [];
   }
 
-  if (
-    (stringKeySchema.safeParse(key).success && Number.isInteger(Number.parseInt(value))) ||
+  return (stringKeySchema.safeParse(key).success && Number.isSafeInteger(Number.parseInt(value))) ||
     value.length === 0
-  ) {
-    return [];
-  }
-
-  return [key, operator, value] as [string, z.infer<typeof operatorSchema>, string];
+    ? []
+    : ([key, operator, value] as [string, z.infer<typeof operatorSchema>, string]);
 };
 
 const itemNumberFilter = (item: Record<string, never>, filter: string[]) => {

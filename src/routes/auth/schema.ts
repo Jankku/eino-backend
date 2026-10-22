@@ -36,8 +36,7 @@ export const registerSchema = z
   })
   .refine(
     async (data) => {
-      if (!data.body.email) return true;
-      return await db.task(async (t) => await isEmailUnique(t, data.body.email!));
+      return data.body.email ? (await db.task(async (t) => await isEmailUnique(t, data.body.email!))) : true;
     },
     {
       params: { name: 'authentication_error' },

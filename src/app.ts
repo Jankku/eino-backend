@@ -7,13 +7,11 @@ import { createShareDir } from './util/share';
 import { config } from './config';
 import { routerV1 } from './routes/router-v1';
 import { routerV2 } from './routes/router-v2';
-import { initZxcvbn } from './util/auth';
 import closeWithGrace from 'close-with-grace';
 import { initDiscordAuditProcessing } from './services/audit';
 import { createProfilePictureDir } from './util/profilepicture';
 import { initRoleMap } from './db/role';
 
-initZxcvbn();
 createShareDir().catch((error) => Logger.error('Error creating share dir', { error }));
 createProfilePictureDir().catch((error) =>
   Logger.error('Error creating profile picture dir', { error }),

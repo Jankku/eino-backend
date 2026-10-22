@@ -8,7 +8,7 @@ export const cache: Cache = {
   set(key, value) {
     const ttl = totalTtl(value?.metadata);
     return lru.set(key, value, {
-      ttl: ttl === Number.POSITIVE_INFINITY ? undefined : ttl,
+      ttl: ttl === Infinity ? undefined : ttl,
       start: value?.metadata?.createdTime,
     });
   },
@@ -35,8 +35,6 @@ export const getCacheKey = (service: ThirdPartyService, query: string) => {
     .trim()
     .toLowerCase()
     .normalize()
-    .replaceAll(/\s+/g, ' ')
-    .split(' ')
-    .join('-');
+    .replaceAll(/\s+/g, ' ').replaceAll(' ', '-');
   return `${service}-${normalizedQuery}`;
 };

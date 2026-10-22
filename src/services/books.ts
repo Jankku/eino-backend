@@ -221,7 +221,7 @@ export const search = async (
   next: NextFunction,
 ) => {
   try {
-    const queryString = String(req.query.query).trim();
+    const queryString = req.query.query.trim();
     const queryAsArray = queryString.split(' ');
     const username = res.locals.username;
 
@@ -232,7 +232,7 @@ export const search = async (
         const rows = await ftsSearch(t, { username, query: queryPart });
         // Push only unique results
         for (const row of rows) {
-          if (!results.some((item) => item.book_id === row.book_id)) {
+          if (results.every((item) => item.book_id !== row.book_id)) {
             results.push(row);
           }
         }
@@ -242,7 +242,7 @@ export const search = async (
         const rows = await likeSearch(t, { username, query: queryString });
         // Push only unique results
         for (const row of rows) {
-          if (!results.some((item) => item.book_id === row.book_id)) {
+          if (results.every((item) => item.book_id !== row.book_id)) {
             results.push(row);
           }
         }

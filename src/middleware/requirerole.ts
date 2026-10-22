@@ -4,9 +4,9 @@ import { Role } from '../db/role';
 import { ErrorWithStatus } from '../util/errorhandler';
 
 /**
- * Checks if the user has the required role for the route.
- * Use after verifyToken middleware.
- */
+Checks if the user has the required role for the route.
+Use after verifyToken middleware.
+*/
 export const requireRole = (requiredRoles: Array<Role['name']>) => {
   return (_: Request, res: TypedResponse, next: NextFunction) => {
     if (!requiredRoles.includes(res.locals.role)) {

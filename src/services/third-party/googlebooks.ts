@@ -65,8 +65,5 @@ export const fetchGoogleBooksByIsbn = async (isbn: string): Promise<BookFormSche
     },
   });
   const validated = googleBooksSchema.safeParse(response.data);
-  if (!validated.success) {
-    return [];
-  }
-  return validated.data.items.map((book) => googleBookToBook(book));
+  return validated.success ? validated.data.items.map((book) => googleBookToBook(book)) : [];
 };
