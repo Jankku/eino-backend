@@ -201,7 +201,7 @@ export const deleteOne = async (
   try {
     await db.tx('deleteOne', async (t) => {
       const movie = await getMovieById(t, { movieId, username });
-      await db.none({
+      await t.none({
         text: `DELETE
            FROM movies
            WHERE movie_id = $1
