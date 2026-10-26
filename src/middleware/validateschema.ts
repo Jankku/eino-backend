@@ -15,9 +15,10 @@ z.config({
 });
 
 export const validateSchema =
-  (schema: ZodType) => async (req: Request, res: Response, next: NextFunction) => {
+  <T extends ZodType>(schema: T) =>
+  async (req: Request, res: Response<unknown, { input: z.output<T> }>, next: NextFunction) => {
     try {
-      await schema.parseAsync({
+      res.locals.input = await schema.parseAsync({
         body: req.body,
         query: req.query,
         params: req.params,

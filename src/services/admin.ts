@@ -1,5 +1,5 @@
 import { Request, NextFunction } from 'express';
-import { TypedRequest, TypedResponse } from '../util/zod';
+import { TypedResponse } from '../util/zod';
 import { success } from '../util/response';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { db } from '../db/config';
@@ -16,7 +16,10 @@ import {
   createBulletinSchema,
   deleteBulletinSchema,
   deleteUserSchema,
+  editBulletinSchema,
   editUserSchema,
+  enableUserSchema,
+  disableUserSchema,
 } from '../routes/admin/schema';
 import * as fs from 'node:fs/promises';
 import {
@@ -49,13 +52,13 @@ export const getAuditLogs = async (_: Request, res: TypedResponse, next: NextFun
 };
 
 export const editUser = async (
-  req: TypedRequest<typeof editUserSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof editUserSchema>,
   next: NextFunction,
 ) => {
   const adminUsername = res.locals.username;
-  const { userId } = req.params;
-  const newUser = req.body;
+  const { userId } = res.locals.input.params;
+  const newUser = res.locals.input.body;
   try {
     await db.tx('editUser', async (t) => {
       const currentUser = await getUserById(t, userId);
@@ -98,12 +101,12 @@ export const editUser = async (
 };
 
 export const enableUser = async (
-  req: TypedRequest<typeof deleteUserSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof enableUserSchema>,
   next: NextFunction,
 ) => {
   const adminUsername = res.locals.username;
-  const { userId } = req.params;
+  const { userId } = res.locals.input.params;
   try {
     await db.tx('enableUser', async (t) => {
       const adminUser = await getUserByUsername(t, adminUsername);
@@ -132,12 +135,12 @@ export const enableUser = async (
 };
 
 export const disableUser = async (
-  req: TypedRequest<typeof deleteUserSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof disableUserSchema>,
   next: NextFunction,
 ) => {
   const adminUsername = res.locals.username;
-  const { userId } = req.params;
+  const { userId } = res.locals.input.params;
   try {
     await db.tx('disableUser', async (t) => {
       const adminUser = await getUserByUsername(t, adminUsername);
@@ -167,12 +170,12 @@ export const disableUser = async (
 };
 
 export const deleteUser = async (
-  req: TypedRequest<typeof deleteUserSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof deleteUserSchema>,
   next: NextFunction,
 ) => {
   const adminUsername = res.locals.username;
-  const { userId } = req.params;
+  const { userId } = res.locals.input.params;
   try {
     await db.tx('deleteUser', async (t) => {
       const adminUser = await getUserByUsername(t, adminUsername);
@@ -211,11 +214,11 @@ export const getBulletins = async (_: Request, res: TypedResponse, next: NextFun
 };
 
 export const postBulletin = async (
-  req: TypedRequest<typeof createBulletinSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof createBulletinSchema>,
   next: NextFunction,
 ) => {
-  const { visibleToUserIds, ...bulletin } = req.body;
+  const { visibleToUserIds, ...bulletin } = res.locals.input.body;
   try {
     await db.tx('postBulletin', async (t) => {
       const bulletinId = await createBulletin(t, bulletin);
@@ -233,12 +236,12 @@ export const postBulletin = async (
 };
 
 export const editBulletin = async (
-  req: TypedRequest<typeof createBulletinSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof editBulletinSchema>,
   next: NextFunction,
 ) => {
-  const { bulletinId } = req.params;
-  const { visibleToUserIds, ...bulletin } = req.body;
+  const { bulletinId } = res.locals.input.params;
+  const { visibleToUserIds, ...bulletin } = res.locals.input.body;
   try {
     await db.tx('editBulletin', async (t) => {
       await updateBulletin(t, { bulletinId, bulletin });
@@ -256,11 +259,11 @@ export const editBulletin = async (
 };
 
 export const removeBulletin = async (
-  req: TypedRequest<typeof deleteBulletinSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof deleteBulletinSchema>,
   next: NextFunction,
 ) => {
-  const { bulletinId } = req.params;
+  const { bulletinId } = res.locals.input.params;
   try {
     await db.tx('deleteBulletin', async (t) => await deleteBulletin(t, bulletinId));
     res

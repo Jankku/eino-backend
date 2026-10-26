@@ -50,18 +50,31 @@ export const usernameSchema = z
   .min(3, { error: errorMessages.USERNAME_LENGTH_INVALID })
   .max(255, { error: errorMessages.USERNAME_LENGTH_INVALID });
 
-export const passwordSchema = z
-  .string({
-    error: (issue) =>
-      issue.input === undefined
-        ? errorMessages.PASSWORD_REQUIRED
-        : errorMessages.PASSWORD_TYPE_ERROR,
-  })
-  .trim()
-  .min(8, { error: errorMessages.PASSWORD_LENGTH_INVALID })
-  .max(255, {
-    error: errorMessages.PASSWORD_LENGTH_INVALID,
-  });
+const passwordStringSchema = z.string({
+  error: (issue) =>
+    issue.input === undefined ? errorMessages.PASSWORD_REQUIRED : errorMessages.PASSWORD_TYPE_ERROR,
+});
+
+// Existing accounts were hashed and compared with the exact submitted password.
+// Keep validating trimmed length, but never normalize the password itself.
+export const passwordSchema = passwordStringSchema.superRefine((password, ctx) => {
+  const result = z
+    .string()
+    .min(8, { error: errorMessages.PASSWORD_LENGTH_INVALID })
+    .max(255, { error: errorMessages.PASSWORD_LENGTH_INVALID })
+    .safeParse(password.trim());
+  const issues = result.error?.issues ?? [];
+  for (const issue of issues) ctx.addIssue({ ...issue });
+});
+
+export const passwordStrengthInputSchema = passwordStringSchema.superRefine((password, ctx) => {
+  const result = z
+    .string()
+    .max(255, { error: errorMessages.PASSWORD_LENGTH_INVALID })
+    .safeParse(password.trim());
+  const issues = result.error?.issues ?? [];
+  for (const issue of issues) ctx.addIssue({ ...issue });
+});
 
 export const emailSchema = z
   .email({

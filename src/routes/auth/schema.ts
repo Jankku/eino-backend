@@ -6,6 +6,7 @@ import {
   optionalOtpSchema,
   otpSchema,
   passwordSchema,
+  passwordStrengthInputSchema,
   usernameOrEmailSchema,
   usernameSchema,
 } from '../../util/zodschema';
@@ -22,7 +23,7 @@ export const registerSchema = z
       email: optionalEmailSchema,
     }),
   })
-  .refine((data) => data.body.password === data.body.password2, {
+  .refine((data) => data.body.password.trim() === data.body.password2.trim(), {
     params: { name: 'authentication_error' },
     error: errorMessages.PASSWORDS_NO_MATCH,
   })
@@ -36,7 +37,9 @@ export const registerSchema = z
   })
   .refine(
     async (data) => {
-      return data.body.email ? (await db.task(async (t) => await isEmailUnique(t, data.body.email!))) : true;
+      return data.body.email
+        ? await db.task(async (t) => await isEmailUnique(t, data.body.email!))
+        : true;
     },
     {
       params: { name: 'authentication_error' },
@@ -46,7 +49,7 @@ export const registerSchema = z
   .superRefine(({ body }, ctx) => {
     const { isStrong, error } = getPasswordStrength({
       username: body.username,
-      password: body.password,
+      password: body.password.trim(),
     });
     if (!isStrong) {
       ctx.addIssue({ code: 'custom', message: error, params: { name: 'authentication_error' } });
@@ -81,17 +84,7 @@ export const refreshTokenSchema = z.object({
 
 export const passwordStrengthSchema = z.object({
   body: z.object({
-    password: z
-      .string({
-        error: (issue) =>
-          issue.input === undefined
-            ? errorMessages.PASSWORD_REQUIRED
-            : errorMessages.PASSWORD_TYPE_ERROR,
-      })
-      .trim()
-      .max(255, {
-        error: errorMessages.PASSWORD_LENGTH_INVALID,
-      }),
+    password: passwordStrengthInputSchema,
   }),
 });
 

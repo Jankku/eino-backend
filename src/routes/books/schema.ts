@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { bookStatusEnum } from '../../db/model/bookstatus';
 import { errorMessages } from '../../util/errormessages';
 import { listIdSchema } from '../../util/zodschema';
-import { bookSchema } from '../../db/model/book';
+import { bookSchema, bookSortSchema } from '../../db/model/book';
 
 export const searchSchema = z.object({
   query: z.object({
@@ -55,6 +55,7 @@ export const searchIsbnSchema = z.object({
 });
 
 export const fetchByStatusSchema = z.object({
+  query: bookSortSchema.optional().catch(undefined),
   params: z.object({
     status: bookStatusEnum,
   }),

@@ -24,7 +24,7 @@ import {
   searchSchema,
   updateOneSchema,
 } from '../routes/movies';
-import { TypedRequest, TypedResponse } from '../util/zod';
+import { TypedResponse } from '../util/zod';
 import {
   DbMovie,
   movieNumberKeySchema,
@@ -36,11 +36,11 @@ import { addAudit } from '../db/audit';
 import { fillMovieStatuses, StatusCountRow } from '../util/status';
 
 export const fetchOne = async (
-  req: TypedRequest<typeof fetchOneSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof fetchOneSchema>,
   next: NextFunction,
 ) => {
-  const { movieId } = req.params;
+  const { movieId } = res.locals.input.params;
   const username = res.locals.username;
 
   try {
@@ -89,12 +89,12 @@ export const fetchAll = async (req: Request, res: TypedResponse, next: NextFunct
 };
 
 export const fetchByStatus = async (
-  req: TypedRequest<typeof fetchByStatusSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof fetchByStatusSchema>,
   next: NextFunction,
 ) => {
   const username = res.locals.username;
-  const status = req.params.status;
+  const status = res.locals.input.params.status;
 
   try {
     let movies = await db.task(
@@ -102,9 +102,9 @@ export const fetchByStatus = async (
       async (t) => await getMoviesByStatus(t, { username, status }),
     );
 
-    const queryParams = movieSortSchema.safeParse(req.query);
-    if (queryParams.success) {
-      const { sort, order, filter } = queryParams.data;
+    const queryParams = res.locals.input.query;
+    if (queryParams) {
+      const { sort, order, filter } = queryParams;
 
       if (filter) {
         const itemFilter = getItemFilter({
@@ -130,12 +130,12 @@ export const fetchByStatus = async (
 };
 
 export const addOne = async (
-  req: TypedRequest<typeof addOneSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof addOneSchema>,
   next: NextFunction,
 ) => {
   const username = res.locals.username;
-  const movie = req.body;
+  const movie = res.locals.input.body;
 
   try {
     await db.tx('addOne', async (t) => {
@@ -160,13 +160,13 @@ export const addOne = async (
 };
 
 export const updateOne = async (
-  req: TypedRequest<typeof updateOneSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof updateOneSchema>,
   next: NextFunction,
 ) => {
-  const { movieId } = req.params;
+  const { movieId } = res.locals.input.params;
   const username = res.locals.username;
-  const movie = req.body;
+  const movie = res.locals.input.body;
 
   try {
     const { updatedMovie } = await db.tx('updateOne', async (t) => {
@@ -191,11 +191,11 @@ export const updateOne = async (
 };
 
 export const deleteOne = async (
-  req: TypedRequest<typeof deleteOneSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof deleteOneSchema>,
   next: NextFunction,
 ) => {
-  const { movieId } = req.params;
+  const { movieId } = res.locals.input.params;
   const username = res.locals.username;
 
   try {
@@ -225,12 +225,12 @@ export const deleteOne = async (
 };
 
 export const search = async (
-  req: TypedRequest<typeof searchSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof searchSchema>,
   next: NextFunction,
 ) => {
   try {
-    const queryString = req.query.query.trim();
+    const queryString = res.locals.input.query.query.trim();
     const queryAsArray = queryString.split(' ');
     const username = res.locals.username;
 
@@ -267,11 +267,11 @@ export const search = async (
 };
 
 export const fetchImages = async (
-  req: TypedRequest<typeof fetchImagesSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof fetchImagesSchema>,
   next: NextFunction,
 ) => {
-  const query = req.query.query;
+  const query = res.locals.input.query.query;
 
   try {
     const responses = await Promise.allSettled([

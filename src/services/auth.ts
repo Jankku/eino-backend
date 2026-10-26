@@ -23,7 +23,7 @@ import {
 } from '../util/auth';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { config } from '../config';
-import { TypedRequest, TypedResponse } from '../util/zod';
+import { TypedResponse } from '../util/zod';
 import {
   enable2FASchema,
   forgotPasswordSchema,
@@ -51,11 +51,11 @@ import { getDefaultRoleId } from '../db/role';
 import { jwtConstants } from '../util/jwtconstants';
 
 export const register = async (
-  req: TypedRequest<typeof registerSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof registerSchema>,
   next: NextFunction,
 ) => {
-  const { username, password, email } = req.body;
+  const { username, password, email } = res.locals.input.body;
 
   try {
     await db.task('register', async (t) => {
@@ -83,11 +83,11 @@ export const register = async (
 };
 
 export const login = async (
-  req: TypedRequest<typeof loginSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof loginSchema>,
   next: NextFunction,
 ) => {
-  const { username: usernameOrEmail, password, twoFactorCode } = req.body;
+  const { username: usernameOrEmail, password, twoFactorCode } = res.locals.input.body;
 
   try {
     const { user } = await db.tx('login', async (t) => {
@@ -137,11 +137,11 @@ export const login = async (
 };
 
 export const loginConfig = async (
-  req: TypedRequest<typeof loginConfigSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof loginConfigSchema>,
   next: NextFunction,
 ) => {
-  const { username: usernameOrEmail, password } = req.body;
+  const { username: usernameOrEmail, password } = res.locals.input.body;
 
   try {
     const { user } = await db.tx('loginConfig', async (t) => {
@@ -176,11 +176,11 @@ export const loginConfig = async (
 };
 
 export const generateNewAccessToken = async (
-  req: TypedRequest<typeof refreshTokenSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof refreshTokenSchema>,
   next: NextFunction,
 ) => {
-  const { refreshToken } = req.body;
+  const { refreshToken } = res.locals.input.body;
 
   try {
     const { username } = jwt.verify(refreshToken, config.REFRESH_TOKEN_SECRET, {
@@ -211,11 +211,11 @@ export const generateNewAccessToken = async (
 };
 
 export const passwordStrength = (
-  req: TypedRequest<typeof passwordStrengthSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof passwordStrengthSchema>,
   next: NextFunction,
 ) => {
-  const { password } = req.body;
+  const { password } = res.locals.input.body;
 
   try {
     const { isStrong, score, error } = getPasswordStrength({ password });
@@ -233,11 +233,11 @@ export const passwordStrength = (
 };
 
 export const forgotPassword = async (
-  req: TypedRequest<typeof forgotPasswordSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof forgotPasswordSchema>,
   next: NextFunction,
 ) => {
-  const { email } = req.body;
+  const { email } = res.locals.input.body;
 
   try {
     const { user, otp } = await db.tx('forgotPassword', async (t) => {
@@ -320,11 +320,11 @@ export const forgotPassword = async (
 };
 
 export const resetPassword = async (
-  req: TypedRequest<typeof resetPasswordSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof resetPasswordSchema>,
   next: NextFunction,
 ) => {
-  const { email, newPassword, otp, twoFactorCode } = req.body;
+  const { email, newPassword, otp, twoFactorCode } = res.locals.input.body;
 
   try {
     await db.tx('resetPassword', async (t) => {
@@ -434,11 +434,11 @@ export const generate2FAUrl = async (req: Request, res: TypedResponse, next: Nex
 };
 
 export const enable2FA = async (
-  req: TypedRequest<typeof enable2FASchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof enable2FASchema>,
   next: NextFunction,
 ) => {
-  const { twoFactorCode } = req.body;
+  const { twoFactorCode } = res.locals.input.body;
   const username = res.locals.username;
 
   try {
@@ -470,11 +470,11 @@ export const enable2FA = async (
 };
 
 export const disable2FA = async (
-  req: TypedRequest<typeof enable2FASchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof enable2FASchema>,
   next: NextFunction,
 ) => {
-  const { twoFactorCode } = req.body;
+  const { twoFactorCode } = res.locals.input.body;
   const username = res.locals.username;
 
   try {

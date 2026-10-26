@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { movieStatusEnum } from '../../db/model/moviestatus';
 import { listIdSchema } from '../../util/zodschema';
 import { errorMessages } from '../../util/errormessages';
-import { movieSchema } from '../../db/model/movie';
+import { movieSchema, movieSortSchema } from '../../db/model/movie';
 
 export const searchSchema = z.object({
   query: z.object({
@@ -37,6 +37,7 @@ export const deleteOneSchema = z.object({
 });
 
 export const fetchByStatusSchema = z.object({
+  query: movieSortSchema.optional().catch(undefined),
   params: z.object({
     status: movieStatusEnum,
   }),

@@ -32,7 +32,7 @@ import {
   moviesListCs,
 } from '../util/profile';
 import { config } from '../config';
-import { TypedRequest, TypedResponse } from '../util/zod';
+import { TypedResponse } from '../util/zod';
 import { getVerification } from '../db/verification';
 import { validateTOTP } from '../util/totp';
 import { addAudit, getAuditsByUsername } from '../db/audit';
@@ -94,12 +94,12 @@ export const getProfileV2 = async (_req: Request, res: TypedResponse, next: Next
 };
 
 export const deleteAccount = async (
-  req: TypedRequest<typeof deleteAccountSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof deleteAccountSchema>,
   next: NextFunction,
 ) => {
   const username = res.locals.username;
-  const { password, twoFactorCode } = req.body;
+  const { password, twoFactorCode } = res.locals.input.body;
 
   try {
     await db.tx('deleteAccount', async (t) => {
@@ -294,12 +294,12 @@ export const generateShareImage = async (_req: Request, res: TypedResponse, next
 };
 
 export const exportProfileData = async (
-  req: TypedRequest<typeof exportProfileSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof exportProfileSchema>,
   next: NextFunction,
 ) => {
   const username = res.locals.username;
-  const { password, includeAuditLog } = req.body;
+  const { password, includeAuditLog } = res.locals.input.body;
 
   try {
     const [books, movies, profile, shares, audits] = await db.task(
@@ -353,11 +353,11 @@ export const exportProfileData = async (
 };
 
 export const importProfileData = async (
-  req: TypedRequest<typeof importProfileSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof importProfileSchema>,
   next: NextFunction,
 ) => {
-  const { body } = req;
+  const { body } = res.locals.input;
   const username = res.locals.username;
 
   try {

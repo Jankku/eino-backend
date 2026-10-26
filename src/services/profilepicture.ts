@@ -1,18 +1,18 @@
-import { NextFunction } from 'express';
+import { NextFunction, Request } from 'express';
 import * as fs from 'node:fs/promises';
 import { db } from '../db/config';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { findProfilePicturePathByFileName } from '../db/users';
 import { Logger } from '../util/logger';
-import { TypedRequest, TypedResponse } from '../util/zod';
+import { TypedResponse } from '../util/zod';
 import { getProfilePictureSchema } from '../routes/profilepicture/schema';
 
 export const getProfilePicture = async (
-  req: TypedRequest<typeof getProfilePictureSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof getProfilePictureSchema>,
   next: NextFunction,
 ) => {
-  const { fileName } = req.params;
+  const { fileName } = res.locals.input.params;
   try {
     const path = await db.task('getProfilePicture', (t) =>
       findProfilePicturePathByFileName(t, fileName),

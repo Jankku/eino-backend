@@ -15,7 +15,7 @@ import { db } from '../db/config';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { fetchFinnaImages } from './third-party/finna';
 import { fetchOpenLibraryEditionsByIsbn, fetchOpenLibraryImages } from './third-party/openlibrary';
-import { TypedRequest, TypedResponse } from '../util/zod';
+import { TypedResponse } from '../util/zod';
 import {
   addOneSchema,
   deleteOneSchema,
@@ -34,11 +34,11 @@ import { fetchGoogleBooksByIsbn } from './third-party/googlebooks';
 import { firstNonEmpty } from '../util/promise';
 
 export const fetchOne = async (
-  req: TypedRequest<typeof fetchOneSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof fetchOneSchema>,
   next: NextFunction,
 ) => {
-  const { bookId } = req.params;
+  const { bookId } = res.locals.input.params;
   const username = res.locals.username;
 
   try {
@@ -84,19 +84,19 @@ export const fetchAll = async (req: Request, res: TypedResponse, next: NextFunct
 };
 
 export const fetchByStatus = async (
-  req: TypedRequest<typeof fetchByStatusSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof fetchByStatusSchema>,
   next: NextFunction,
 ) => {
   const username = res.locals.username;
-  const status = req.params.status;
+  const status = res.locals.input.params.status;
 
   try {
     let books = await db.task(async (t) => await getBooksByStatus(t, { username, status }));
 
-    const queryParams = bookSortSchema.safeParse(req.query);
-    if (queryParams.success) {
-      const { sort, order, filter } = queryParams.data;
+    const queryParams = res.locals.input.query;
+    if (queryParams) {
+      const { sort, order, filter } = queryParams;
 
       if (filter) {
         const itemFilter = getItemFilter({
@@ -122,12 +122,12 @@ export const fetchByStatus = async (
 };
 
 export const addOne = async (
-  req: TypedRequest<typeof addOneSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof addOneSchema>,
   next: NextFunction,
 ) => {
   const username = res.locals.username;
-  const book = req.body;
+  const book = res.locals.input.body;
 
   try {
     await db.tx('addOne', async (t) => {
@@ -150,13 +150,13 @@ export const addOne = async (
 };
 
 export const updateOne = async (
-  req: TypedRequest<typeof updateOneSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof updateOneSchema>,
   next: NextFunction,
 ) => {
   const username = res.locals.username;
-  const { bookId } = req.params;
-  const book = req.body;
+  const { bookId } = res.locals.input.params;
+  const book = res.locals.input.body;
 
   try {
     const { updatedBook } = await db.tx('updateOne', async (t) => {
@@ -182,11 +182,11 @@ export const updateOne = async (
 };
 
 export const deleteOne = async (
-  req: TypedRequest<typeof deleteOneSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof deleteOneSchema>,
   next: NextFunction,
 ) => {
-  const { bookId } = req.params;
+  const { bookId } = res.locals.input.params;
   const username = res.locals.username;
 
   try {
@@ -216,12 +216,12 @@ export const deleteOne = async (
 };
 
 export const search = async (
-  req: TypedRequest<typeof searchSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof searchSchema>,
   next: NextFunction,
 ) => {
   try {
-    const queryString = req.query.query.trim();
+    const queryString = res.locals.input.query.query.trim();
     const queryAsArray = queryString.split(' ');
     const username = res.locals.username;
 
@@ -259,11 +259,11 @@ export const search = async (
 };
 
 export const searchIsbn = async (
-  req: TypedRequest<typeof searchIsbnSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof searchIsbnSchema>,
   next: NextFunction,
 ) => {
-  const { isbn } = req.params;
+  const { isbn } = res.locals.input.params;
 
   try {
     const books = await firstNonEmpty([
@@ -278,11 +278,11 @@ export const searchIsbn = async (
 };
 
 export const fetchImages = async (
-  req: TypedRequest<typeof fetchImagesSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof fetchImagesSchema>,
   next: NextFunction,
 ) => {
-  const query = req.query.query;
+  const query = res.locals.input.query.query;
 
   try {
     const responses = await Promise.allSettled([

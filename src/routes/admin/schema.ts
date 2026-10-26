@@ -13,7 +13,7 @@ import { bulletinConditions, bulletinTypes, bulletinVisibilities } from '../../d
 export const editUserSchema = z
   .object({
     params: z.object({
-      userId: z.string().uuid(errorMessages.UUID_INVALID),
+      userId: z.uuid(errorMessages.UUID_INVALID),
     }),
     body: z.object({
       username: usernameSchema,
@@ -26,9 +26,12 @@ export const editUserSchema = z
   })
   .refine(
     async (data) => {
-      return data.body.email ? (await db.task(
-        async (t) => await isEmailUniqueExcludeUsername(t, data.body.username, data.body.email!),
-      )) : true;
+      return data.body.email
+        ? await db.task(
+            async (t) =>
+              await isEmailUniqueExcludeUsername(t, data.body.username, data.body.email!),
+          )
+        : true;
     },
     {
       params: { name: 'admin_error' },
@@ -38,19 +41,19 @@ export const editUserSchema = z
 
 export const enableUserSchema = z.object({
   params: z.object({
-    userId: z.string().uuid(errorMessages.UUID_INVALID),
+    userId: z.uuid(errorMessages.UUID_INVALID),
   }),
 });
 
 export const disableUserSchema = z.object({
   params: z.object({
-    userId: z.string().uuid(errorMessages.UUID_INVALID),
+    userId: z.uuid(errorMessages.UUID_INVALID),
   }),
 });
 
 export const deleteUserSchema = z.object({
   params: z.object({
-    userId: z.string().uuid(errorMessages.UUID_INVALID),
+    userId: z.uuid(errorMessages.UUID_INVALID),
   }),
 });
 
@@ -62,7 +65,7 @@ export const createBulletinSchema = z
       name: z.string().nullish(),
       type: z.enum(bulletinTypes),
       visibility: z.enum(bulletinVisibilities),
-      visibleToUserIds: z.array(z.string().uuid()).nullish(),
+      visibleToUserIds: z.array(z.uuid()).nullish(),
       condition: z.enum(bulletinConditions).nullish(),
       start_date: dateSchema,
       end_date: dateSchema,
@@ -79,8 +82,10 @@ export const createBulletinSchema = z
   )
   .refine(
     ({ body }) => {
-      return !(body.visibility === 'user' &&
-        (!body.visibleToUserIds || body.visibleToUserIds.length === 0));
+      return !(
+        body.visibility === 'user' &&
+        (!body.visibleToUserIds || body.visibleToUserIds.length === 0)
+      );
     },
     {
       params: { name: 'visibleToUserIds' },
@@ -90,6 +95,10 @@ export const createBulletinSchema = z
 
 export const deleteBulletinSchema = z.object({
   params: z.object({
-    bulletinId: z.string().uuid(errorMessages.UUID_INVALID),
+    bulletinId: z.uuid(errorMessages.UUID_INVALID),
   }),
+});
+
+export const editBulletinSchema = createBulletinSchema.safeExtend({
+  params: z.object({ bulletinId: z.uuid(errorMessages.UUID_INVALID) }),
 });

@@ -16,7 +16,7 @@ import {
   updateEmailAddress,
   updateEmailVerifiedTimestamp,
 } from '../db/users';
-import { TypedRequest, TypedResponse } from '../util/zod';
+import { TypedResponse } from '../util/zod';
 import { updateEmailSchema, verifyEmailSchema } from '../routes/email';
 import { DateTime } from 'luxon';
 import { isVerificationExpired } from '../util/verification';
@@ -26,12 +26,12 @@ import { db } from '../db/config';
 import { addAudit } from '../db/audit';
 
 export const updateEmail = async (
-  req: TypedRequest<typeof updateEmailSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof updateEmailSchema>,
   next: NextFunction,
 ) => {
   const username = res.locals.username;
-  const { email, twoFactorCode } = req.body;
+  const { email, twoFactorCode } = res.locals.input.body;
   try {
     await db.tx('updateEmail', async (t) => {
       const user = await getUserByUsername(t, username);
@@ -166,12 +166,12 @@ export const sendConfirmationEmail = async (
 };
 
 export const verifyEmail = async (
-  req: TypedRequest<typeof verifyEmailSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof verifyEmailSchema>,
   next: NextFunction,
 ) => {
   const username = res.locals.username;
-  const { otp } = req.body;
+  const { otp } = res.locals.input.body;
 
   try {
     await db.tx('verifyEmail', async (t) => {

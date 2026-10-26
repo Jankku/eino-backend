@@ -6,6 +6,7 @@ import {
   deleteBulletinSchema,
   deleteUserSchema,
   disableUserSchema,
+  editBulletinSchema,
   editUserSchema,
   enableUserSchema,
 } from './schema';
@@ -20,7 +21,7 @@ adminRouter.delete('/users/:userId', validateSchema(deleteUserSchema), admin.del
 adminRouter.get('/audits', admin.getAuditLogs);
 adminRouter.get('/bulletins', admin.getBulletins);
 adminRouter.post('/bulletins', validateSchema(createBulletinSchema), admin.postBulletin);
-adminRouter.put('/bulletins/:bulletinId', validateSchema(createBulletinSchema), admin.editBulletin);
+adminRouter.put('/bulletins/:bulletinId', validateSchema(editBulletinSchema), admin.editBulletin);
 adminRouter.delete(
   '/bulletins/:bulletinId',
   validateSchema(deleteBulletinSchema),

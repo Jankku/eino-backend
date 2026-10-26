@@ -13,6 +13,7 @@
     "build": "rimraf dist && npx tsc",
     "start": "npm run build && node ./dist/src/app.js",
     "dev": "node -r ts-node/register --watch-path=src src/app.ts",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "format": "prettier --write ./src",

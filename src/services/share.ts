@@ -1,19 +1,19 @@
-import { NextFunction } from 'express';
+import { NextFunction, Request } from 'express';
 import * as fs from 'node:fs/promises';
 import { getShare } from '../db/share';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { Logger } from '../util/logger';
 import { getShareItemPath } from '../util/share';
-import { TypedRequest, TypedResponse } from '../util/zod';
+import { TypedResponse } from '../util/zod';
 import { getShareImageSchema } from '../routes/share';
 import { db } from '../db/config';
 
 export const getShareImage = async (
-  req: TypedRequest<typeof getShareImageSchema>,
-  res: TypedResponse,
+  _: Request,
+  res: TypedResponse<typeof getShareImageSchema>,
   next: NextFunction,
 ) => {
-  const { id } = req.params;
+  const { id } = res.locals.input.params;
 
   try {
     const share = await db.task('getShareImage', async (t) => {

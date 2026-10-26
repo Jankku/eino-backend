@@ -1,22 +1,19 @@
 import { z } from 'zod';
 import { ZodError } from 'zod/v4';
 import { $ZodIssue } from 'zod/v4/core';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { Role } from '../db/role';
 
-export type TypedRequest<T extends z.ZodTypeAny> = Omit<Request, 'body' | 'params' | 'query'> & {
-  body: z.infer<T> extends { body: unknown } ? z.infer<T>['body'] : never;
-  params: z.infer<T> extends { params: unknown } ? z.infer<T>['params'] : never;
-  query: z.infer<T> extends { query: unknown } ? z.infer<T>['query'] : never;
+type AuthLocals = {
+  userId: string;
+  username: string;
+  role: Role['name'];
 };
 
-export type TypedResponse = Response & {
-  locals: {
-    userId: string;
-    username: string;
-    role: Role['name'];
-  };
-};
+export type TypedResponse<T extends z.ZodType = never> = Response<
+  unknown,
+  AuthLocals & ([T] extends [never] ? object : { input: z.output<T> })
+>;
 
 export const formatZodErrors = (error: ZodError) => {
   const errors = Object.values(error.issues);
