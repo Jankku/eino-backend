@@ -390,37 +390,43 @@ export const importProfileData = async (
       const mapBooks = body.books.map((book) => ({ ...book, submitter: username }));
       const mapMovies = body.movies.map((movie) => ({ ...movie, submitter: username }));
 
-      // Insert books to books table
-      const newBooks = await t.many(pgp.helpers.insert(mapBooks, booksCs) + ' RETURNING *');
+      if (mapBooks.length > 0) {
+        // Insert books to books table
+        const newBooks = await t.many(pgp.helpers.insert(mapBooks, booksCs) + ' RETURNING *');
 
-      // Map inserted books to be compatible with user_book_list table
-      const bookListItems = newBooks.map((book) => ({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        ...bookHashMap[calculateBookHash(book)],
-        book_id: book.book_id,
-        username,
-      }));
+        // Map inserted books to be compatible with user_book_list table
+        const bookListItems = newBooks.map((book) => ({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          ...bookHashMap[calculateBookHash(book)],
+          book_id: book.book_id,
+          username,
+        }));
 
-      // Insert mapped books to user_book_list table
-      const insertBookList = pgp.helpers.insert(bookListItems, booksListCs);
-      await t.none(insertBookList);
+        // Insert mapped books to user_book_list table
+        const insertBookList = pgp.helpers.insert(bookListItems, booksListCs);
+        await t.none(insertBookList);
+      }
 
-      // Insert movies to movies table
-      const newMovies = await t.many(pgp.helpers.insert(mapMovies, moviesCs) + ' RETURNING *');
+      if (mapMovies.length > 0) {
+        // Insert movies to movies table
+        const newMovies = await t.many(pgp.helpers.insert(mapMovies, moviesCs) + ' RETURNING *');
 
-      // Map inserted movies to be compatible with user_movie_list table
-      const movieListItems = newMovies.map((movie) => ({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        ...movieHashMap[calculateMovieHash(movie)],
-        movie_id: movie.movie_id,
-        username,
-      }));
+        // Map inserted movies to be compatible with user_movie_list table
+        const movieListItems = newMovies.map((movie) => ({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          ...movieHashMap[calculateMovieHash(movie)],
+          movie_id: movie.movie_id,
+          username,
+        }));
 
-      // Insert mapped movies to user_movie_list table
-      const insertMovieList = pgp.helpers.insert(movieListItems, moviesListCs);
-      await t.none(insertMovieList);
+        // Insert mapped movies to user_movie_list table
+        const insertMovieList = pgp.helpers.insert(movieListItems, moviesListCs);
+        await t.none(insertMovieList);
+      }
 
-      await addAudit(t, { username, action: 'profile_data_imported' });
+      if (mapBooks.length > 0 || mapMovies.length > 0) {
+        await addAudit(t, { username, action: 'profile_data_imported' });
+      }
     });
 
     res.status(200).json(success([{ name: 'import_success', message: 'Profile imported' }]));
