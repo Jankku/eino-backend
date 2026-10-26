@@ -38,12 +38,22 @@ export const fillAndSortResponse = async (array: ItemScoreRow[]) =>
   });
 
 export const booksCs = new pgp.helpers.ColumnSet(
-  ['isbn', 'title', 'author', 'publisher', 'image_url', 'pages', 'year', 'submitter'],
+  [
+    'isbn',
+    'title',
+    'author',
+    'publisher',
+    'image_url',
+    'pages',
+    'year',
+    'language_code',
+    'submitter',
+  ],
   { table: 'books' },
 );
 
 export const booksListCs = new pgp.helpers.ColumnSet(
-  ['book_id', 'username', 'status', 'score', 'start_date', 'end_date'],
+  ['book_id', 'username', 'status', 'score', 'note', 'start_date', 'end_date'],
   { table: 'user_book_list' },
 );
 
@@ -53,7 +63,7 @@ export const moviesCs = new pgp.helpers.ColumnSet(
 );
 
 export const moviesListCs = new pgp.helpers.ColumnSet(
-  ['movie_id', 'username', 'status', 'score', 'start_date', 'end_date'],
+  ['movie_id', 'username', 'status', 'score', 'note', 'start_date', 'end_date'],
   { table: 'user_movie_list' },
 );
 
