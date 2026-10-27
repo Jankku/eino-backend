@@ -32,10 +32,11 @@ const getBookData = async (t: ITask<unknown>, username: string): Promise<BookDat
   const pagesAndAvgScore = await t.one({
     text: `SELECT * FROM
             (SELECT count(*) FROM books WHERE submitter = $1) count,
-            (SELECT coalesce(sum(b.pages), 0) as pages_read, coalesce(round(avg(ubl.score), 1), 0) AS average
+            (SELECT coalesce(sum(b.pages) FILTER (WHERE ubl.status = 'completed'), 0) as pages_read,
+                   coalesce(round(avg(ubl.score) FILTER (WHERE ubl.score > 0), 1), 0) AS average
             FROM books b
             INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
-            WHERE submitter = $1 AND ubl.score > 0) pages_and_avg_score`,
+            WHERE b.submitter = $1) pages_and_avg_score`,
     values: [username],
   });
   const response: BookData = {
@@ -60,10 +61,11 @@ const getBookDataV2 = async (t: ITask<unknown>, username: string): Promise<BookD
               INNER JOIN user_book_list ubl ON b.book_id=ubl.book_id
               WHERE b.submitter = $1
               GROUP BY ubl.status) count,
-            (SELECT COALESCE(sum(b.pages), 0) AS pages_read, COALESCE(round(avg(ubl.score), 1), 0) AS average
+            (SELECT COALESCE(sum(b.pages) FILTER (WHERE ubl.status = 'completed'), 0) AS pages_read,
+                    COALESCE(round(avg(ubl.score) FILTER (WHERE ubl.score > 0), 1), 0) AS average
               FROM books b
               INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
-              WHERE submitter = $1 AND ubl.score > 0) pages_and_avg_score`,
+              WHERE b.submitter = $1) pages_and_avg_score`,
     values: [username],
   });
 
@@ -88,9 +90,10 @@ const getMovieData = async (t: ITask<unknown>, username: string): Promise<MovieD
   const movieData = await t.any({
     text: `SELECT * FROM
             (SELECT count(*) FROM movies WHERE submitter = $1) count,
-            (SELECT coalesce(sum(m.duration) / 60, 0) as watch_time, coalesce(round(avg(uml.score), 1), 0) AS average
+            (SELECT coalesce(sum(m.duration) FILTER (WHERE uml.status = 'completed') / 60, 0) as watch_time,
+                   coalesce(round(avg(uml.score) FILTER (WHERE uml.score > 0), 1), 0) AS average
             FROM movies m INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
-            WHERE submitter = $1 AND uml.score > 0) watch_time_and_avg_score`,
+            WHERE m.submitter = $1) watch_time_and_avg_score`,
     values: [username],
   });
   return {
@@ -114,10 +117,11 @@ const getMovieDataV2 = async (client: ITask<unknown>, username: string): Promise
               LEFT JOIN user_movie_list uml ON m.movie_id=uml.movie_id
               WHERE m.submitter = $1
               GROUP BY uml.status) count,
-            (SELECT COALESCE(sum(m.duration) / 60, 0) AS watch_time, COALESCE(round(avg(uml.score), 1), 0) AS average
+            (SELECT COALESCE(sum(m.duration) FILTER (WHERE uml.status = 'completed') / 60, 0) AS watch_time,
+                    COALESCE(round(avg(uml.score) FILTER (WHERE uml.score > 0), 1), 0) AS average
               FROM movies m
               INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
-              WHERE submitter = $1 AND uml.score > 0) watch_time_and_avg_score`,
+              WHERE m.submitter = $1) watch_time_and_avg_score`,
     values: [username],
   });
 
