@@ -1423,7 +1423,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateBulletinRequest'
+              $ref: '#/components/schemas/EditBulletinRequest'
       responses:
         '200':
           description: Bulletin updated successfully
@@ -1981,6 +1981,13 @@ components:
                 type: string
                 format: date-time
     CreateBulletinRequest:
+      allOf:
+        - $ref: '#/components/schemas/BulletinRequest'
+      description: Creating a bulletin with user visibility requires a non-empty visibleToUserIds array.
+    EditBulletinRequest:
+      allOf:
+        - $ref: '#/components/schemas/BulletinRequest'
+    BulletinRequest:
       type: object
       properties:
         title:
@@ -2009,7 +2016,7 @@ components:
             type: string
             format: uuid
           nullable: true
-          description: List of user IDs the bulletin is visible to (required if visibility is 'user')
+          description: List of recipient user IDs. Required and non-empty when creating a bulletin with user visibility; optional when editing.
         condition:
           type: string
           enum:

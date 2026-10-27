@@ -244,10 +244,11 @@ export const editBulletin = async (
   try {
     await db.tx('editBulletin', async (t) => {
       await updateBulletin(t, { bulletinId, bulletin });
-      await updateBulletinUsers(t, {
-        bulletinId,
-        userIds: bulletin.visibility === 'user' ? visibleToUserIds! : [],
-      });
+      if (bulletin.visibility !== 'user') {
+        await updateBulletinUsers(t, { bulletinId, userIds: [] });
+      } else if (visibleToUserIds) {
+        await updateBulletinUsers(t, { bulletinId, userIds: visibleToUserIds });
+      }
     });
     res
       .status(200)

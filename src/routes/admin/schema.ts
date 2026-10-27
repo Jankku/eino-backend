@@ -57,7 +57,7 @@ export const deleteUserSchema = z.object({
   }),
 });
 
-export const createBulletinSchema = z
+const bulletinSchema = z
   .object({
     body: z.object({
       title: nonEmptyString,
@@ -79,19 +79,20 @@ export const createBulletinSchema = z
       params: { name: 'condition' },
       message: 'Condition required for condition visibility',
     },
-  )
-  .refine(
-    ({ body }) => {
-      return !(
-        body.visibility === 'user' &&
-        (!body.visibleToUserIds || body.visibleToUserIds.length === 0)
-      );
-    },
-    {
-      params: { name: 'visibleToUserIds' },
-      message: 'VisibleToUserIds required for user visibility',
-    },
   );
+
+export const createBulletinSchema = bulletinSchema.refine(
+  ({ body }) => {
+    return !(
+      body.visibility === 'user' &&
+      (!body.visibleToUserIds || body.visibleToUserIds.length === 0)
+    );
+  },
+  {
+    params: { name: 'visibleToUserIds' },
+    message: 'VisibleToUserIds required for user visibility',
+  },
+);
 
 export const deleteBulletinSchema = z.object({
   params: z.object({
@@ -99,6 +100,6 @@ export const deleteBulletinSchema = z.object({
   }),
 });
 
-export const editBulletinSchema = createBulletinSchema.safeExtend({
+export const editBulletinSchema = bulletinSchema.safeExtend({
   params: z.object({ bulletinId: z.uuid(errorMessages.UUID_INVALID) }),
 });
