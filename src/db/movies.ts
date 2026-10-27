@@ -216,18 +216,14 @@ export const getTop10MovieTitles = async (
 ): Promise<string[]> => {
   return await t.map(
     {
-      text: `SELECT CASE
-                WHEN char_length(m.title) > 25
-                  THEN concat(left(m.title, 22), '...')
-                  ELSE m.title
-                END
+      text: `SELECT m.title
            FROM user_movie_list uml
-                    INNER JOIN movies m USING (movie_id)
+           INNER JOIN movies m USING (movie_id)
            WHERE uml.username = m.submitter
              AND uml.username = $1
              AND uml.status = 'completed'
            ORDER BY uml.score DESC,
-                      uml.end_date DESC
+                    uml.end_date DESC
            LIMIT 10;`,
       values: [username],
     },

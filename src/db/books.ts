@@ -229,19 +229,15 @@ export const getTop10BookTitles = async (
 ): Promise<string[]> => {
   return await t.map(
     {
-      text: `SELECT CASE
-                WHEN char_length(b.title) > 25
-                  THEN concat(left(b.title, 22), '...')
-                  ELSE b.title
-              END
-            FROM user_book_list ubl
-                    INNER JOIN books b USING (book_id)
-            WHERE ubl.username = b.submitter
-              AND ubl.username = $1
-              AND ubl.status = 'completed'
-            ORDER BY ubl.score DESC,
-                      ubl.end_date DESC
-            LIMIT 10;`,
+      text: `SELECT b.title
+           FROM user_book_list ubl
+           INNER JOIN books b USING (book_id)
+           WHERE ubl.username = b.submitter
+             AND ubl.username = $1
+             AND ubl.status = 'completed'
+           ORDER BY ubl.score DESC,
+                    ubl.end_date DESC
+           LIMIT 10;`,
       values: [username],
     },
     undefined,

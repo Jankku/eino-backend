@@ -11,12 +11,11 @@ import { ErrorWithStatus } from '../util/errorhandler';
 import * as fs from 'node:fs/promises';
 import { success } from '../util/response';
 import { Logger } from '../util/logger';
-import { registerFont, createCanvas } from 'canvas';
 import { getAllBooks, getTop10BookTitles } from '../db/books';
 import { getAllMovies, getTop10MovieTitles } from '../db/movies';
-import { generateShareId, getFontPath, getShareItemPath } from '../util/share';
+import { generateShareId, getShareItemPath } from '../util/share';
+import { renderShareImage } from '../util/shareimage';
 import { createShare, getSharesByUsername } from '../db/share';
-import { DateTime } from 'luxon';
 import { getProfileData, getProfileDataV2 } from '../db/profile';
 import {
   deleteAccountSchema,
@@ -162,121 +161,7 @@ export const generateShareImage = async (_req: Request, res: TypedResponse, next
       return;
     }
 
-    const canvasWidth = 700;
-    const canvasHeight = 500;
-    const canvasLeftPadding = 20;
-    const dividerHeight = 70;
-    const listItemPadding = 32;
-    const listColumnPadding = 120;
-    const listColumnPaddingTop = 20;
-    const listColumnTitleY = dividerHeight + listColumnPaddingTop;
-    const listColumnContentY = listColumnTitleY + 45;
-
-    const backgroundColor = '#191b21';
-    const dividerColor = '#323642';
-    const accentColor = '#64b5f6';
-    const headerTextColor = '#eee';
-    const bodyTextColor = '#ccc';
-
-    const listHeaderFont = '700 18pt Roboto';
-    const listItemFont = '700 14pt Roboto';
-
-    registerFont(getFontPath('pacifico.ttf'), { family: 'Pacifico' });
-    registerFont(getFontPath('roboto-regular.ttf'), { family: 'Roboto', weight: '400' });
-    registerFont(getFontPath('roboto-bold.ttf'), { family: 'Roboto', weight: '700' });
-
-    const canvas = createCanvas(canvasWidth, canvasHeight);
-    const ctx = canvas.getContext('2d');
-
-    ctx.textBaseline = 'top';
-
-    // Background
-    ctx.fillStyle = backgroundColor;
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
-    // Image borders
-    ctx.fillStyle = accentColor;
-    const thickness = 2;
-    ctx.fillRect(0, 0, canvasWidth, thickness); // Top
-    ctx.fillRect(0, 0, thickness, canvasHeight); // Left
-    ctx.fillRect(0, canvasHeight - thickness, canvasWidth, thickness); // Bottom
-    ctx.fillRect(canvasWidth - thickness, 0, thickness, canvasHeight); // Right
-
-    // Top-left logo
-    ctx.fillStyle = headerTextColor;
-    ctx.font = '40pt Pacifico';
-    ctx.fillText('e', 12, -34);
-
-    // Bottom-right date
-    ctx.fillStyle = '#b2b2b2';
-    ctx.font = '10pt Roboto';
-    const date = DateTime.now().toISODate();
-    const dateWidth = ctx.measureText(date).width;
-    const dateX = canvasWidth - dateWidth - 20;
-    const dateY = canvasHeight - 30;
-    ctx.fillText(date, dateX, dateY);
-
-    // Username
-    ctx.fillStyle = headerTextColor;
-    ctx.font = 'bold 24pt Roboto';
-    const usernameWidth = ctx.measureText(username).width;
-    const usernameX = canvasWidth / 2 - usernameWidth / 2;
-    ctx.fillText(username, usernameX, 15);
-
-    // Divider
-    ctx.fillStyle = dividerColor;
-    ctx.fillRect(70, dividerHeight, canvasWidth - 140, 2);
-
-    // Book list
-    const bookListX = 70;
-    let maxTitleWidth = bookListX; // Minimum so that columns don't overlap
-
-    if (bookTitles.length > 0) {
-      let bookListY = listColumnContentY;
-
-      ctx.fillStyle = headerTextColor;
-      ctx.font = listHeaderFont;
-      ctx.fillText('Top books', bookListX, listColumnTitleY);
-
-      ctx.fillStyle = bodyTextColor;
-      ctx.font = listItemFont;
-      for (const [i, title] of bookTitles.entries()) {
-        ctx.fillText(`${i + 1}. ${title}`, bookListX, bookListY);
-        bookListY += listItemPadding;
-
-        const titleWidth = ctx.measureText(title).width;
-        if (titleWidth > maxTitleWidth) {
-          maxTitleWidth = titleWidth;
-        }
-      }
-    }
-
-    // Movie list
-    if (movieTitles.length > 0) {
-      let movieListX = maxTitleWidth;
-
-      if (bookTitles.length > 0) {
-        movieListX =
-          listColumnPadding > movieListX
-            ? maxTitleWidth + listColumnPadding + canvasLeftPadding
-            : movieListX + listColumnPadding;
-      }
-
-      let movieListY = listColumnContentY;
-
-      ctx.fillStyle = headerTextColor;
-      ctx.font = listHeaderFont;
-      ctx.fillText('Top movies', movieListX, listColumnTitleY);
-
-      ctx.fillStyle = bodyTextColor;
-      ctx.font = listItemFont;
-      for (const [i, title] of movieTitles.entries()) {
-        ctx.fillText(`${i + 1}. ${title}`, movieListX, movieListY);
-        movieListY += listItemPadding;
-      }
-    }
-
-    const imageBuffer = canvas.toBuffer('image/png');
+    const imageBuffer = renderShareImage({ username, bookTitles, movieTitles });
     const shareImagePath = getShareItemPath(res.locals.userId);
     const shareId = generateShareId();
 
