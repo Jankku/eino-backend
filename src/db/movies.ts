@@ -1,6 +1,7 @@
 import { Movie, DbMovie } from './model/movie';
 import { MovieStatus } from './model/moviestatus';
 import { ITask } from 'pg-promise';
+import { prefixSearchQuery } from './search';
 
 export const getAllMovies = async (t: ITask<unknown>, username: string): Promise<DbMovie[]> => {
   return await t.any({
@@ -155,7 +156,8 @@ export const ftsSearch = async (
   { username, query }: { username: string; query: string },
 ): Promise<DbMovie[]> => {
   return await t.any<DbMovie>({
-    text: `SELECT m.movie_id,
+    text: `${prefixSearchQuery}
+               SELECT m.movie_id,
                   m.title,
                   m.studio,
                   m.director,
@@ -170,10 +172,11 @@ export const ftsSearch = async (
                   uml.end_date,
                   uml.created_on
                FROM movies m INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
-               WHERE document @@ to_tsquery('english', $2)
+               CROSS JOIN search_query
+               WHERE document @@ search_query.query
                  AND submitter = $1
-               ORDER BY ts_rank(document, plainto_tsquery($2)) DESC;`,
-    values: [username, `${query}:*`],
+               ORDER BY ts_rank(document, search_query.query) DESC;`,
+    values: [username, query],
   });
 };
 

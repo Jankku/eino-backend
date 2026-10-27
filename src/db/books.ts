@@ -1,6 +1,7 @@
 import { Book, DbBook } from './model/book';
 import { BookStatus } from './model/bookstatus';
 import { ITask } from 'pg-promise';
+import { prefixSearchQuery } from './search';
 
 export const getAllBooks = async (t: ITask<unknown>, username: string): Promise<DbBook[]> => {
   return await t.any({
@@ -167,7 +168,8 @@ export const ftsSearch = async (
   { username, query }: { username: string; query: string },
 ): Promise<DbBook[]> => {
   return await t.any<DbBook>({
-    text: `SELECT b.book_id,
+    text: `${prefixSearchQuery}
+               SELECT b.book_id,
                   b.isbn,
                   b.title,
                   b.author,
@@ -183,10 +185,11 @@ export const ftsSearch = async (
                   ubl.end_date,
                   ubl.created_on
                FROM books b INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
-               WHERE document @@ to_tsquery('english', $2)
+               CROSS JOIN search_query
+               WHERE document @@ search_query.query
                  AND submitter = $1
-               ORDER BY ts_rank(document, plainto_tsquery($2)) DESC;`,
-    values: [username, `${query}:*`],
+               ORDER BY ts_rank(document, search_query.query) DESC;`,
+    values: [username, query],
   });
 };
 

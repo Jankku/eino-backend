@@ -37,21 +37,34 @@ const bookSortableKeySchema = dbBookSchema
   .omit({ book_id: true, image_url: true, isbn: true, note: true, language_code: true })
   .keyof();
 
-export const bookStringKeySchema = bookSortableKeySchema.exclude(['pages', 'year', 'score']);
+export const bookDateKeySchema = bookSortableKeySchema.extract([
+  'start_date',
+  'end_date',
+  'created_on',
+]);
+export const bookStringKeySchema = bookSortableKeySchema.exclude([
+  'pages',
+  'year',
+  'score',
+  'start_date',
+  'end_date',
+  'created_on',
+]);
 export const bookNumberKeySchema = bookSortableKeySchema.extract(['pages', 'year', 'score']);
 
 export const bookSortSchema = z.object({
-  filter: z.union([
-    z.string().transform((val) =>
+  filter: z
+    .string()
+    .transform((val) =>
       parseFilter({
         input: val,
         filterableKeySchema: bookSortableKeySchema,
         stringKeySchema: bookStringKeySchema,
         numberKeySchema: bookNumberKeySchema,
+        dateKeySchema: bookDateKeySchema,
       }),
-    ),
-    z.void(),
-  ]),
+    )
+    .optional(),
   sort: bookSortableKeySchema.default('title'),
   order: sortOrderSchema,
 });

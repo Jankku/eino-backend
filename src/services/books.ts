@@ -28,7 +28,13 @@ import {
   searchSchema,
   updateOneSchema,
 } from '../routes/books';
-import { bookSortSchema, bookNumberKeySchema, bookStringKeySchema, DbBook } from '../db/model/book';
+import {
+  bookSortSchema,
+  bookNumberKeySchema,
+  bookStringKeySchema,
+  bookDateKeySchema,
+  DbBook,
+} from '../db/model/book';
 import { itemSorter, getItemFilter } from '../util/sort';
 import { addAudit } from '../db/audit';
 import { fillBookStatuses, StatusCountRow } from '../util/status';
@@ -67,11 +73,10 @@ export const fetchAll = async (req: Request, res: TypedResponse, next: NextFunct
           key: filter[0],
           stringSchema: bookStringKeySchema,
           numberSchema: bookNumberKeySchema,
+          dateSchema: bookDateKeySchema,
         });
         if (itemFilter) {
-          books = books.filter((book) =>
-            itemFilter(book as unknown as Record<string, never>, filter),
-          );
+          books = books.filter((book) => itemFilter(book, filter));
         }
       }
 
@@ -105,11 +110,10 @@ export const fetchByStatus = async (
           key: filter[0],
           stringSchema: bookStringKeySchema,
           numberSchema: bookNumberKeySchema,
+          dateSchema: bookDateKeySchema,
         });
         if (itemFilter) {
-          books = books.filter((book) =>
-            itemFilter(book as unknown as Record<string, never>, filter),
-          );
+          books = books.filter((book) => itemFilter(book, filter));
         }
       }
 
@@ -234,7 +238,11 @@ export const search = async (
 ) => {
   try {
     const queryString = res.locals.input.query.query.trim();
-    const queryAsArray = queryString.split(' ');
+    if (!queryString) {
+      res.status(200).json(success([]));
+      return;
+    }
+    const queryAsArray = queryString.split(/\s+/);
     const username = res.locals.username;
 
     const { results } = await db.task('search', async (t) => {

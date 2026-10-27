@@ -35,21 +35,34 @@ const movieSortableKeySchema = dbMovieSchema
   .omit({ movie_id: true, image_url: true, note: true })
   .keyof();
 
-export const movieStringKeySchema = movieSortableKeySchema.exclude(['duration', 'year', 'score']);
+export const movieDateKeySchema = movieSortableKeySchema.extract([
+  'start_date',
+  'end_date',
+  'created_on',
+]);
+export const movieStringKeySchema = movieSortableKeySchema.exclude([
+  'duration',
+  'year',
+  'score',
+  'start_date',
+  'end_date',
+  'created_on',
+]);
 export const movieNumberKeySchema = movieSortableKeySchema.extract(['duration', 'year', 'score']);
 
 export const movieSortSchema = z.object({
-  filter: z.union([
-    z.string().transform((val) =>
+  filter: z
+    .string()
+    .transform((val) =>
       parseFilter({
         input: val,
         filterableKeySchema: movieSortableKeySchema,
         stringKeySchema: movieStringKeySchema,
         numberKeySchema: movieNumberKeySchema,
+        dateKeySchema: movieDateKeySchema,
       }),
-    ),
-    z.void(),
-  ]),
+    )
+    .optional(),
   sort: movieSortableKeySchema.default('title'),
   order: sortOrderSchema,
 });

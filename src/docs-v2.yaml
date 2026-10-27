@@ -554,7 +554,7 @@ paths:
                   type: string
       responses:
         '200':
-          description: Profile imported successfully
+          description: Email updated
           content:
             application/json:
               schema:
@@ -574,7 +574,7 @@ paths:
         - BearerAuth: []
       responses:
         '200':
-          description: Profile imported successfully
+          description: Confirmation email sent
           content:
             application/json:
               schema:
@@ -806,7 +806,11 @@ paths:
           in: query
           schema:
             type: string
-          description: "key:operator:value - 'score:>:5', 'status:=:completed', 'year:<:2020'"
+          description: >-
+            key:operator:value, e.g. 'score:>:5', 'title:=:1984',
+            'start_date:>:2025-01-01', 'created_on:<:2026-01-01T12:30:00Z'.
+            Text fields support equality; numbers and dates support =, >, <.
+            Date-only values compare calendar days; ISO timestamps compare instants.
       tags:
         - books
       summary: Get books by status
@@ -1034,7 +1038,11 @@ paths:
           in: query
           schema:
             type: string
-          description: "key:operator:value - 'score:>:5', 'status:=:completed', 'year:<:2020'"
+          description: >-
+            key:operator:value, e.g. 'score:>:5', 'title:=:1984',
+            'start_date:>:2025-01-01', 'created_on:<:2026-01-01T12:30:00Z'.
+            Text fields support equality; numbers and dates support =, >, <.
+            Date-only values compare calendar days; ISO timestamps compare instants.
       tags:
         - movies
       summary: Get movies by status

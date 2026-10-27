@@ -46,74 +46,124 @@ export const itemSorter = ({
   return isNumber(a[sort]) && isNumber(b[sort]) ? numberSort(a[sort], b[sort], order) : 0;
 };
 
-const operatorSchema = z.union([z.literal('='), z.literal('>'), z.literal('<')]);
+const operatorSchema = z.enum(['=', '>', '<']);
+
+const dateValue = (value: unknown): number | undefined => {
+  if (isDate(value)) return value.getTime();
+  if (
+    typeof value !== 'string' ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(value.slice(0, 10)) ||
+    (value.length > 10 && value[10] !== 'T')
+  )
+    return;
+  const date = DateTime.fromISO(value, { zone: 'utc' });
+  return date.isValid ? date.toMillis() : undefined;
+};
 
 export const parseFilter = ({
   input,
   filterableKeySchema,
   stringKeySchema,
   numberKeySchema,
+  dateKeySchema,
 }: {
   input: string;
   filterableKeySchema: z.ZodType;
   stringKeySchema: z.ZodType;
   numberKeySchema: z.ZodType;
+  dateKeySchema: z.ZodType;
 }) => {
-  const match = input.split(':'); // <key>:<operator>:<value>
+  // Input format: <key>:<operator>:<value>
+  // Split only the separators: titles and ISO timestamps can contain colons.
+  const firstSeparator = input.indexOf(':');
+  const secondSeparator = input.indexOf(':', firstSeparator + 1);
+  if (firstSeparator === -1 || secondSeparator === -1) return [];
 
-  if (match.length !== 3) return [];
+  const key = input.slice(0, firstSeparator);
+  const operator = input.slice(firstSeparator + 1, secondSeparator);
+  const value = input.slice(secondSeparator + 1);
 
-  const [key, operator, value] = match;
-
-  if (!filterableKeySchema.safeParse(key).success || !operatorSchema.safeParse(operator).success)
-    return [];
-
-  if (numberKeySchema.safeParse(key).success && Number.isNaN(Number.parseInt(value))) {
+  if (
+    !filterableKeySchema.safeParse(key).success ||
+    !operatorSchema.safeParse(operator).success ||
+    value.trim().length === 0
+  ) {
     return [];
   }
 
-  return (stringKeySchema.safeParse(key).success && Number.isSafeInteger(Number.parseInt(value))) ||
-    value.length === 0
-    ? []
-    : ([key, operator, value] as [string, z.infer<typeof operatorSchema>, string]);
+  if (stringKeySchema.safeParse(key).success) {
+    if (operator !== '=') return [];
+  } else if (numberKeySchema.safeParse(key).success) {
+    if (!Number.isFinite(Number(value))) return [];
+  } else if (dateKeySchema.safeParse(key).success) {
+    if (dateValue(value) === undefined) return [];
+  } else {
+    return [];
+  }
+
+  return [key, operator, value] as [string, z.infer<typeof operatorSchema>, string];
 };
 
-const itemNumberFilter = (item: Record<string, never>, filter: string[]) => {
-  const [key, operator, value] = filter;
+const compareNumbers = (actual: number, expected: number, operator: string): boolean => {
   switch (operator) {
     case '=': {
-      return item[key] === Number.parseInt(value);
+      return actual === expected;
     }
     case '>': {
-      return item[key] > Number.parseInt(value);
+      return actual > expected;
     }
     case '<': {
-      return item[key] < Number.parseInt(value);
+      return actual < expected;
+    }
+    default: {
+      return false;
     }
   }
 };
 
-const itemStringFilter = (item: Record<string, never>, filter: string[]) => {
+const itemNumberFilter = (item: Record<string, unknown>, filter: string[]) => {
   const [key, operator, value] = filter;
-  switch (operator) {
-    case '=': {
-      return item[key] === value;
-    }
-  }
+  const actual = item[key];
+  const expected = Number(value);
+  return (
+    isNumber(actual) && Number.isFinite(expected) && compareNumbers(actual, expected, operator)
+  );
+};
+
+const itemDateFilter = (item: Record<string, unknown>, filter: string[]) => {
+  const [key, operator, value] = filter;
+  const actualValue = item[key];
+  // Date-only filters compare calendar days, including PostgreSQL DATE values
+  // returned as local-midnight Dates. Timestamp filters compare exact instants.
+  const actualDate = isDate(actualValue)
+    ? DateTime.fromJSDate(actualValue)
+    : typeof actualValue === 'string'
+      ? DateTime.fromISO(actualValue)
+      : undefined;
+  const actual = dateValue(value.length === 10 ? actualDate?.toISODate() : actualValue);
+  const expected = dateValue(value);
+  return (
+    actual !== undefined && expected !== undefined && compareNumbers(actual, expected, operator)
+  );
+};
+
+const itemStringFilter = (item: Record<string, unknown>, filter: string[]) => {
+  const [key, operator, value] = filter;
+  return operator === '=' && item[key] === value;
 };
 
 export const getItemFilter = ({
   key,
   stringSchema,
   numberSchema,
+  dateSchema,
 }: {
   key: string;
   stringSchema: z.ZodType;
   numberSchema: z.ZodType;
+  dateSchema: z.ZodType;
 }) => {
-  return numberSchema.safeParse(key).success
-    ? itemNumberFilter
-    : stringSchema.safeParse(key).success
-      ? itemStringFilter
-      : undefined;
+  if (numberSchema.safeParse(key).success) return itemNumberFilter;
+  if (dateSchema.safeParse(key).success) return itemDateFilter;
+  if (stringSchema.safeParse(key).success) return itemStringFilter;
 };

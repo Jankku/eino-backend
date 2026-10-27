@@ -32,6 +32,7 @@ import {
   movieNumberKeySchema,
   movieSortSchema,
   movieStringKeySchema,
+  movieDateKeySchema,
 } from '../db/model/movie';
 import { getItemFilter, itemSorter } from '../util/sort';
 import { addAudit } from '../db/audit';
@@ -72,11 +73,10 @@ export const fetchAll = async (req: Request, res: TypedResponse, next: NextFunct
           key: filter[0],
           stringSchema: movieStringKeySchema,
           numberSchema: movieNumberKeySchema,
+          dateSchema: movieDateKeySchema,
         });
         if (itemFilter) {
-          movies = movies.filter((movie) =>
-            itemFilter(movie as unknown as Record<string, never>, filter),
-          );
+          movies = movies.filter((movie) => itemFilter(movie, filter));
         }
       }
 
@@ -113,11 +113,10 @@ export const fetchByStatus = async (
           key: filter[0],
           stringSchema: movieStringKeySchema,
           numberSchema: movieNumberKeySchema,
+          dateSchema: movieDateKeySchema,
         });
         if (itemFilter) {
-          movies = movies.filter((movie) =>
-            itemFilter(movie as unknown as Record<string, never>, filter),
-          );
+          movies = movies.filter((movie) => itemFilter(movie, filter));
         }
       }
 
@@ -243,7 +242,11 @@ export const search = async (
 ) => {
   try {
     const queryString = res.locals.input.query.query.trim();
-    const queryAsArray = queryString.split(' ');
+    if (!queryString) {
+      res.status(200).json(success([]));
+      return;
+    }
+    const queryAsArray = queryString.split(/\s+/);
     const username = res.locals.username;
 
     const { results } = await db.task('search', async (t) => {
