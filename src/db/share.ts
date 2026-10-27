@@ -1,10 +1,14 @@
 import { ITask } from 'pg-promise';
 import { DbShare } from './model/dbshare';
 
-export const getShare = async (t: ITask<unknown>, id: string): Promise<DbShare> => {
+export const getShare = async (
+  t: ITask<unknown>,
+  id: string,
+): Promise<DbShare & { user_id: string }> => {
   return await t.one({
-    text: `SELECT * FROM shares
-            WHERE share_id = $1;`,
+    text: `SELECT shares.*, users.user_id FROM shares
+            JOIN users ON users.username = shares.username
+            WHERE shares.share_id = $1;`,
     values: [id],
   });
 };

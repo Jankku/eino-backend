@@ -132,7 +132,7 @@ export const deleteAccount = async (
       });
     });
 
-    const shareImagePath = getShareItemPath(username);
+    const shareImagePath = getShareItemPath(res.locals.userId);
     await fs.rm(shareImagePath, { force: true });
 
     res
@@ -277,7 +277,7 @@ export const generateShareImage = async (_req: Request, res: TypedResponse, next
     }
 
     const imageBuffer = canvas.toBuffer('image/png');
-    const shareImagePath = getShareItemPath(username);
+    const shareImagePath = getShareItemPath(res.locals.userId);
     const shareId = generateShareId();
 
     await db.tx('createShare', async (t) => {

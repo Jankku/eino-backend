@@ -19,7 +19,7 @@ export const getShareImage = async (
     const share = await db.task('getShareImage', async (t) => {
       return await getShare(t, id);
     });
-    const imagePath = getShareItemPath(share.username);
+    const imagePath = getShareItemPath(share.user_id);
     const shareImage = await fs.readFile(imagePath);
     res.set({ 'Content-Type': 'image/png' }).send(shareImage);
   } catch (error) {
