@@ -2,7 +2,7 @@ import { NextFunction, Request } from 'express';
 import { db, pgp } from '../db/config';
 import {
   findProfilePictureByUsername,
-  getItemCountByUsername,
+  getItemCountByUsernameForUpdate,
   getUserByUsername,
   isPasswordCorrect,
   updateProfilePicturePath,
@@ -362,7 +362,7 @@ export const importProfileData = async (
 
   try {
     await db.tx('importProfileData', async (t) => {
-      const { book_count, movie_count } = await getItemCountByUsername(t, username);
+      const { book_count, movie_count } = await getItemCountByUsernameForUpdate(t, username);
 
       const maxItemCount = config.USER_LIST_ITEM_MAX_COUNT;
 

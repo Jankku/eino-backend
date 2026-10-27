@@ -924,7 +924,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResult'
         '422':
-          description: Invalid request body
+          description: Invalid request body or per-user list item quota exceeded
           content:
             application/json:
               schema:
@@ -1152,7 +1152,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResult'
         '422':
-          description: Invalid request body
+          description: Invalid request body or per-user list item quota exceeded
           content:
             application/json:
               schema:

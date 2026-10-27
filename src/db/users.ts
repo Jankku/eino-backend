@@ -283,6 +283,17 @@ export const getItemCountByUsername = async (
   });
 };
 
+export const getItemCountByUsernameForUpdate = async (
+  t: ITask<unknown>,
+  username: string,
+): Promise<UserItemCount> => {
+  await t.one({
+    text: 'SELECT user_id FROM users WHERE username = $1 FOR NO KEY UPDATE',
+    values: [username],
+  });
+  return await getItemCountByUsername(t, username);
+};
+
 export const findProfilePictureByUsername = async (
   t: ITask<unknown>,
   username: string,

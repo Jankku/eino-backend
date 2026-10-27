@@ -12,6 +12,8 @@ import {
 } from '../db/books';
 import { success } from '../util/response';
 import { db } from '../db/config';
+import { config } from '../config';
+import { getItemCountByUsernameForUpdate } from '../db/users';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { fetchFinnaImages } from './third-party/finna';
 import { fetchOpenLibraryEditionsByIsbn, fetchOpenLibraryImages } from './third-party/openlibrary';
@@ -131,6 +133,12 @@ export const addOne = async (
 
   try {
     await db.tx('addOne', async (t) => {
+      const { book_count } = await getItemCountByUsernameForUpdate(t, username);
+      const maxItemCount = config.USER_LIST_ITEM_MAX_COUNT;
+      if (book_count + 1 > maxItemCount) {
+        throw new ErrorWithStatus(422, 'book_list_error', 'Item count exceeds the maximum count');
+      }
+
       const bookId = await postBook(t, book, username);
       await postBookToUserList(t, bookId, book, username);
       await addAudit(t, {
@@ -144,6 +152,10 @@ export const addOne = async (
 
     res.status(201).json(success([{ name: 'book_added_to_list', message: 'Book added to list' }]));
   } catch (error) {
+    if (error instanceof ErrorWithStatus) {
+      next(error);
+      return;
+    }
     Logger.error((error as Error).stack);
     next(new ErrorWithStatus(422, 'book_list_error', "Couldn't add book"));
   }
