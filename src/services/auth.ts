@@ -7,7 +7,8 @@ import {
   findUserByCredential,
   findUserByEmail,
   getUserByEmail,
-  getUserByUsername,
+  findUserById,
+  getUserById,
   updateLastLogin,
   updatePassword,
 } from '../db/users';
@@ -19,7 +20,7 @@ import {
   generatePasswordHash,
   generateRefreshToken,
   getPasswordStrength,
-  RefreshTokenPayload,
+  getTokenSubject,
 } from '../util/auth';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { config } from '../config';
@@ -183,13 +184,18 @@ export const generateNewAccessToken = async (
   const { refreshToken } = res.locals.input.body;
 
   try {
-    const { username } = jwt.verify(refreshToken, config.REFRESH_TOKEN_SECRET, {
-      audience: jwtConstants.AUDIENCE,
-      issuer: jwtConstants.ISSUER,
-    }) as RefreshTokenPayload;
+    const userId = getTokenSubject(
+      jwt.verify(refreshToken, config.REFRESH_TOKEN_SECRET, {
+        audience: jwtConstants.AUDIENCE,
+        issuer: jwtConstants.ISSUER,
+      }),
+    );
 
     const accessToken = await db.task('generateNewAccessToken', async (t) => {
-      const user = await getUserByUsername(t, username);
+      const user = await findUserById(t, userId);
+      if (!user) {
+        throw new ErrorWithStatus(401, 'authentication_error', 'Account no longer exists');
+      }
       if (user.disabled_on) {
         throw new ErrorWithStatus(422, 'authentication_error', 'Account disabled');
       }
@@ -205,7 +211,13 @@ export const generateNewAccessToken = async (
       next(error);
     } else {
       Logger.error((error as Error).stack);
-      next(new ErrorWithStatus(500, 'jwt_refresh_error', (error as Error)?.message));
+      next(
+        new ErrorWithStatus(
+          error instanceof jwt.JsonWebTokenError ? 401 : 500,
+          'jwt_refresh_error',
+          (error as Error)?.message,
+        ),
+      );
     }
   }
 };
@@ -389,11 +401,11 @@ export const resetPassword = async (
 };
 
 export const generate2FAUrl = async (req: Request, res: TypedResponse, next: NextFunction) => {
-  const username = res.locals.username;
+  const userId = res.locals.userId;
 
   try {
     const { totpUrl } = await db.tx('generate2FAUrl', async (t) => {
-      const user = await getUserByUsername(t, username);
+      const user = await getUserById(t, userId);
 
       if (user.totp_enabled_on) {
         throw new ErrorWithStatus(422, '2fa_error', '2FA already enabled');
@@ -439,11 +451,11 @@ export const enable2FA = async (
   next: NextFunction,
 ) => {
   const { twoFactorCode } = res.locals.input.body;
-  const username = res.locals.username;
+  const userId = res.locals.userId;
 
   try {
     await db.tx('enable2FA', async (t) => {
-      const user = await getUserByUsername(t, username);
+      const user = await getUserById(t, userId);
 
       if (user.totp_enabled_on) {
         throw new ErrorWithStatus(422, '2fa_error', '2FA already enabled');
@@ -454,7 +466,7 @@ export const enable2FA = async (
         throw new ErrorWithStatus(422, '2fa_error', 'Incorrect two-factor code');
       }
 
-      await enableTOTP(t, user.username);
+      await enableTOTP(t, user.user_id);
       await addAudit(t, { username: user.username, action: 'two_factor_authentication_enabled' });
     });
 
@@ -475,11 +487,11 @@ export const disable2FA = async (
   next: NextFunction,
 ) => {
   const { twoFactorCode } = res.locals.input.body;
-  const username = res.locals.username;
+  const userId = res.locals.userId;
 
   try {
     await db.tx('disable2FA', async (t) => {
-      const user = await getUserByUsername(t, username);
+      const user = await getUserById(t, userId);
 
       if (!user.totp_enabled_on) {
         throw new ErrorWithStatus(422, '2fa_error', '2FA not enabled');
@@ -491,7 +503,7 @@ export const disable2FA = async (
       }
 
       await deleteVerification(t, { target: user.username, type: '2fa' });
-      await disableTOTP(t, user.username);
+      await disableTOTP(t, user.user_id);
       await addAudit(t, { username: user.username, action: 'two_factor_authentication_disabled' });
     });
 

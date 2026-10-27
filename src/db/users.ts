@@ -51,6 +51,15 @@ export const getUserById = async (t: ITask<unknown>, userId: string): Promise<Us
   });
 };
 
+export const findUserById = async (t: ITask<unknown>, userId: string): Promise<User | null> => {
+  return await t.oneOrNone({
+    text: `SELECT *
+           FROM users
+           WHERE user_id = $1`,
+    values: [userId],
+  });
+};
+
 export const getUserByUsername = async (t: ITask<unknown>, username: string): Promise<User> => {
   return await t.one({
     text: `SELECT *
@@ -96,18 +105,18 @@ export const findUserByEmail = async (
 export const updateEmailAddress = async (
   t: ITask<unknown>,
   {
-    username,
+    userId,
     email,
   }: {
-    username: string;
+    userId: string;
     email: string | undefined | null;
   },
 ): Promise<void> => {
   await t.none({
     text: `UPDATE users
              SET email = $1, email_verified_on = NULL
-             WHERE username = $2`,
-    values: [email, username],
+             WHERE user_id = $2`,
+    values: [email, userId],
   });
 };
 
@@ -123,17 +132,17 @@ export const updateEmailVerifiedTimestamp = async (
   });
 };
 
-export const enableTOTP = async (t: ITask<unknown>, username: string): Promise<void> => {
+export const enableTOTP = async (t: ITask<unknown>, userId: string): Promise<void> => {
   await t.none({
-    text: `UPDATE users SET totp_enabled_on = CURRENT_TIMESTAMP(0) WHERE username = $1`,
-    values: [username],
+    text: `UPDATE users SET totp_enabled_on = CURRENT_TIMESTAMP(0) WHERE user_id = $1`,
+    values: [userId],
   });
 };
 
-export const disableTOTP = async (t: ITask<unknown>, username: string): Promise<void> => {
+export const disableTOTP = async (t: ITask<unknown>, userId: string): Promise<void> => {
   await t.none({
-    text: `UPDATE users SET totp_enabled_on = NULL WHERE username = $1`,
-    values: [username],
+    text: `UPDATE users SET totp_enabled_on = NULL WHERE user_id = $1`,
+    values: [userId],
   });
 };
 
@@ -187,9 +196,9 @@ export const updatePassword = async (
 
 export const isPasswordCorrect = async (
   t: ITask<unknown>,
-  { username, password }: { username: string; password: string },
+  { userId, password }: { userId: string; password: string },
 ): Promise<boolean> => {
-  const user = await getUserByUsername(t, username);
+  const user = await getUserById(t, userId);
   const isCorrect = await bcrypt.compare(password, user.password);
   return isCorrect;
 };

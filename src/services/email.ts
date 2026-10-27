@@ -10,7 +10,7 @@ import {
 } from '../db/verification';
 import { Logger } from '../util/logger';
 import {
-  getUserByUsername,
+  getUserById,
   isEmailAlreadyUsed,
   isEmailVerified,
   updateEmailAddress,
@@ -30,11 +30,11 @@ export const updateEmail = async (
   res: TypedResponse<typeof updateEmailSchema>,
   next: NextFunction,
 ) => {
-  const username = res.locals.username;
+  const { userId, username } = res.locals;
   const { email, twoFactorCode } = res.locals.input.body;
   try {
     await db.tx('updateEmail', async (t) => {
-      const user = await getUserByUsername(t, username);
+      const user = await getUserById(t, userId);
 
       if (user.totp_enabled_on) {
         if (!twoFactorCode) {
@@ -51,7 +51,7 @@ export const updateEmail = async (
       }
 
       if (!email) {
-        await updateEmailAddress(t, { username, email: undefined });
+        await updateEmailAddress(t, { userId, email: undefined });
         await addAudit(t, {
           username,
           action: 'email_updated',
@@ -84,7 +84,7 @@ export const updateEmail = async (
         await deleteVerification(t, { target: email, type: 'email' });
       }
 
-      await updateEmailAddress(t, { username, email });
+      await updateEmailAddress(t, { userId, email });
       await addAudit(t, {
         username,
         action: 'email_updated',
@@ -109,11 +109,11 @@ export const sendConfirmationEmail = async (
   res: TypedResponse,
   next: NextFunction,
 ) => {
-  const username = res.locals.username;
+  const { userId, username } = res.locals;
 
   try {
     await db.tx('sendConfirmationEmail', async (t) => {
-      const user = await getUserByUsername(t, username);
+      const user = await getUserById(t, userId);
 
       if (!user.email) {
         throw new ErrorWithStatus(422, 'email_error', "Couldn't send confirmation email");
@@ -170,12 +170,12 @@ export const verifyEmail = async (
   res: TypedResponse<typeof verifyEmailSchema>,
   next: NextFunction,
 ) => {
-  const username = res.locals.username;
+  const { userId, username } = res.locals;
   const { otp } = res.locals.input.body;
 
   try {
     await db.tx('verifyEmail', async (t) => {
-      const user = await getUserByUsername(t, username);
+      const user = await getUserById(t, userId);
 
       if (!user.email) {
         throw new ErrorWithStatus(422, 'email_verification_error', "Couldn't verify email");

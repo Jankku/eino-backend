@@ -9,7 +9,6 @@ import {
   findProfilePictureByUsername,
   getAllUsers,
   getUserById,
-  getUserByUsername,
   updateProfilePicturePath,
 } from '../db/users';
 import {
@@ -109,7 +108,7 @@ export const enableUser = async (
   const { userId } = res.locals.input.params;
   try {
     await db.tx('enableUser', async (t) => {
-      const adminUser = await getUserByUsername(t, adminUsername);
+      const adminUser = await getUserById(t, res.locals.userId);
       const user = await getUserById(t, userId);
       if (adminUser.user_id === user.user_id) {
         throw new ErrorWithStatus(400, 'admin_error', 'You cannot enable yourself');
@@ -143,7 +142,7 @@ export const disableUser = async (
   const { userId } = res.locals.input.params;
   try {
     await db.tx('disableUser', async (t) => {
-      const adminUser = await getUserByUsername(t, adminUsername);
+      const adminUser = await getUserById(t, res.locals.userId);
       const user = await getUserById(t, userId);
       if (adminUser.user_id === user.user_id) {
         throw new ErrorWithStatus(400, 'admin_error', 'You cannot disable yourself');
@@ -178,7 +177,7 @@ export const deleteUser = async (
   const { userId } = res.locals.input.params;
   try {
     await db.tx('deleteUser', async (t) => {
-      const adminUser = await getUserByUsername(t, adminUsername);
+      const adminUser = await getUserById(t, res.locals.userId);
       const user = await getUserById(t, userId);
       if (adminUser.user_id === user.user_id) {
         throw new ErrorWithStatus(400, 'admin_error', 'You cannot delete yourself');

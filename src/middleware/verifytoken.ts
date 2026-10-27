@@ -1,11 +1,15 @@
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Request } from 'express';
 import jwt from 'jsonwebtoken';
 import { z, ZodError } from 'zod';
 import { config } from '../config';
 import { ErrorWithStatus } from '../util/errorhandler';
-import { formatZodErrors } from '../util/zod';
-import { AccessTokenPayload } from '../util/auth';
+import { formatZodErrors, TypedResponse } from '../util/zod';
+import { getTokenSubject } from '../util/auth';
+import { db } from '../db/config';
+import { findUserById } from '../db/users';
+import { roleIdToName } from '../util/role';
 import { jwtConstants } from '../util/jwtconstants';
+import { Logger } from '../util/logger';
 
 const tokenSchema = z.object({
   headers: z.object({
@@ -26,23 +30,41 @@ const tokenSchema = z.object({
 /**
 Verifies that user's access token is valid
 */
-export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
+export const verifyToken = async (req: Request, res: TypedResponse, next: NextFunction) => {
   try {
     const accessToken = tokenSchema.parse(req).headers.authorization;
-    const { userId, username, role } = jwt.verify(accessToken, config.ACCESS_TOKEN_SECRET, {
-      audience: jwtConstants.AUDIENCE,
-      issuer: jwtConstants.ISSUER,
-    }) as AccessTokenPayload;
+    const userId = getTokenSubject(
+      jwt.verify(accessToken, config.ACCESS_TOKEN_SECRET, {
+        audience: jwtConstants.AUDIENCE,
+        issuer: jwtConstants.ISSUER,
+      }),
+    );
+    const user = await db.task((t) => findUserById(t, userId));
+    if (!user) {
+      throw new ErrorWithStatus(401, 'authorization_error', 'Account no longer exists');
+    }
 
-    res.locals.userId = userId;
-    res.locals.username = username;
-    res.locals.role = role;
+    res.locals.userId = user.user_id;
+    res.locals.username = user.username;
+    res.locals.role = roleIdToName(user.role_id);
+    res.locals.isDisabled = !!user.disabled_on;
     next();
   } catch (error) {
-    next(
-      error instanceof ZodError
-        ? formatZodErrors(error)
-        : new ErrorWithStatus(401, 'authorization_error', (error as Error)?.message),
-    );
+    if (error instanceof ZodError) {
+      next(formatZodErrors(error));
+    } else if (error instanceof ErrorWithStatus) {
+      next(error);
+    } else if (error instanceof jwt.JsonWebTokenError) {
+      next(new ErrorWithStatus(401, 'authorization_error', error.message));
+    } else {
+      Logger.error((error as Error).stack);
+      next(
+        new ErrorWithStatus(
+          500,
+          'authorization_error',
+          'Unknown error while trying to verify user status',
+        ),
+      );
+    }
   }
 };

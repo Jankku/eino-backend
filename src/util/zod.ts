@@ -6,6 +6,7 @@ import { Role } from '../db/role';
 
 type AuthLocals = {
   userId: string;
+  isDisabled: boolean;
   username: string;
   role: Role['name'];
 };

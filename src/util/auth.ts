@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { z } from 'zod';
 import * as bcrypt from 'bcrypt';
 import { config } from '../config';
 import { ZxcvbnFactory } from '@zxcvbn-ts/core';
@@ -19,6 +20,7 @@ const zxcvbn = new ZxcvbnFactory({
 });
 
 export type AccessTokenPayload = {
+  sub: string;
   userId: string;
   username: string;
   role: string;
@@ -28,6 +30,7 @@ export type AccessTokenPayload = {
 export const generateAccessToken = (user: User): string =>
   jwt.sign(
     {
+      sub: user.user_id,
       userId: user.user_id,
       username: user.username,
       role: roleIdToName(user.role_id),
@@ -41,10 +44,18 @@ export const generateAccessToken = (user: User): string =>
     },
   );
 
-export type RefreshTokenPayload = { username: string };
+export type RefreshTokenPayload = { sub: string };
+
+export const getTokenSubject = (payload: jwt.JwtPayload | string): string => {
+  const subject = z.uuid().safeParse(typeof payload === 'string' ? undefined : payload.sub);
+  if (!subject.success) {
+    throw new jwt.JsonWebTokenError('Invalid token subject');
+  }
+  return subject.data;
+};
 
 export const generateRefreshToken = (user: User): string =>
-  jwt.sign({ username: user.username }, REFRESH_TOKEN_SECRET, {
+  jwt.sign({ sub: user.user_id } satisfies RefreshTokenPayload, REFRESH_TOKEN_SECRET, {
     expiresIn: REFRESH_TOKEN_VALIDITY as jwt.SignOptions['expiresIn'],
     audience: jwtConstants.AUDIENCE,
     issuer: jwtConstants.ISSUER,

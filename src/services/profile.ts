@@ -3,7 +3,7 @@ import { db, pgp } from '../db/config';
 import {
   findProfilePictureByUsername,
   getItemCountByUsernameForUpdate,
-  getUserByUsername,
+  getUserById,
   isPasswordCorrect,
   updateProfilePicturePath,
 } from '../db/users';
@@ -103,7 +103,7 @@ export const deleteAccount = async (
 
   try {
     await db.tx('deleteAccount', async (t) => {
-      const user = await getUserByUsername(t, username);
+      const user = await getUserById(t, res.locals.userId);
 
       if (user.totp_enabled_on) {
         if (!twoFactorCode) {
@@ -119,12 +119,12 @@ export const deleteAccount = async (
         }
       }
 
-      const isCorrect = await isPasswordCorrect(t, { username, password });
+      const isCorrect = await isPasswordCorrect(t, { userId: res.locals.userId, password });
       if (!isCorrect) {
         throw new ErrorWithStatus(422, 'delete_account_error', 'Incorrect password');
       }
 
-      await t.none('DELETE FROM users WHERE username = $1', username);
+      await t.none('DELETE FROM users WHERE user_id = $1', user.user_id);
       await addAudit(t, {
         username,
         action: 'account_deleted',
@@ -305,7 +305,7 @@ export const exportProfileData = async (
     const [books, movies, profile, shares, audits] = await db.task(
       'exportProfileData',
       async (t) => {
-        const isCorrect = await isPasswordCorrect(t, { username, password });
+        const isCorrect = await isPasswordCorrect(t, { userId: res.locals.userId, password });
         if (!isCorrect) {
           throw new ErrorWithStatus(422, 'profile_export_error', 'Incorrect password');
         }
