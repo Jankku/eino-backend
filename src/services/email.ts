@@ -33,7 +33,7 @@ export const updateEmail = async (
   const { userId, username } = res.locals;
   const { email, twoFactorCode } = res.locals.input.body;
   try {
-    await db.tx('updateEmail', async (t) => {
+    const result = await db.tx('updateEmail', async (t) => {
       const user = await getUserById(t, userId);
 
       if (user.totp_enabled_on) {
@@ -58,10 +58,7 @@ export const updateEmail = async (
           old_data: { email: user.email },
           new_data: { email: undefined },
         });
-        res
-          .status(200)
-          .json(success([{ name: 'email_removed', message: 'Email successfully removed' }]));
-        return;
+        return { name: 'email_removed', message: 'Email successfully removed' };
       }
 
       const isEmailUsed = await isEmailAlreadyUsed(t, { username, email });
@@ -71,12 +68,7 @@ export const updateEmail = async (
 
       const isVerified = await isEmailVerified(t, email);
       if (isVerified) {
-        res
-          .status(200)
-          .json(
-            success([{ name: 'email_already_verified', message: 'Email is already verified' }]),
-          );
-        return;
+        return { name: 'email_already_verified', message: 'Email is already verified' };
       }
 
       const verification = await findVerification(t, { target: email, type: 'email' });
@@ -91,9 +83,10 @@ export const updateEmail = async (
         old_data: { email: user.email },
         new_data: { email },
       });
+      return { name: 'email_updated', message: 'Email updated' };
     });
 
-    res.status(200).json(success([{ name: 'email_updated', message: 'Email updated' }]));
+    res.status(200).json(success([result]));
   } catch (error) {
     if (error instanceof ErrorWithStatus) {
       next(error);

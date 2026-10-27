@@ -46,7 +46,7 @@ export const getUserBulletins = async (
   userId: string,
 ): Promise<DbBulletin[]> => {
   return await t.any(
-    'SELECT b.id, b.title, b.message, b.name, b.type FROM bulletins b JOIN bulletin_users bu ON b.id = bu.bulletin_id WHERE bu.user_id = $1 AND b.start_date <= NOW() AND b.end_date >= NOW()',
+    "SELECT b.id, b.title, b.message, b.name, b.type FROM bulletins b JOIN bulletin_users bu ON b.id = bu.bulletin_id WHERE bu.user_id = $1 AND b.visibility = 'user' AND b.start_date <= NOW() AND b.end_date >= NOW()",
     [userId],
   );
 };
@@ -87,6 +87,7 @@ export const updateBulletinUsers = async (
   { bulletinId, userIds }: { bulletinId: DbBulletin['id']; userIds: string[] },
 ) => {
   await t.none('DELETE FROM bulletin_users WHERE bulletin_id = $1', bulletinId);
+  if (userIds.length === 0) return;
   const values = userIds.map((userId) => ({ bulletin_id: bulletinId, user_id: userId }));
   await t.none(pgp.helpers.insert(values, bulletinUsersCs));
 };

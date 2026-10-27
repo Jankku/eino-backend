@@ -370,14 +370,11 @@ export const importProfileData = async (
         body.books.length + book_count > maxItemCount ||
         body.movies.length + movie_count > maxItemCount
       ) {
-        next(
-          new ErrorWithStatus(
-            422,
-            'profile_import_error',
-            `Item count exceeds the maximum of ${maxItemCount} items per list`,
-          ),
+        throw new ErrorWithStatus(
+          422,
+          'profile_import_error',
+          `Item count exceeds the maximum of ${maxItemCount} items per list`,
         );
-        return;
       }
 
       const bookHashMap = Object.fromEntries(
@@ -431,6 +428,10 @@ export const importProfileData = async (
 
     res.status(200).json(success([{ name: 'import_success', message: 'Profile imported' }]));
   } catch (error) {
+    if (error instanceof ErrorWithStatus) {
+      next(error);
+      return;
+    }
     Logger.error(error);
     next(new ErrorWithStatus(500, 'profile_import_error', "Couldn't import user data"));
   }

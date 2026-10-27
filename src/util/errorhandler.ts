@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import { Logger } from './logger';
 
 export class ErrorWithStatus extends Error {
   status: number;
@@ -11,17 +12,27 @@ export class ErrorWithStatus extends Error {
   }
 }
 
-export const errorHandler = (
-  errors: unknown,
-  req: Request,
-  res: Response,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  next: NextFunction,
-) => {
+export const errorHandler = (errors: unknown, _: Request, res: Response, next: NextFunction) => {
+  if (res.headersSent) {
+    next(errors);
+    return;
+  }
+
   if (Array.isArray(errors)) {
     res.status(422).json({ errors });
-  } else if (errors instanceof ErrorWithStatus) {
+    return;
+  }
+
+  if (errors instanceof ErrorWithStatus) {
     const { status, name, message } = errors;
     res.status(status).json({ errors: [{ name, message }] });
+    return;
   }
+
+  Logger.error('Unhandled request error', {
+    error: errors instanceof Error ? errors.stack : typeof errors,
+  });
+  res.status(500).json({
+    errors: [{ name: 'internal_server_error', message: 'Internal server error' }],
+  });
 };
