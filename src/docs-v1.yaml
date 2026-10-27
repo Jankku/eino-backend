@@ -89,6 +89,8 @@ paths:
       tags:
         - auth
       summary: Login a user
+      description: >-
+        The username field accepts a username or verified email address. Matching is case-sensitive. An exact username match takes precedence over an email match.
       requestBody:
         required: true
         content:

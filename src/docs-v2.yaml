@@ -247,6 +247,8 @@ paths:
       tags:
         - auth
       summary: Login user
+      description: >-
+        The username field accepts a username or verified email address. Matching is case-sensitive. An exact username match takes precedence over an email match.
       requestBody:
         required: true
         content:
@@ -284,6 +286,12 @@ paths:
       tags:
         - auth
       summary: Get login config
+      description: >-
+        The username field accepts a username or verified email address. Matching is case-sensitive.
+        Email login requires verification; username login remains available before verification.
+        Unverified email matches return the same authentication error as invalid credentials.
+        An exact username match takes precedence over an email match, even if the
+        password is incorrect or the matched account is disabled.
       requestBody:
         required: true
         content:

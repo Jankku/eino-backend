@@ -37,7 +37,9 @@ export const findUserByCredential = async (
   return await t.oneOrNone({
     text: `SELECT *
            FROM users
-           WHERE username = $1 OR email = $1`,
+           WHERE username = $1 OR (email = $1 AND email_verified_on IS NOT NULL)
+           ORDER BY (username = $1) DESC
+           LIMIT 1`,
     values: [usernameOrEmail],
   });
 };
