@@ -36,7 +36,7 @@ import { TypedResponse } from '../util/zod';
 import { getVerification } from '../db/verification';
 import { validateTOTP } from '../util/totp';
 import { addAudit, getAuditsByUsername } from '../db/audit';
-import { generateProfilePicturePath } from '../util/profilepicture';
+import { generateProfilePicturePath, profilePictureLimits } from '../util/profilepicture';
 import sharp from 'sharp';
 
 export const getProfile = async (_: Request, res: TypedResponse, next: NextFunction) => {
@@ -460,23 +460,24 @@ export const saveProfilePicture = async (req: Request, res: TypedResponse, next:
       return;
     }
 
-    if (!file.mimetype.startsWith('image/')) {
-      next(new ErrorWithStatus(422, 'profile_picture_error', 'Invalid file type'));
-      return;
-    }
-
-    const TEN_MB = 10 * 1024 * 1024;
-    if (file.size > TEN_MB) {
-      next(new ErrorWithStatus(422, 'profile_picture_error', 'File size exceeds 10MB'));
+    let image: Buffer;
+    try {
+      image = await sharp(file.buffer, {
+        limitInputPixels: profilePictureLimits.inputPixels,
+        animated: false,
+        pages: 1,
+      })
+        .resize({ width: 300, height: 300, fit: 'cover' })
+        .avif()
+        .toBuffer();
+    } catch {
+      next(new ErrorWithStatus(422, 'profile_picture_error', `Invalid image`));
       return;
     }
 
     await db.tx('saveProfilePicture', async (t) => {
       const path = generateProfilePicturePath();
       const oldProfilePicturePath = await findProfilePictureByUsername(t, username);
-      if (oldProfilePicturePath) {
-        await fs.rm(oldProfilePicturePath, { force: true });
-      }
       await updateProfilePicturePath(t, { username, path });
       await addAudit(t, {
         username,
@@ -484,10 +485,10 @@ export const saveProfilePicture = async (req: Request, res: TypedResponse, next:
         old_data: oldProfilePicturePath ? { path: oldProfilePicturePath } : undefined,
         new_data: { path },
       });
-      await sharp(file.buffer)
-        .resize({ width: 200, height: 200, fit: 'cover' })
-        .avif()
-        .toFile(path);
+      await fs.writeFile(path, image);
+      if (oldProfilePicturePath) {
+        await fs.rm(oldProfilePicturePath, { force: true });
+      }
     });
 
     res

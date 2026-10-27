@@ -10,9 +10,7 @@ import {
   saveProfilePicture,
 } from '../../services/profile';
 import { deleteAccountSchema, exportProfileSchema, importProfileSchema } from './schema';
-import multer from 'multer';
-
-const upload = multer();
+import { withProfilePictureUpload } from '../../middleware/profilepictureupload';
 
 export const profileRouter = express.Router();
 
@@ -25,7 +23,7 @@ export const profileRouterV2 = express.Router();
 
 profileRouterV2.get('/', getProfileV2);
 profileRouterV2.get('/share', generateShareImage);
-profileRouterV2.post('/profilepicture', upload.single('picture'), saveProfilePicture);
+profileRouterV2.post('/profilepicture', withProfilePictureUpload(saveProfilePicture));
 profileRouterV2.post('/export', validateSchema(exportProfileSchema), exportProfileData);
 profileRouterV2.post('/import', validateSchema(importProfileSchema), importProfileData);
 profileRouterV2.post('/deleteaccount', validateSchema(deleteAccountSchema), deleteAccount);

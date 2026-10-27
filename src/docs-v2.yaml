@@ -668,6 +668,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResult'
+        '422':
+          description: Invalid image, multipart upload, or upload limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '503':
+          description: Profile picture upload capacity is full; retry later
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+              description: Seconds to wait before retrying
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
   /profile/export:
     post:
       tags:
