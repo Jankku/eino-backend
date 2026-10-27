@@ -646,6 +646,9 @@ paths:
       tags:
         - profile
       summary: Upload profile picture
+      description: >-
+        Requires a non-empty picture file. Missing or empty uploads are rejected
+        without changing the current picture. Use DELETE to remove it.
       security:
         - BearerAuth: []
       requestBody:
@@ -654,6 +657,8 @@ paths:
           multipart/form-data:
             schema:
               type: object
+              required: [picture]
+              additionalProperties: false
               properties:
                 picture:
                   type: string
@@ -681,6 +686,26 @@ paths:
               schema:
                 type: integer
               description: Seconds to wait before retrying
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    delete:
+      tags:
+        - profile
+      summary: Delete profile picture
+      description: Removes the current profile picture. Safe to repeat when no picture is set.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile picture removed, or no picture was set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '500':
+          description: Could not remove profile picture
           content:
             application/json:
               schema:

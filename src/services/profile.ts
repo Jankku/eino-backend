@@ -440,23 +440,10 @@ export const saveProfilePicture = async (req: Request, res: TypedResponse, next:
   const file = req.file;
   const username = res.locals.username;
   try {
-    if (!file) {
-      await db.tx('saveProfilePicture', async (t) => {
-        const oldProfilePicturePath = await findProfilePictureByUsername(t, username);
-        await updateProfilePicturePath(t, { username, path: undefined });
-        if (!oldProfilePicturePath) {
-          return;
-        }
-        await addAudit(t, {
-          username,
-          action: 'profile_picture_updated',
-          old_data: { path: oldProfilePicturePath },
-        });
-        await fs.rm(oldProfilePicturePath, { force: true });
-      });
-      res
-        .status(200)
-        .json(success([{ name: 'profile_picture_removed', message: 'Profile picture removed' }]));
+    if (!file || file.size === 0 || !file.buffer?.length) {
+      next(
+        new ErrorWithStatus(422, 'profile_picture_error', 'A non-empty picture file is required'),
+      );
       return;
     }
 
@@ -497,5 +484,28 @@ export const saveProfilePicture = async (req: Request, res: TypedResponse, next:
   } catch (error) {
     Logger.error((error as Error).stack);
     next(new ErrorWithStatus(500, 'profile_picture_error', "Couldn't save profile picture"));
+  }
+};
+
+export const deleteProfilePicture = async (_: Request, res: TypedResponse, next: NextFunction) => {
+  const username = res.locals.username;
+  try {
+    await db.tx('deleteProfilePicture', async (t) => {
+      const oldProfilePicturePath = await findProfilePictureByUsername(t, username);
+      await updateProfilePicturePath(t, { username, path: undefined });
+      if (!oldProfilePicturePath) return;
+      await addAudit(t, {
+        username,
+        action: 'profile_picture_updated',
+        old_data: { path: oldProfilePicturePath },
+      });
+      await fs.rm(oldProfilePicturePath, { force: true });
+    });
+    res
+      .status(200)
+      .json(success([{ name: 'profile_picture_removed', message: 'Profile picture removed' }]));
+  } catch (error) {
+    Logger.error((error as Error).stack);
+    next(new ErrorWithStatus(500, 'profile_picture_error', "Couldn't remove profile picture"));
   }
 };
