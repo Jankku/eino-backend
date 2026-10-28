@@ -53,6 +53,7 @@ export const updateEmail = async (
       if (!email) {
         await updateEmailAddress(t, { userId, email: undefined });
         await addAudit(t, {
+          actor_user_id: res.locals.userId,
           username,
           action: 'email_updated',
           old_data: { email: user.email },
@@ -78,6 +79,7 @@ export const updateEmail = async (
 
       await updateEmailAddress(t, { userId, email });
       await addAudit(t, {
+        actor_user_id: res.locals.userId,
         username,
         action: 'email_updated',
         old_data: { email: user.email },
@@ -138,7 +140,11 @@ export const sendConfirmationEmail = async (
         throw new ErrorWithStatus(424, 'email_error', "Couldn't send confirmation email");
       }
 
-      await addAudit(t, { username, action: 'email_verification_email_sent' });
+      await addAudit(t, {
+        actor_user_id: res.locals.userId,
+        username,
+        action: 'email_verification_email_sent',
+      });
     });
 
     res
@@ -187,7 +193,12 @@ export const verifyEmail = async (
 
       await deleteVerification(t, { target: user.email, type: 'email' });
       await updateEmailVerifiedTimestamp(t, user.email);
-      await addAudit(t, { username, action: 'email_verified', old_data: { email: user.email } });
+      await addAudit(t, {
+        actor_user_id: res.locals.userId,
+        username,
+        action: 'email_verified',
+        old_data: { email: user.email },
+      });
     });
 
     res

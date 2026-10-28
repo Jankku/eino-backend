@@ -146,6 +146,7 @@ export const addOne = async (
       const bookId = await postBook(t, book, username);
       await postBookToUserList(t, bookId, book, username);
       await addAudit(t, {
+        actor_user_id: res.locals.userId,
         username,
         action: 'create',
         table_name: 'books',
@@ -180,6 +181,7 @@ export const updateOne = async (
       await updateBook(t, { book, bookId, username });
       const updatedBook = await getBookById(t, { bookId, username });
       await addAudit(t, {
+        actor_user_id: res.locals.userId,
         username,
         action: 'update',
         table_name: 'books',
@@ -216,6 +218,7 @@ export const deleteOne = async (
         values: [bookId, username],
       });
       await addAudit(t, {
+        actor_user_id: res.locals.userId,
         username,
         action: 'delete',
         table_name: 'books',

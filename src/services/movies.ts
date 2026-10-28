@@ -149,6 +149,7 @@ export const addOne = async (
       const movieId = await postMovie(t, movie, username);
       await postMovieToUserList(t, movieId, movie, username);
       await addAudit(t, {
+        actor_user_id: res.locals.userId,
         username,
         action: 'create',
         table_name: 'movies',
@@ -185,6 +186,7 @@ export const updateOne = async (
       await updateMovie(t, { movie, movieId, username });
       const updatedMovie = await getMovieById(t, { movieId, username });
       await addAudit(t, {
+        actor_user_id: res.locals.userId,
         username,
         action: 'update',
         table_name: 'movies',
@@ -220,6 +222,7 @@ export const deleteOne = async (
         values: [movieId, username],
       });
       await addAudit(t, {
+        actor_user_id: res.locals.userId,
         username,
         action: 'delete',
         table_name: 'movies',

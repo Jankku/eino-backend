@@ -28,6 +28,7 @@ export const auditAction = {
 export type AuditAction = (typeof auditAction)[keyof typeof auditAction];
 
 export type Audit = {
+  actor_user_id: string;
   username: string;
   action: AuditAction;
   table_name?: 'users' | 'books' | 'movies' | 'user_book_list' | 'user_movie_list';
@@ -36,7 +37,8 @@ export type Audit = {
   new_data?: Record<string, unknown>;
 };
 
-export type DbAudit = Audit & {
+export type DbAudit = Omit<Audit, 'actor_user_id'> & {
+  actor_user_id: string | null;
   id: number;
   created_on: Date;
 };
@@ -45,13 +47,13 @@ export const getAllAudits = async (t: ITask<unknown>): Promise<DbAudit[]> => {
   return await t.any('SELECT * FROM audit_log ORDER BY created_on ASC');
 };
 
-export const getAuditsByUsername = async (
+export const getAuditsByActorUserId = async (
   t: ITask<unknown>,
-  username: string,
+  actorUserId: string,
 ): Promise<DbAudit[]> => {
   return await t.any(
-    'SELECT * FROM audit_log WHERE username = $1 ORDER BY created_on ASC',
-    username,
+    'SELECT * FROM audit_log WHERE actor_user_id = $1 ORDER BY created_on ASC',
+    actorUserId,
   );
 };
 
@@ -74,7 +76,7 @@ export const addAudit = async (t: ITask<unknown>, audit: Audit): Promise<void> =
     ...audit,
   };
   await t.none(
-    'INSERT INTO audit_log(username, action, table_name, record_id, old_data, new_data) VALUES(${username}, ${action}, ${table_name}, ${record_id}, ${old_data}, ${new_data})',
+    'INSERT INTO audit_log(actor_user_id, username, action, table_name, record_id, old_data, new_data) VALUES(${actor_user_id}, ${username}, ${action}, ${table_name}, ${record_id}, ${old_data}, ${new_data})',
     newAudit,
   );
 };

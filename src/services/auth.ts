@@ -59,15 +59,15 @@ export const register = async (
   const { username, password, email } = res.locals.input.body;
 
   try {
-    await db.task('register', async (t) => {
+    await db.tx('register', async (t) => {
       const hashedPassword = await generatePasswordHash(password);
       const defaultRoleId = getDefaultRoleId();
-      await t.none({
+      const user = await t.one<{ user_id: string }>({
         text: `INSERT INTO users (username, password, email, role_id)
-             VALUES ($1, $2, $3, $4)`,
+             VALUES ($1, $2, $3, $4) RETURNING user_id`,
         values: [username, hashedPassword, email || undefined, defaultRoleId],
       });
-      await addAudit(t, { username, action: 'register' });
+      await addAudit(t, { actor_user_id: user.user_id, username, action: 'register' });
     });
 
     res.status(200).json(success([{ name: 'user_registered', message: username }]));
@@ -118,7 +118,7 @@ export const login = async (
       }
 
       await updateLastLogin(t, user.user_id);
-      await addAudit(t, { username: user.username, action: 'login' });
+      await addAudit(t, { actor_user_id: user.user_id, username: user.username, action: 'login' });
 
       return { user };
     });
@@ -201,7 +201,11 @@ export const generateNewAccessToken = async (
       }
       const accessToken = generateAccessToken(user);
       await updateLastLogin(t, user.user_id);
-      await addAudit(t, { username: user.username, action: 'access_token_refresh' });
+      await addAudit(t, {
+        actor_user_id: user.user_id,
+        username: user.username,
+        action: 'access_token_refresh',
+      });
       return accessToken;
     });
 
@@ -295,6 +299,7 @@ export const forgotPassword = async (
       'forgotPassword',
       async (t) =>
         await addAudit(t, {
+          actor_user_id: user.user_id,
           username: user.username,
           action: 'password_forgot',
           new_data: { email, email_sent: emailResponse.success },
@@ -378,7 +383,11 @@ export const resetPassword = async (
 
       await updatePassword(t, { email, newPassword });
       await deleteVerification(t, { target: email, type: 'password_reset' });
-      await addAudit(t, { username: user.username, action: 'password_reseted' });
+      await addAudit(t, {
+        actor_user_id: user.user_id,
+        username: user.username,
+        action: 'password_reseted',
+      });
     });
 
     res
@@ -467,7 +476,11 @@ export const enable2FA = async (
       }
 
       await enableTOTP(t, user.user_id);
-      await addAudit(t, { username: user.username, action: 'two_factor_authentication_enabled' });
+      await addAudit(t, {
+        actor_user_id: user.user_id,
+        username: user.username,
+        action: 'two_factor_authentication_enabled',
+      });
     });
 
     res.status(200).json(success([{ name: '2fa_enabled', message: '2FA enabled' }]));
@@ -504,7 +517,11 @@ export const disable2FA = async (
 
       await deleteVerification(t, { target: user.username, type: '2fa' });
       await disableTOTP(t, user.user_id);
-      await addAudit(t, { username: user.username, action: 'two_factor_authentication_disabled' });
+      await addAudit(t, {
+        actor_user_id: user.user_id,
+        username: user.username,
+        action: 'two_factor_authentication_disabled',
+      });
     });
 
     res.status(200).json(success([{ name: '2fa_disabled', message: '2FA disabled' }]));

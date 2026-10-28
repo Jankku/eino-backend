@@ -34,7 +34,7 @@ import { config } from '../config';
 import { TypedResponse } from '../util/zod';
 import { getVerification } from '../db/verification';
 import { validateTOTP } from '../util/totp';
-import { addAudit, getAuditsByUsername } from '../db/audit';
+import { addAudit, getAuditsByActorUserId } from '../db/audit';
 import { generateProfilePicturePath, profilePictureLimits } from '../util/profilepicture';
 import sharp from 'sharp';
 
@@ -125,6 +125,7 @@ export const deleteAccount = async (
 
       await t.none('DELETE FROM users WHERE user_id = $1', user.user_id);
       await addAudit(t, {
+        actor_user_id: res.locals.userId,
         username,
         action: 'account_deleted',
         old_data: { ...user, password: undefined },
@@ -167,7 +168,7 @@ export const generateShareImage = async (_req: Request, res: TypedResponse, next
 
     await db.tx('createShare', async (t) => {
       await createShare(t, { id: shareId, username });
-      await addAudit(t, { username, action: 'profile_shared' });
+      await addAudit(t, { actor_user_id: res.locals.userId, username, action: 'profile_shared' });
     });
     await fs.writeFile(shareImagePath, imageBuffer);
 
@@ -195,13 +196,17 @@ export const exportProfileData = async (
           throw new ErrorWithStatus(422, 'profile_export_error', 'Incorrect password');
         }
 
-        await addAudit(t, { username, action: 'profile_data_exported' });
+        await addAudit(t, {
+          actor_user_id: res.locals.userId,
+          username,
+          action: 'profile_data_exported',
+        });
 
         const books = await getAllBooks(t, username);
         const movies = await getAllMovies(t, username);
         const profile = await getProfileDataV2(t, username);
         const shares = await getSharesByUsername(t, username);
-        const audits = includeAuditLog ? await getAuditsByUsername(t, username) : [];
+        const audits = includeAuditLog ? await getAuditsByActorUserId(t, res.locals.userId) : [];
 
         return { books, movies, profile, shares, audits };
       },
@@ -307,7 +312,11 @@ export const importProfileData = async (
       }
 
       if (mapBooks.length > 0 || mapMovies.length > 0) {
-        await addAudit(t, { username, action: 'profile_data_imported' });
+        await addAudit(t, {
+          actor_user_id: res.locals.userId,
+          username,
+          action: 'profile_data_imported',
+        });
       }
     });
 
@@ -353,6 +362,7 @@ export const saveProfilePicture = async (req: Request, res: TypedResponse, next:
       const oldProfilePicturePath = await findProfilePictureByUsername(t, username);
       await updateProfilePicturePath(t, { username, path });
       await addAudit(t, {
+        actor_user_id: res.locals.userId,
         username,
         action: 'profile_picture_updated',
         old_data: oldProfilePicturePath ? { path: oldProfilePicturePath } : undefined,
@@ -381,6 +391,7 @@ export const deleteProfilePicture = async (_: Request, res: TypedResponse, next:
       await updateProfilePicturePath(t, { username, path: undefined });
       if (!oldProfilePicturePath) return;
       await addAudit(t, {
+        actor_user_id: res.locals.userId,
         username,
         action: 'profile_picture_updated',
         old_data: { path: oldProfilePicturePath },

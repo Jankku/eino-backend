@@ -80,6 +80,7 @@ export const editUser = async (
         ],
       );
       await addAudit(t, {
+        actor_user_id: res.locals.userId,
         username: adminUsername,
         action: 'account_updated',
         table_name: 'users',
@@ -116,6 +117,7 @@ export const enableUser = async (
       if (!user.disabled_on) return;
       await t.none('UPDATE users SET disabled_on = null WHERE user_id = $1', user.user_id);
       await addAudit(t, {
+        actor_user_id: res.locals.userId,
         username: adminUsername,
         action: 'account_enabled',
         table_name: 'users',
@@ -149,6 +151,7 @@ export const disableUser = async (
       }
       await t.none('UPDATE users SET disabled_on = NOW() WHERE user_id = $1', user.user_id);
       await addAudit(t, {
+        actor_user_id: res.locals.userId,
         username: adminUsername,
         action: 'account_disabled',
         table_name: 'users',
@@ -184,6 +187,7 @@ export const deleteUser = async (
       }
       await t.none('DELETE FROM users WHERE user_id = $1', user.user_id);
       await addAudit(t, {
+        actor_user_id: res.locals.userId,
         username: adminUsername,
         action: 'account_deleted',
         table_name: 'users',
