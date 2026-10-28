@@ -125,5 +125,15 @@ Start database and app container.
 $ docker compose up -d
 ```
 
+## Fontconfig warnings on Linux
+
+When running locally, the prebuilt `canvas` binary can bundle an older Fontconfig library than the system configuration in `/etc/fonts/conf.d`. This can cause warnings about `xsi:nil` or invalid constants.
+
+Install the [native build dependencies](https://github.com/Automattic/node-canvas/wiki/_pages). This builds `canvas` against the system libraries:
+
+```sh
+npm exec -- node-gyp rebuild --directory=node_modules/canvas
+```
+
 ## License
 Licensed under the [MIT License](https://github.com/Jankku/eino-backend/blob/master/LICENSE.md).
