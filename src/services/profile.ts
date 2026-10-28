@@ -187,7 +187,7 @@ export const exportProfileData = async (
   const { password, includeAuditLog } = res.locals.input.body;
 
   try {
-    const [books, movies, profile, shares, audits] = await db.task(
+    const { books, movies, profile, shares, audits } = await db.task(
       'exportProfileData',
       async (t) => {
         const isCorrect = await isPasswordCorrect(t, { userId: res.locals.userId, password });
@@ -197,13 +197,13 @@ export const exportProfileData = async (
 
         await addAudit(t, { username, action: 'profile_data_exported' });
 
-        return Promise.all([
-          getAllBooks(t, username),
-          getAllMovies(t, username),
-          getProfileDataV2(t, username),
-          getSharesByUsername(t, username),
-          includeAuditLog ? getAuditsByUsername(t, username) : [],
-        ]);
+        const books = await getAllBooks(t, username);
+        const movies = await getAllMovies(t, username);
+        const profile = await getProfileDataV2(t, username);
+        const shares = await getSharesByUsername(t, username);
+        const audits = includeAuditLog ? await getAuditsByUsername(t, username) : [];
+
+        return { books, movies, profile, shares, audits };
       },
     );
 

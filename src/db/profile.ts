@@ -177,13 +177,11 @@ type ProfileData = {
 };
 
 export const getProfileData = async (t: ITask<unknown>, username: string): Promise<ProfileData> => {
-  const [userInfo, bookData, movieData, bookScores, movieScores] = await Promise.all([
-    getUserInfo(t, username),
-    getBookData(t, username),
-    getMovieData(t, username),
-    getBookScores(t, username),
-    getMovieScores(t, username),
-  ]);
+  const userInfo = await getUserInfo(t, username);
+  const bookData = await getBookData(t, username);
+  const movieData = await getMovieData(t, username);
+  const bookScores = await getBookScores(t, username);
+  const movieScores = await getMovieScores(t, username);
   return {
     userInfo,
     bookData,
@@ -205,13 +203,11 @@ export const getProfileDataV2 = async (
   t: ITask<unknown>,
   username: string,
 ): Promise<ProfileDataV2> => {
-  const [userInfo, bookData, movieData, bookScores, movieScores] = await Promise.all([
-    getUserInfo(t, username),
-    getBookDataV2(t, username),
-    getMovieDataV2(t, username),
-    getBookScores(t, username),
-    getMovieScores(t, username),
-  ]);
+  const userInfo = await getUserInfo(t, username);
+  const bookData = await getBookDataV2(t, username);
+  const movieData = await getMovieDataV2(t, username);
+  const bookScores = await getBookScores(t, username);
+  const movieScores = await getMovieScores(t, username);
   return {
     userInfo,
     bookData,
