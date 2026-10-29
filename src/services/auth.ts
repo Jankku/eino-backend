@@ -6,7 +6,6 @@ import {
   enableTOTP,
   findUserByCredential,
   findUserByEmail,
-  getUserByEmail,
   findUserById,
   getUserById,
   updateLastLogin,
@@ -22,7 +21,7 @@ import {
   getPasswordStrength,
   getTokenSubject,
 } from '../util/auth';
-import { ErrorWithStatus } from '../util/errorhandler';
+import { ErrorWithStatus, SecurityErrorWithStatus } from '../util/errorhandler';
 import { config } from '../config';
 import { TypedResponse } from '../util/zod';
 import {
@@ -35,12 +34,7 @@ import {
   registerSchema,
   resetPasswordSchema,
 } from '../routes/auth';
-import {
-  addVerification,
-  deleteVerification,
-  findVerification,
-  getVerification,
-} from '../db/verification';
+import { addVerification, deleteVerification, findVerification } from '../db/verification';
 import { generateTOTP, validateTOTP } from '../util/totp';
 import QRCode from 'qrcode';
 import { DateTime } from 'luxon';
@@ -94,26 +88,50 @@ export const login = async (
     const { user } = await db.tx('login', async (t) => {
       const user = await findUserByCredential(t, usernameOrEmail);
       if (!user) {
-        throw new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password');
+        throw new SecurityErrorWithStatus(
+          422,
+          'authentication_error',
+          'Incorrect username or password',
+          { operation: 'login', reason: 'invalid_credentials' },
+        );
       }
 
       if (user.disabled_on) {
-        throw new ErrorWithStatus(422, 'authentication_error', 'Account disabled');
+        throw new SecurityErrorWithStatus(422, 'authentication_error', 'Account disabled', {
+          operation: 'login',
+          reason: 'account_disabled',
+          targetUserId: user.user_id,
+        });
       }
 
       const isCorrect = await bcrypt.compare(password, user.password);
       if (!isCorrect) {
-        throw new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password');
+        throw new SecurityErrorWithStatus(
+          422,
+          'authentication_error',
+          'Incorrect username or password',
+          { operation: 'login', reason: 'invalid_credentials', targetUserId: user.user_id },
+        );
       }
 
       if (user.totp_enabled_on) {
         if (!twoFactorCode) {
-          throw new ErrorWithStatus(422, 'authentication_error', 'One-time password required');
+          throw new SecurityErrorWithStatus(
+            422,
+            'authentication_error',
+            'One-time password required',
+            { operation: 'login', reason: 'otp_required', targetUserId: user.user_id },
+          );
         }
 
-        const verification = await getVerification(t, { target: user.username, type: '2fa' });
-        if (!validateTOTP({ otp: twoFactorCode, ...verification })) {
-          throw new ErrorWithStatus(422, 'authentication_error', 'Incorrect one-time password');
+        const verification = await findVerification(t, { target: user.username, type: '2fa' });
+        if (!verification || !validateTOTP({ otp: twoFactorCode, ...verification })) {
+          throw new SecurityErrorWithStatus(
+            422,
+            'authentication_error',
+            'Incorrect one-time password',
+            { operation: 'login', reason: 'invalid_otp', targetUserId: user.user_id },
+          );
         }
       }
 
@@ -148,16 +166,30 @@ export const loginConfig = async (
     const { user } = await db.tx('loginConfig', async (t) => {
       const user = await findUserByCredential(t, usernameOrEmail);
       if (!user) {
-        throw new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password');
+        throw new SecurityErrorWithStatus(
+          422,
+          'authentication_error',
+          'Incorrect username or password',
+          { operation: 'login_config', reason: 'invalid_credentials' },
+        );
       }
 
       if (user.disabled_on) {
-        throw new ErrorWithStatus(422, 'authentication_error', 'Account disabled');
+        throw new SecurityErrorWithStatus(422, 'authentication_error', 'Account disabled', {
+          operation: 'login_config',
+          reason: 'account_disabled',
+          targetUserId: user.user_id,
+        });
       }
 
       const isCorrect = await bcrypt.compare(password, user.password);
       if (!isCorrect) {
-        throw new ErrorWithStatus(422, 'authentication_error', 'Incorrect username or password');
+        throw new SecurityErrorWithStatus(
+          422,
+          'authentication_error',
+          'Incorrect username or password',
+          { operation: 'login_config', reason: 'invalid_credentials', targetUserId: user.user_id },
+        );
       }
 
       return { user };
@@ -194,10 +226,18 @@ export const generateNewAccessToken = async (
     const accessToken = await db.task('generateNewAccessToken', async (t) => {
       const user = await findUserById(t, userId);
       if (!user) {
-        throw new ErrorWithStatus(401, 'authentication_error', 'Account no longer exists');
+        throw new SecurityErrorWithStatus(401, 'authentication_error', 'Account no longer exists', {
+          operation: 'refresh_token',
+          reason: 'account_not_found',
+          targetUserId: userId,
+        });
       }
       if (user.disabled_on) {
-        throw new ErrorWithStatus(422, 'authentication_error', 'Account disabled');
+        throw new SecurityErrorWithStatus(422, 'authentication_error', 'Account disabled', {
+          operation: 'refresh_token',
+          reason: 'account_disabled',
+          targetUserId: user.user_id,
+        });
       }
       const accessToken = generateAccessToken(user);
       await updateLastLogin(t, user.user_id);
@@ -213,15 +253,16 @@ export const generateNewAccessToken = async (
   } catch (error) {
     if (error instanceof ErrorWithStatus) {
       next(error);
+    } else if (error instanceof jwt.JsonWebTokenError) {
+      next(
+        new SecurityErrorWithStatus(401, 'jwt_refresh_error', error.message, {
+          operation: 'refresh_token',
+          reason: error instanceof jwt.TokenExpiredError ? 'expired_token' : 'invalid_token',
+        }),
+      );
     } else {
       Logger.error((error as Error).stack);
-      next(
-        new ErrorWithStatus(
-          error instanceof jwt.JsonWebTokenError ? 401 : 500,
-          'jwt_refresh_error',
-          (error as Error)?.message,
-        ),
-      );
+      next(new ErrorWithStatus(500, 'jwt_refresh_error', (error as Error)?.message));
     }
   }
 };
@@ -259,15 +300,26 @@ export const forgotPassword = async (
     const { user, otp } = await db.tx('forgotPassword', async (t) => {
       const user = await findUserByEmail(t, email);
       if (!user || !user.email) {
-        throw new ErrorWithStatus(422, 'forget_password_error', 'Account not found');
+        throw new SecurityErrorWithStatus(422, 'forget_password_error', 'Account not found', {
+          operation: 'password_forgot',
+          reason: 'account_not_found',
+        });
       }
 
       if (user.disabled_on) {
-        throw new ErrorWithStatus(422, 'forget_password_error', 'Account disabled');
+        throw new SecurityErrorWithStatus(422, 'forget_password_error', 'Account disabled', {
+          operation: 'password_forgot',
+          reason: 'account_disabled',
+          targetUserId: user.user_id,
+        });
       }
 
       if (!user.email_verified_on) {
-        throw new ErrorWithStatus(422, 'forget_password_error', 'Email not verified');
+        throw new SecurityErrorWithStatus(422, 'forget_password_error', 'Email not verified', {
+          operation: 'password_forgot',
+          reason: 'email_unverified',
+          targetUserId: user.user_id,
+        });
       }
 
       const verification = await findVerification(t, { target: email, type: 'password_reset' });
@@ -307,7 +359,18 @@ export const forgotPassword = async (
     );
 
     if (!emailResponse.success) {
-      next(new ErrorWithStatus(424, 'forget_password_error', "Couldn't send password reset email"));
+      next(
+        new SecurityErrorWithStatus(
+          424,
+          'forget_password_error',
+          "Couldn't send password reset email",
+          {
+            operation: 'password_forgot',
+            reason: 'email_delivery_failed',
+            targetUserId: user.user_id,
+          },
+        ),
+      );
       return;
     }
 
@@ -345,40 +408,88 @@ export const resetPassword = async (
 
   try {
     await db.tx('resetPassword', async (t) => {
-      const user = await getUserByEmail(t, email);
+      const user = await findUserByEmail(t, email);
+      if (!user) {
+        throw new SecurityErrorWithStatus(422, 'reset_password_error', 'Account not found', {
+          operation: 'password_reset',
+          reason: 'account_not_found',
+        });
+      }
 
       if (user.disabled_on) {
-        throw new ErrorWithStatus(422, 'reset_password_error', 'Account disabled');
+        throw new SecurityErrorWithStatus(422, 'reset_password_error', 'Account disabled', {
+          operation: 'password_reset',
+          reason: 'account_disabled',
+          targetUserId: user.user_id,
+        });
       }
 
       if (user.totp_enabled_on) {
         if (!twoFactorCode) {
-          throw new ErrorWithStatus(422, 'reset_password_error', 'Two-factor code required');
+          throw new SecurityErrorWithStatus(
+            422,
+            'reset_password_error',
+            'Two-factor code required',
+            { operation: 'password_reset', reason: 'otp_required', targetUserId: user.user_id },
+          );
         }
 
-        const twoFactorVerification = await getVerification(t, {
+        const twoFactorVerification = await findVerification(t, {
           target: user.username,
           type: '2fa',
         });
-        if (!validateTOTP({ otp: twoFactorCode, ...twoFactorVerification })) {
-          throw new ErrorWithStatus(422, 'reset_password_error', 'Incorrect two-factor code');
+        if (
+          !twoFactorVerification ||
+          !validateTOTP({ otp: twoFactorCode, ...twoFactorVerification })
+        ) {
+          throw new SecurityErrorWithStatus(
+            422,
+            'reset_password_error',
+            'Incorrect two-factor code',
+            { operation: 'password_reset', reason: 'invalid_otp', targetUserId: user.user_id },
+          );
         }
       }
 
       const { isStrong, error } = getPasswordStrength({ password: newPassword });
       if (!isStrong) {
-        throw new ErrorWithStatus(422, 'reset_password_error', error);
+        throw new SecurityErrorWithStatus(422, 'reset_password_error', error, {
+          operation: 'password_reset',
+          reason: 'password_policy_rejected',
+          targetUserId: user.user_id,
+        });
       }
 
-      const verification = await getVerification(t, { target: email, type: 'password_reset' });
+      const verification = await findVerification(t, { target: email, type: 'password_reset' });
+      if (!verification) {
+        throw new SecurityErrorWithStatus(
+          422,
+          'reset_password_error',
+          'Invalid one-time password',
+          {
+            operation: 'password_reset',
+            reason: 'verification_missing',
+            targetUserId: user.user_id,
+          },
+        );
+      }
 
       if (verification.expires_on && isVerificationExpired(verification.expires_on)) {
         await deleteVerification(t, { target: email, type: 'email' });
-        throw new ErrorWithStatus(422, 'reset_password_error', 'Verification expired');
+        throw new SecurityErrorWithStatus(422, 'reset_password_error', 'Verification expired', {
+          operation: 'password_reset',
+          reason: 'verification_expired',
+          targetUserId: user.user_id,
+        });
       }
 
       if (!validateTOTP({ otp, ...verification })) {
-        throw new ErrorWithStatus(422, 'reset_password_error', 'Incorrect one-time password');
+        throw new SecurityErrorWithStatus(
+          422,
+          'reset_password_error',
+          'Incorrect one-time password',
+          { operation: 'password_reset', reason: 'invalid_otp', targetUserId: user.user_id },
+        );
       }
 
       await updatePassword(t, { email, newPassword });
@@ -438,6 +549,13 @@ export const generate2FAUrl = async (req: Request, res: TypedResponse, next: Nex
         period,
       });
 
+      await addAudit(t, {
+        actor_user_id: user.user_id,
+        username: user.username,
+        action: 'two_factor_setup_generated',
+        new_data: { replaced_existing: Boolean(verification) },
+      });
+
       return { totpUrl };
     });
 
@@ -470,9 +588,13 @@ export const enable2FA = async (
         throw new ErrorWithStatus(422, '2fa_error', '2FA already enabled');
       }
 
-      const verification = await getVerification(t, { target: user.username, type: '2fa' });
-      if (!validateTOTP({ otp: twoFactorCode, ...verification })) {
-        throw new ErrorWithStatus(422, '2fa_error', 'Incorrect two-factor code');
+      const verification = await findVerification(t, { target: user.username, type: '2fa' });
+      if (!verification || !validateTOTP({ otp: twoFactorCode, ...verification })) {
+        throw new SecurityErrorWithStatus(422, '2fa_error', 'Incorrect two-factor code', {
+          operation: 'two_factor_enable',
+          reason: 'invalid_otp',
+          targetUserId: user.user_id,
+        });
       }
 
       await enableTOTP(t, user.user_id);
@@ -510,9 +632,13 @@ export const disable2FA = async (
         throw new ErrorWithStatus(422, '2fa_error', '2FA not enabled');
       }
 
-      const verification = await getVerification(t, { target: user.username, type: '2fa' });
-      if (!validateTOTP({ otp: twoFactorCode, ...verification })) {
-        throw new ErrorWithStatus(422, '2fa_error', 'Incorrect two-factor code');
+      const verification = await findVerification(t, { target: user.username, type: '2fa' });
+      if (!verification || !validateTOTP({ otp: twoFactorCode, ...verification })) {
+        throw new SecurityErrorWithStatus(422, '2fa_error', 'Incorrect two-factor code', {
+          operation: 'two_factor_disable',
+          reason: 'invalid_otp',
+          targetUserId: user.user_id,
+        });
       }
 
       await deleteVerification(t, { target: user.username, type: '2fa' });

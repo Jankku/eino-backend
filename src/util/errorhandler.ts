@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { Logger } from './logger';
+import { auditSecurityFailure, SecurityFailure } from './securityaudit';
 
 export class ErrorWithStatus extends Error {
   status: number;
@@ -12,7 +13,21 @@ export class ErrorWithStatus extends Error {
   }
 }
 
-export const errorHandler = (errors: unknown, _: Request, res: Response, next: NextFunction) => {
+export class SecurityErrorWithStatus extends ErrorWithStatus {
+  audit: SecurityFailure;
+
+  constructor(status: number, name: string, message: string, audit: SecurityFailure) {
+    super(status, name, message);
+    this.audit = audit;
+  }
+}
+
+export const errorHandler = async (
+  errors: unknown,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   if (res.headersSent) {
     next(errors);
     return;
@@ -21,6 +36,10 @@ export const errorHandler = (errors: unknown, _: Request, res: Response, next: N
   if (Array.isArray(errors)) {
     res.status(422).json({ errors });
     return;
+  }
+
+  if (errors instanceof SecurityErrorWithStatus) {
+    await auditSecurityFailure(req, res, errors.audit);
   }
 
   if (errors instanceof ErrorWithStatus) {

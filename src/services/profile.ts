@@ -7,7 +7,7 @@ import {
   isPasswordCorrect,
   updateProfilePicturePath,
 } from '../db/users';
-import { ErrorWithStatus } from '../util/errorhandler';
+import { ErrorWithStatus, SecurityErrorWithStatus } from '../util/errorhandler';
 import * as fs from 'node:fs/promises';
 import { success } from '../util/response';
 import { Logger } from '../util/logger';
@@ -32,7 +32,7 @@ import {
 } from '../util/profile';
 import { config } from '../config';
 import { TypedResponse } from '../util/zod';
-import { getVerification } from '../db/verification';
+import { findVerification } from '../db/verification';
 import { validateTOTP } from '../util/totp';
 import { addAudit, getAuditsByActorUserId } from '../db/audit';
 import { generateProfilePicturePath, profilePictureLimits } from '../util/profilepicture';
@@ -106,21 +106,42 @@ export const deleteAccount = async (
 
       if (user.totp_enabled_on) {
         if (!twoFactorCode) {
-          throw new ErrorWithStatus(422, 'delete_account_error', 'Two-factor code required');
+          throw new SecurityErrorWithStatus(
+            422,
+            'delete_account_error',
+            'Two-factor code required',
+            {
+              operation: 'account_delete',
+              reason: 'otp_required',
+              targetUserId: res.locals.userId,
+            },
+          );
         }
 
-        const twoFactorVerification = await getVerification(t, {
+        const twoFactorVerification = await findVerification(t, {
           target: user.username,
           type: '2fa',
         });
-        if (!validateTOTP({ otp: twoFactorCode, ...twoFactorVerification })) {
-          throw new ErrorWithStatus(422, 'delete_account_error', 'Incorrect two-factor code');
+        if (
+          !twoFactorVerification ||
+          !validateTOTP({ otp: twoFactorCode, ...twoFactorVerification })
+        ) {
+          throw new SecurityErrorWithStatus(
+            422,
+            'delete_account_error',
+            'Incorrect two-factor code',
+            { operation: 'account_delete', reason: 'invalid_otp', targetUserId: res.locals.userId },
+          );
         }
       }
 
       const isCorrect = await isPasswordCorrect(t, { userId: res.locals.userId, password });
       if (!isCorrect) {
-        throw new ErrorWithStatus(422, 'delete_account_error', 'Incorrect password');
+        throw new SecurityErrorWithStatus(422, 'delete_account_error', 'Incorrect password', {
+          operation: 'account_delete',
+          reason: 'invalid_credentials',
+          targetUserId: res.locals.userId,
+        });
       }
 
       await t.none('DELETE FROM users WHERE user_id = $1', user.user_id);
@@ -193,7 +214,11 @@ export const exportProfileData = async (
       async (t) => {
         const isCorrect = await isPasswordCorrect(t, { userId: res.locals.userId, password });
         if (!isCorrect) {
-          throw new ErrorWithStatus(422, 'profile_export_error', 'Incorrect password');
+          throw new SecurityErrorWithStatus(422, 'profile_export_error', 'Incorrect password', {
+            operation: 'profile_export',
+            reason: 'invalid_credentials',
+            targetUserId: res.locals.userId,
+          });
         }
 
         await addAudit(t, {

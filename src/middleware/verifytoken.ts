@@ -2,7 +2,7 @@ import { NextFunction, Request } from 'express';
 import jwt from 'jsonwebtoken';
 import { z, ZodError } from 'zod';
 import { config } from '../config';
-import { ErrorWithStatus } from '../util/errorhandler';
+import { ErrorWithStatus, SecurityErrorWithStatus } from '../util/errorhandler';
 import { formatZodErrors, TypedResponse } from '../util/zod';
 import { getTokenSubject } from '../util/auth';
 import { db } from '../db/config';
@@ -10,6 +10,7 @@ import { findUserById } from '../db/users';
 import { roleIdToName } from '../util/role';
 import { jwtConstants } from '../util/jwtconstants';
 import { Logger } from '../util/logger';
+import { auditSecurityFailure } from '../util/securityaudit';
 
 const tokenSchema = z.object({
   headers: z.object({
@@ -41,7 +42,11 @@ export const verifyToken = async (req: Request, res: TypedResponse, next: NextFu
     );
     const user = await db.task((t) => findUserById(t, userId));
     if (!user) {
-      throw new ErrorWithStatus(401, 'authorization_error', 'Account no longer exists');
+      throw new SecurityErrorWithStatus(401, 'authorization_error', 'Account no longer exists', {
+        operation: 'access_token',
+        reason: 'account_not_found',
+        targetUserId: userId,
+      });
     }
 
     res.locals.userId = user.user_id;
@@ -51,11 +56,20 @@ export const verifyToken = async (req: Request, res: TypedResponse, next: NextFu
     next();
   } catch (error) {
     if (error instanceof ZodError) {
+      await auditSecurityFailure(req, res, {
+        operation: 'access_token',
+        reason: 'invalid_authorization_header',
+      });
       next(formatZodErrors(error));
     } else if (error instanceof ErrorWithStatus) {
       next(error);
     } else if (error instanceof jwt.JsonWebTokenError) {
-      next(new ErrorWithStatus(401, 'authorization_error', error.message));
+      next(
+        new SecurityErrorWithStatus(401, 'authorization_error', error.message, {
+          operation: 'access_token',
+          reason: error instanceof jwt.TokenExpiredError ? 'expired_token' : 'invalid_token',
+        }),
+      );
     } else {
       Logger.error((error as Error).stack);
       next(

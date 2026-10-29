@@ -1909,6 +1909,7 @@ components:
                 nullable: true
               username:
                 type: string
+                nullable: true
               action:
                 type: string
               table_name:
@@ -1916,6 +1917,7 @@ components:
                 nullable: true
               record_id:
                 type: string
+                format: uuid
                 nullable: true
               old_data:
                 type: object

@@ -25,6 +25,7 @@ import {
   createBulletin,
   deleteBulletin,
   getAllBulletins,
+  getBulletinForAudit,
   insertBulletinUsers,
   updateBulletin,
   updateBulletinUsers,
@@ -228,6 +229,14 @@ export const postBulletin = async (
       if (bulletin.visibility === 'user') {
         await insertBulletinUsers(t, { bulletinId, userIds: visibleToUserIds! });
       }
+      await addAudit(t, {
+        actor_user_id: res.locals.userId,
+        username: res.locals.username,
+        action: 'bulletin_created',
+        table_name: 'bulletins',
+        record_id: bulletinId,
+        new_data: await getBulletinForAudit(t, bulletinId),
+      });
     });
     res
       .status(200)
@@ -247,12 +256,22 @@ export const editBulletin = async (
   const { visibleToUserIds, ...bulletin } = res.locals.input.body;
   try {
     await db.tx('editBulletin', async (t) => {
+      const oldBulletin = await getBulletinForAudit(t, bulletinId);
       await updateBulletin(t, { bulletinId, bulletin });
       if (bulletin.visibility !== 'user') {
         await updateBulletinUsers(t, { bulletinId, userIds: [] });
       } else if (visibleToUserIds) {
         await updateBulletinUsers(t, { bulletinId, userIds: visibleToUserIds });
       }
+      await addAudit(t, {
+        actor_user_id: res.locals.userId,
+        username: res.locals.username,
+        action: 'bulletin_updated',
+        table_name: 'bulletins',
+        record_id: bulletinId,
+        old_data: oldBulletin,
+        new_data: await getBulletinForAudit(t, bulletinId),
+      });
     });
     res
       .status(200)
@@ -270,7 +289,18 @@ export const removeBulletin = async (
 ) => {
   const { bulletinId } = res.locals.input.params;
   try {
-    await db.tx('deleteBulletin', async (t) => await deleteBulletin(t, bulletinId));
+    await db.tx('deleteBulletin', async (t) => {
+      const oldBulletin = await getBulletinForAudit(t, bulletinId);
+      await deleteBulletin(t, bulletinId);
+      await addAudit(t, {
+        actor_user_id: res.locals.userId,
+        username: res.locals.username,
+        action: 'bulletin_deleted',
+        table_name: 'bulletins',
+        record_id: bulletinId,
+        old_data: oldBulletin,
+      });
+    });
     res
       .status(200)
       .json(success([{ name: 'bulletin_deleted', message: 'Bulletin deleted successfully' }]));

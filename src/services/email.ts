@@ -1,13 +1,8 @@
 import { NextFunction, Request } from 'express';
 import { success } from '../util/response';
-import { ErrorWithStatus } from '../util/errorhandler';
+import { ErrorWithStatus, SecurityErrorWithStatus } from '../util/errorhandler';
 import { generateTOTP, validateEmailOTP, validateTOTP } from '../util/totp';
-import {
-  addVerification,
-  deleteVerification,
-  findVerification,
-  getVerification,
-} from '../db/verification';
+import { addVerification, deleteVerification, findVerification } from '../db/verification';
 import { Logger } from '../util/logger';
 import {
   getUserById,
@@ -38,15 +33,27 @@ export const updateEmail = async (
 
       if (user.totp_enabled_on) {
         if (!twoFactorCode) {
-          throw new ErrorWithStatus(422, 'update_email_error', 'Two-factor code required');
+          throw new SecurityErrorWithStatus(422, 'update_email_error', 'Two-factor code required', {
+            operation: 'email_update',
+            reason: 'otp_required',
+            targetUserId: userId,
+          });
         }
 
-        const twoFactorVerification = await getVerification(t, {
+        const twoFactorVerification = await findVerification(t, {
           target: user.username,
           type: '2fa',
         });
-        if (!validateTOTP({ otp: twoFactorCode, ...twoFactorVerification })) {
-          throw new ErrorWithStatus(422, 'update_email_error', 'Incorrect two-factor code');
+        if (
+          !twoFactorVerification ||
+          !validateTOTP({ otp: twoFactorCode, ...twoFactorVerification })
+        ) {
+          throw new SecurityErrorWithStatus(
+            422,
+            'update_email_error',
+            'Incorrect two-factor code',
+            { operation: 'email_update', reason: 'invalid_otp', targetUserId: userId },
+          );
         }
       }
 
@@ -177,18 +184,45 @@ export const verifyEmail = async (
       const user = await getUserById(t, userId);
 
       if (!user.email) {
-        throw new ErrorWithStatus(422, 'email_verification_error', "Couldn't verify email");
+        throw new SecurityErrorWithStatus(
+          422,
+          'email_verification_error',
+          "Couldn't verify email",
+          { operation: 'email_verify', reason: 'email_missing', targetUserId: userId },
+        );
       }
 
-      const verification = await getVerification(t, { target: user.email, type: 'email' });
+      const verification = await findVerification(t, { target: user.email, type: 'email' });
+      if (!verification) {
+        throw new SecurityErrorWithStatus(
+          422,
+          'email_verification_error',
+          'Invalid one-time password',
+          {
+            operation: 'email_verify',
+            reason: 'verification_missing',
+            targetUserId: userId,
+          },
+        );
+      }
 
       if (verification.expires_on && isVerificationExpired(verification.expires_on)) {
         await deleteVerification(t, { target: user.email, type: 'email' });
-        throw new ErrorWithStatus(422, 'email_verification_expired', 'Verification expired');
+        throw new SecurityErrorWithStatus(
+          422,
+          'email_verification_expired',
+          'Verification expired',
+          { operation: 'email_verify', reason: 'verification_expired', targetUserId: userId },
+        );
       }
 
       if (!validateEmailOTP({ otp, ...verification })) {
-        throw new ErrorWithStatus(422, 'email_verification_error', 'Invalid one-time password');
+        throw new SecurityErrorWithStatus(
+          422,
+          'email_verification_error',
+          'Invalid one-time password',
+          { operation: 'email_verify', reason: 'invalid_otp', targetUserId: userId },
+        );
       }
 
       await deleteVerification(t, { target: user.email, type: 'email' });

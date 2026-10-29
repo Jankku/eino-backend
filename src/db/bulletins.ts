@@ -35,6 +35,22 @@ export const getAllBulletins = async (t: ITask<unknown>): Promise<DbBulletin[]> 
   return await t.any('SELECT * FROM bulletins');
 };
 
+// Lock the parent row so concurrent edits cannot mix audit snapshots and recipients.
+export const getBulletinForAudit = async (
+  t: ITask<unknown>,
+  bulletinId: string,
+): Promise<DbBulletin & { visibleToUserIds: string[] }> => {
+  const bulletin = await t.one<DbBulletin>(
+    'SELECT * FROM bulletins WHERE id = $1 FOR UPDATE',
+    bulletinId,
+  );
+  const recipients = await t.any<{ user_id: string }>(
+    'SELECT user_id FROM bulletin_users WHERE bulletin_id = $1 ORDER BY user_id',
+    bulletinId,
+  );
+  return { ...bulletin, visibleToUserIds: recipients.map(({ user_id }) => user_id) };
+};
+
 export const getPublicBulletins = async (t: ITask<unknown>): Promise<DbBulletin[]> => {
   return await t.any(
     "SELECT id, title, message, name, type FROM bulletins WHERE visibility = 'public' AND start_date <= NOW() AND end_date >= NOW()",

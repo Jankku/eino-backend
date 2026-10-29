@@ -1,16 +1,26 @@
 import { ITask } from 'pg-promise';
 
 export const auditAction = {
-  LOGIN: 'login',
   REGISTER: 'register',
+  LOGIN: 'login',
+  LOGIN_FAILED: 'login_failed',
+  AUTHENTICATION_FAILED: 'authentication_failed',
+  AUTHORIZATION_DENIED: 'authorization_denied',
+  BULLETIN_CREATED: 'bulletin_created',
+  BULLETIN_UPDATED: 'bulletin_updated',
+  BULLETIN_DELETED: 'bulletin_deleted',
   PASSWORD_FORGOT: 'password_forgot',
   PASSWORD_RESET_EMAIL_SENT: 'password_reset_email_sent',
   PASSWORD_RESETED: 'password_reseted',
+  PASSWORD_RESET_FAILED: 'password_reset_failed',
   EMAIL_UPDATED: 'email_updated',
   EMAIL_VERIFICATION_EMAIL_SENT: 'email_verification_email_sent',
+  EMAIL_VERIFICATION_FAILED: 'email_verification_failed',
   EMAIL_VERIFIED: 'email_verified',
+  TWO_FACTOR_SETUP_GENERATED: 'two_factor_setup_generated',
   TWO_FACTOR_AUTHENTICATION_ENABLED: 'two_factor_authentication_enabled',
   TWO_FACTOR_AUTHENTICATION_DISABLED: 'two_factor_authentication_disabled',
+  TWO_FACTOR_AUTHENTICATION_FAILED: 'two_factor_authentication_failed',
   PROFILE_SHARED: 'profile_shared',
   PROFILE_PICTURE_UPDATED: 'profile_picture_updated',
   PROFILE_DATA_EXPORTED: 'profile_data_exported',
@@ -27,18 +37,20 @@ export const auditAction = {
 
 export type AuditAction = (typeof auditAction)[keyof typeof auditAction];
 
-export type Audit = {
-  actor_user_id: string;
-  username: string;
+export type Audit = (
+  { actor_user_id: string; username: string } | { actor_user_id: null; username: null }
+) & {
   action: AuditAction;
-  table_name?: 'users' | 'books' | 'movies' | 'user_book_list' | 'user_movie_list';
+  table_name?:
+    'users' | 'books' | 'movies' | 'user_book_list' | 'user_movie_list' | 'bulletins' | 'audit_log';
   record_id?: string;
   old_data?: Record<string, unknown>;
   new_data?: Record<string, unknown>;
 };
 
-export type DbAudit = Omit<Audit, 'actor_user_id'> & {
+export type DbAudit = Omit<Audit, 'actor_user_id' | 'username'> & {
   actor_user_id: string | null;
+  username: string | null;
   id: number;
   created_on: Date;
 };

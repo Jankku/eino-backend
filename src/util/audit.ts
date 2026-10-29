@@ -47,7 +47,7 @@ export const auditToDiscordEmbed = (audit: DbAudit): DiscordEmbed => {
   const fields = [
     {
       name: 'Username',
-      value: audit.username,
+      value: audit.username ?? 'Unknown',
       inline: true,
     },
     {
