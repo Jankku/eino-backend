@@ -57,14 +57,17 @@ paths:
               type: object
               properties:
                 username:
-                  type: string
                   $ref: '#/components/schemas/Username'
                 password:
-                  type: string
                   $ref: '#/components/schemas/Password'
                 password2:
-                  type: string
                   $ref: '#/components/schemas/Password'
+                email:
+                  $ref: '#/components/schemas/OptionalEmail'
+              required:
+                - username
+                - password
+                - password2
       responses:
         '200':
           description: Success response
@@ -79,31 +82,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
         '500':
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
+          $ref: '#/components/responses/InternalServerError'
   /auth/login:
     post:
       tags:
         - auth
-      summary: Login a user
+      summary: Login user
       description: >-
-        The username field accepts a username or verified email address. Matching is case-sensitive. An exact username match takes precedence over an email match.
+        The username field accepts a username or verified email address.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                username:
-                  type: string
-                  $ref: '#/components/schemas/Username'
-                password:
-                  type: string
-                  $ref: '#/components/schemas/Password'
+              $ref: '#/components/schemas/Login'
       responses:
         '200':
           description: Success response
@@ -116,6 +108,9 @@ paths:
                     type: string
                   refreshToken:
                     type: string
+                required:
+                  - accessToken
+                  - refreshToken
         '422':
           description: Authentication error
           content:
@@ -123,11 +118,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
         '500':
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
+          $ref: '#/components/responses/InternalServerError'
   /auth/refreshtoken:
     post:
       tags:
@@ -142,6 +133,30 @@ paths:
               properties:
                 refreshToken:
                   type: string
+              required:
+                - refreshToken
+      responses:
+        '200':
+          description: Access token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                required:
+                  - accessToken
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          description: JWT error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /auth/passwordstrength:
     post:
       tags:
@@ -156,6 +171,8 @@ paths:
               properties:
                 password:
                   type: string
+              required:
+                - password
       responses:
         '200':
           description: Password strength check successful
@@ -169,6 +186,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
   /profile:
     get:
       tags:
@@ -182,7 +201,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Profile'
+                $ref: '#/components/schemas/LegacyProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /profile/share:
     get:
       tags:
@@ -205,6 +232,18 @@ paths:
                       properties:
                         share_id:
                           type: string
+                      required:
+                        - share_id
+                required:
+                  - results
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /profile/export:
     post:
       tags:
@@ -220,7 +259,14 @@ paths:
               type: object
               properties:
                 password:
-                  type: string
+                  $ref: '#/components/schemas/Password'
+                includeAuditLog:
+                  type: boolean
+                  description:
+                    Include the requesting user's audit entries. Omitted or false returns an empty audits
+                    array.
+              required:
+                - password
       responses:
         '200':
           description: Successful response
@@ -228,6 +274,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ExportProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /profile/deleteaccount:
     post:
       tags:
@@ -243,8 +297,11 @@ paths:
               type: object
               properties:
                 password:
-                  type: string
                   $ref: '#/components/schemas/Password'
+                twoFactorCode:
+                  $ref: '#/components/schemas/OptionalTwoFactorCode'
+              required:
+                - password
       responses:
         '200':
           description: Account successfully deleted
@@ -258,6 +315,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /list/books/count:
     get:
       tags:
@@ -271,26 +334,15 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  all:
-                    type: integer
-                  reading:
-                    type: integer
-                  completed:
-                    type: integer
-                  on-hold:
-                    type: integer
-                  dropped:
-                    type: integer
-                  planned:
-                    type: integer
+                $ref: '#/components/schemas/ProfileBookCount'
         '500':
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
+          $ref: '#/components/responses/InternalServerError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
   /list/books/{status}:
     get:
       parameters:
@@ -304,7 +356,19 @@ paths:
           in: query
           schema:
             type: string
-            enum: [title, author, publisher, pages, year, status, score, start_date, end_date]
+            enum:
+              [
+                title,
+                author,
+                publisher,
+                pages,
+                year,
+                status,
+                score,
+                start_date,
+                end_date,
+                created_on,
+              ]
             default: title
         - name: order
           in: query
@@ -316,11 +380,11 @@ paths:
           in: query
           schema:
             type: string
-          description: >-
-            key:operator:value, e.g. 'score:>:5', 'title:=:1984',
-            'start_date:>:2025-01-01', 'created_on:<:2026-01-01T12:30:00Z'.
-            Text fields support equality; numbers and dates support =, >, <.
-            Date-only values compare calendar days; ISO timestamps compare instants.
+          description:
+            key:operator:value, e.g. 'score:>:5', 'title:=:1984', 'start_date:>:2025-01-01',
+            'created_on:<:2026-01-01T12:30:00Z'. Text fields support equality; numbers and dates
+            support =, >, <. Date-only values compare calendar days; ISO timestamps compare
+            instants.
       tags:
         - books
       summary: Get books by status
@@ -334,17 +398,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/BookResponse'
         '401':
-          description: Invalid JWT
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
+          $ref: '#/components/responses/Unauthorized'
         '500':
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
+          $ref: '#/components/responses/InternalServerError'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
   /list/books/book/{id}:
     get:
       parameters:
@@ -366,17 +426,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/BookResponse'
         '401':
-          description: Invalid JWT
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
+          $ref: '#/components/responses/Unauthorized'
         '500':
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
+          $ref: '#/components/responses/InternalServerError'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
   /list/books/search:
     get:
       tags:
@@ -397,6 +453,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BookResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /list/books/images:
     get:
       tags:
@@ -417,6 +481,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImageResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /list/books/add:
     post:
       tags:
@@ -443,6 +515,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /list/books/update/{id}:
     put:
       tags:
@@ -469,6 +547,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BookResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /list/books/delete/{id}:
     delete:
       tags:
@@ -489,6 +575,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /list/movies/count:
     get:
       tags:
@@ -502,26 +596,15 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  all:
-                    type: integer
-                  watching:
-                    type: integer
-                  completed:
-                    type: integer
-                  on-hold:
-                    type: integer
-                  dropped:
-                    type: integer
-                  planned:
-                    type: integer
+                $ref: '#/components/schemas/ProfileMovieCount'
         '500':
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
+          $ref: '#/components/responses/InternalServerError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
   /list/movies/{status}:
     get:
       parameters:
@@ -536,7 +619,19 @@ paths:
           schema:
             type: string
             enum:
-              [title, studio, director, writer, duration, year, status, score, start_date, end_date]
+              [
+                title,
+                studio,
+                director,
+                writer,
+                duration,
+                year,
+                status,
+                score,
+                start_date,
+                end_date,
+                created_on,
+              ]
             default: title
         - name: order
           in: query
@@ -548,11 +643,11 @@ paths:
           in: query
           schema:
             type: string
-          description: >-
-            key:operator:value, e.g. 'score:>:5', 'title:=:1984',
-            'start_date:>:2025-01-01', 'created_on:<:2026-01-01T12:30:00Z'.
-            Text fields support equality; numbers and dates support =, >, <.
-            Date-only values compare calendar days; ISO timestamps compare instants.
+          description:
+            key:operator:value, e.g. 'score:>:5', 'title:=:1984', 'start_date:>:2025-01-01',
+            'created_on:<:2026-01-01T12:30:00Z'. Text fields support equality; numbers and dates
+            support =, >, <. Date-only values compare calendar days; ISO timestamps compare
+            instants.
       tags:
         - movies
       summary: Get movies by status
@@ -566,17 +661,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/MovieResponse'
         '401':
-          description: Invalid JWT
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
+          $ref: '#/components/responses/Unauthorized'
         '500':
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
+          $ref: '#/components/responses/InternalServerError'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
   /list/movies/movie/{id}:
     get:
       parameters:
@@ -598,17 +689,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/MovieResponse'
         '401':
-          description: Invalid JWT
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
+          $ref: '#/components/responses/Unauthorized'
         '500':
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
+          $ref: '#/components/responses/InternalServerError'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
   /list/movies/search:
     get:
       tags:
@@ -629,6 +716,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MovieResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /list/movies/images:
     get:
       tags:
@@ -649,6 +744,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImageResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /list/movies/add:
     post:
       tags:
@@ -675,6 +778,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /list/movies/update/{id}:
     put:
       tags:
@@ -701,6 +810,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MovieResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /list/movies/delete/{id}:
     delete:
       tags:
@@ -721,6 +838,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /share/{id}:
     get:
       parameters:
@@ -740,18 +865,245 @@ paths:
               schema:
                 type: string
                 format: binary
-        '401':
-          description: Invalid JWT
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '422':
+          description: Invalid share ID or share image not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/login/config:
+    post:
+      tags:
+        - auth
+      summary: Get login config
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  $ref: '#/components/schemas/Username'
+                password:
+                  $ref: '#/components/schemas/Password'
+              required:
+                - username
+                - password
+      responses:
+        '200':
+          description: Login configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - is2FAEnabled
+                properties:
+                  is2FAEnabled:
+                    type: boolean
+        '422':
+          description: Authentication error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
         '500':
-          description: Server error
+          $ref: '#/components/responses/InternalServerError'
+  /auth/password/forgot:
+    post:
+      tags:
+        - auth
+      summary: Send reset password email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  $ref: '#/components/schemas/Email'
+              required:
+                - email
+      responses:
+        '200':
+          description: Reset password email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForgotPasswordResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '424':
+          description: Email delivery failed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+        '500':
+          description: Failed to send reset password email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/password/reset:
+    post:
+      tags:
+        - auth
+      summary: Reset password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPassword'
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          description: Failed to reset password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/2fa/generate:
+    post:
+      tags:
+        - auth
+      summary: Generate TOTP and QR code
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: TOTP url and QR code data URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TwoFactorGenerateRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/2fa/enable:
+    post:
+      tags:
+        - auth
+      summary: Enable two-factor verification
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - twoFactorCode
+              properties:
+                twoFactorCode:
+                  $ref: '#/components/schemas/OTP'
+      responses:
+        '200':
+          description: Two-factor authentication enabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/2fa/disable:
+    post:
+      tags:
+        - auth
+      summary: Disable two-factor verification
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - twoFactorCode
+              properties:
+                twoFactorCode:
+                  $ref: '#/components/schemas/OTP'
+      responses:
+        '200':
+          description: Two-factor authentication disabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /list/books/search/isbn/{isbn}:
+    get:
+      tags:
+        - books
+      summary: Look up book metadata by ISBN
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: isbn
+          in: path
+          required: true
+          schema:
+            type: string
+          example: 978-0-14-103614-4
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookLookupResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          description: Invalid ISBN or lookup failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
   schemas:
     Username:
@@ -761,7 +1113,6 @@ components:
     Password:
       type: string
       minLength: 8
-      maxLength: 255
     AddBookRequest:
       type: object
       required:
@@ -778,32 +1129,42 @@ components:
       properties:
         isbn:
           type: string
+          maxLength: 255
         title:
           type: string
+          maxLength: 255
         author:
           type: string
+          maxLength: 255
         publisher:
           type: string
+          maxLength: 255
         image_url:
-          type: string
-          format: uri
-          default: 'https://example.com/image.jpg'
+          $ref: '#/components/schemas/CoverUrl'
         pages:
-          type: integer
+          type: number
+          minimum: 0
         year:
-          type: integer
+          type: number
+          minimum: 0
         status:
           type: string
           enum: [completed, reading, on-hold, dropped, planned]
-          default: reading
         score:
-          type: integer
+          type: number
+          minimum: 0
+          maximum: 10
         start_date:
           type: string
-          format: date-time
+          example: 2026-10-29T12:00:00Z
         end_date:
           type: string
-          format: date-time
+          example: 2026-10-29T12:00:00Z
+        note:
+          type: string
+          nullable: true
+        language_code:
+          $ref: '#/components/schemas/LanguageCode'
     AddMovieRequest:
       type: object
       required:
@@ -820,32 +1181,40 @@ components:
       properties:
         title:
           type: string
+          maxLength: 255
         studio:
           type: string
+          maxLength: 255
         director:
           type: string
+          maxLength: 255
         writer:
           type: string
+          maxLength: 255
         image_url:
-          type: string
-          format: uri
-          default: 'https://example.com/image.jpg'
+          $ref: '#/components/schemas/CoverUrl'
         duration:
-          type: integer
+          type: number
+          minimum: 0
         year:
-          type: integer
+          type: number
+          minimum: 0
         status:
           type: string
           enum: [completed, watching, on-hold, dropped, planned]
-          default: watching
         score:
-          type: integer
+          type: number
+          minimum: 0
+          maximum: 10
         start_date:
           type: string
-          format: date-time
+          example: 2026-10-29T12:00:00Z
         end_date:
           type: string
-          format: date-time
+          example: 2026-10-29T12:00:00Z
+        note:
+          type: string
+          nullable: true
     Book:
       type: object
       properties:
@@ -854,20 +1223,24 @@ components:
           format: uuid
         isbn:
           type: string
+          maxLength: 255
         title:
           type: string
+          maxLength: 255
         author:
           type: string
+          maxLength: 255
         publisher:
           type: string
+          maxLength: 255
         image_url:
-          type: string
-          format: uri
+          $ref: '#/components/schemas/CoverUrl'
         pages:
           type: integer
           minimum: 0
         year:
           type: integer
+          minimum: 0
         status:
           type: string
           enum: [completed, reading, on-hold, dropped, planned]
@@ -878,12 +1251,35 @@ components:
         start_date:
           type: string
           format: date-time
+          nullable: true
         end_date:
           type: string
           format: date-time
+          nullable: true
         created_on:
           type: string
           format: date-time
+        note:
+          type: string
+          nullable: true
+        language_code:
+          $ref: '#/components/schemas/LanguageCode'
+      required:
+        - book_id
+        - isbn
+        - title
+        - author
+        - publisher
+        - image_url
+        - pages
+        - year
+        - status
+        - score
+        - note
+        - language_code
+        - start_date
+        - end_date
+        - created_on
     Movie:
       type: object
       properties:
@@ -892,20 +1288,24 @@ components:
           format: uuid
         title:
           type: string
+          maxLength: 255
         studio:
           type: string
+          maxLength: 255
         director:
           type: string
+          maxLength: 255
         writer:
           type: string
+          maxLength: 255
         image_url:
-          type: string
-          format: uri
+          $ref: '#/components/schemas/CoverUrl'
         duration:
           type: integer
           minimum: 0
         year:
           type: integer
+          minimum: 0
         status:
           type: string
           enum: [completed, watching, on-hold, dropped, planned]
@@ -916,12 +1316,32 @@ components:
         start_date:
           type: string
           format: date-time
+          nullable: true
         end_date:
           type: string
           format: date-time
+          nullable: true
         created_on:
           type: string
           format: date-time
+        note:
+          type: string
+          nullable: true
+      required:
+        - movie_id
+        - title
+        - studio
+        - director
+        - writer
+        - image_url
+        - duration
+        - year
+        - status
+        - score
+        - note
+        - start_date
+        - end_date
+        - created_on
     BookResponse:
       type: object
       required:
@@ -945,6 +1365,7 @@ components:
       properties:
         version:
           type: integer
+          enum: [5]
         profile:
           $ref: '#/components/schemas/Profile'
         books:
@@ -959,6 +1380,17 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ProfileShare'
+        audits:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLogEntry'
+      required:
+        - version
+        - profile
+        - books
+        - movies
+        - shares
+        - audits
     Profile:
       type: object
       properties:
@@ -977,7 +1409,6 @@ components:
               type: object
               properties:
                 count:
-                  type: object
                   $ref: '#/components/schemas/ProfileBookCount'
                 pages_read:
                   type: integer
@@ -992,55 +1423,127 @@ components:
                         type: integer
                       count:
                         type: integer
-        movie:
-          type: object
-          properties:
-            count:
+                    required:
+                      - score
+                      - count
+              required:
+                - count
+                - pages_read
+                - score_average
+                - score_distribution
+            movie:
               type: object
-              $ref: '#/components/schemas/ProfileMovieCount'
-            watch_time:
-              type: integer
-            score_average:
-              type: number
-            score_distribution:
-              type: array
-              items:
-                type: object
-                properties:
-                  score:
-                    type: integer
-                  count:
-                    type: integer
+              properties:
+                count:
+                  $ref: '#/components/schemas/ProfileMovieCount'
+                watch_time:
+                  type: integer
+                score_average:
+                  type: number
+                score_distribution:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      score:
+                        type: integer
+                      count:
+                        type: integer
+                    required:
+                      - score
+                      - count
+              required:
+                - count
+                - watch_time
+                - score_average
+                - score_distribution
+          required:
+            - book
+            - movie
+        email:
+          type: string
+          nullable: true
+        email_verified_on:
+          type: string
+          format: date-time
+          nullable: true
+        totp_enabled_on:
+          type: string
+          format: date-time
+          nullable: true
+        profile_picture_path:
+          type: string
+          nullable: true
+        last_login_on:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - user_id
+        - username
+        - email
+        - email_verified_on
+        - registration_date
+        - totp_enabled_on
+        - profile_picture_path
+        - stats
+        - last_login_on
     ProfileBookCount:
       type: object
       properties:
         all:
           type: integer
+          minimum: 0
         reading:
           type: integer
+          minimum: 0
         completed:
           type: integer
+          minimum: 0
         on-hold:
           type: integer
+          minimum: 0
         dropped:
           type: integer
+          minimum: 0
         planned:
           type: integer
+          minimum: 0
+      required:
+        - all
+        - reading
+        - completed
+        - on-hold
+        - dropped
+        - planned
     ProfileMovieCount:
       type: object
       properties:
         all:
           type: integer
+          minimum: 0
         watching:
           type: integer
+          minimum: 0
         completed:
           type: integer
+          minimum: 0
         on-hold:
           type: integer
+          minimum: 0
         dropped:
           type: integer
+          minimum: 0
         planned:
           type: integer
+          minimum: 0
+      required:
+        - all
+        - watching
+        - completed
+        - on-hold
+        - dropped
+        - planned
     ProfileShare:
       type: object
       properties:
@@ -1049,6 +1552,9 @@ components:
         created_on:
           type: string
           format: date-time
+      required:
+        - share_id
+        - created_on
     ImageResult:
       type: object
       properties:
@@ -1057,6 +1563,8 @@ components:
           items:
             type: string
             format: uri
+      required:
+        - results
     ApiResult:
       type: object
       required:
@@ -1071,6 +1579,9 @@ components:
                 type: string
               message:
                 type: string
+            required:
+              - name
+              - message
     ApiError:
       type: object
       required:
@@ -1085,6 +1596,9 @@ components:
                 type: string
               message:
                 type: string
+            required:
+              - name
+              - message
     PasswordStrength:
       type: object
       required:
@@ -1101,6 +1615,253 @@ components:
                 maximum: 4
               message:
                 type: string
+            required:
+              - score
+              - message
+    OptionalEmail:
+      type: string
+      nullable: true
+      maxLength: 255
+    Login:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          $ref: '#/components/schemas/Username'
+        password:
+          $ref: '#/components/schemas/Password'
+        twoFactorCode:
+          $ref: '#/components/schemas/OptionalTwoFactorCode'
+    OptionalTwoFactorCode:
+      type: string
+      nullable: true
+      minLength: 0
+      maxLength: 6
+    LegacyProfile:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        registration_date:
+          type: string
+          format: date-time
+        stats:
+          type: object
+          properties:
+            book:
+              type: object
+              properties:
+                count:
+                  type: integer
+                  minimum: 0
+                pages_read:
+                  type: integer
+                score_average:
+                  type: number
+                score_distribution:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      score:
+                        type: integer
+                      count:
+                        type: integer
+                    required:
+                      - score
+                      - count
+              required:
+                - count
+                - pages_read
+                - score_average
+                - score_distribution
+            movie:
+              type: object
+              properties:
+                count:
+                  type: integer
+                  minimum: 0
+                watch_time:
+                  type: integer
+                score_average:
+                  type: number
+                score_distribution:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      score:
+                        type: integer
+                      count:
+                        type: integer
+                    required:
+                      - score
+                      - count
+              required:
+                - count
+                - watch_time
+                - score_average
+                - score_distribution
+          required:
+            - book
+            - movie
+      required:
+        - user_id
+        - username
+        - registration_date
+        - stats
+    CoverUrl:
+      type: string
+      nullable: true
+      pattern: ^(https?://.+|)$
+      example: https://example.com/image.jpg
+    LanguageCode:
+      type: string
+      nullable: true
+      description: ISO 639-1 language code, or null when unknown.
+    AuditLogEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        actor_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        username:
+          type: string
+          nullable: true
+        action:
+          type: string
+        table_name:
+          type: string
+          nullable: true
+        record_id:
+          type: string
+          format: uuid
+          nullable: true
+        old_data:
+          type: object
+          nullable: true
+          additionalProperties: true
+        new_data:
+          type: object
+          nullable: true
+          additionalProperties: true
+        created_on:
+          type: string
+          format: date-time
+      required:
+        - id
+        - actor_user_id
+        - username
+        - action
+        - table_name
+        - record_id
+        - old_data
+        - new_data
+        - created_on
+    Email:
+      type: string
+      format: email
+      maxLength: 255
+    ForgotPasswordResponse:
+      type: object
+      required:
+        - results
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            required:
+              - name
+              - message
+              - is2FAEnabled
+            properties:
+              name:
+                type: string
+              message:
+                type: string
+              is2FAEnabled:
+                type: boolean
+    ResetPassword:
+      type: object
+      required:
+        - email
+        - newPassword
+        - otp
+      properties:
+        email:
+          $ref: '#/components/schemas/Email'
+        newPassword:
+          $ref: '#/components/schemas/Password'
+        otp:
+          $ref: '#/components/schemas/OTP'
+        twoFactorCode:
+          $ref: '#/components/schemas/OptionalTwoFactorCode'
+    OTP:
+      type: string
+      minLength: 6
+      maxLength: 6
+    TwoFactorGenerateRequest:
+      type: object
+      required:
+        - results
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              totpUrl:
+                type: string
+              qrCodeUrl:
+                type: string
+            required:
+              - totpUrl
+              - qrCodeUrl
+    BookLookupResponse:
+      type: object
+      required:
+        - results
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookLookup'
+    BookLookup:
+      type: object
+      required:
+        - isbn
+        - title
+        - author
+        - publisher
+        - pages
+        - year
+      properties:
+        isbn:
+          type: string
+        title:
+          type: string
+        author:
+          type: string
+        publisher:
+          type: string
+        image_url:
+          type: string
+          format: uri
+        pages:
+          type: number
+        year:
+          type: number
+        language_code:
+          $ref: '#/components/schemas/LanguageCode'
   requestBodies:
     Book:
       description: Book
@@ -1112,6 +1873,31 @@ components:
     BearerAuth:
       type: http
       scheme: bearer
-      description: Bearer token authorization
-      name: Authorization
-      in: header
+      bearerFormat: JWT
+  responses:
+    Unauthorized:
+      description: Invalid, expired, or unusable bearer token; the account may no longer exist.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Forbidden:
+      description: Account is disabled, or the enabled account lacks the admin role required by this operation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    ValidationError:
+      description:
+        Invalid body, path, query, or Authorization header, or an operation-specific validation
+        failure. Errors contain required name and message fields.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    InternalServerError:
+      description: Server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
