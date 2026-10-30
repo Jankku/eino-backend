@@ -6,7 +6,7 @@ export const Logger = createLogger({
   format: format.combine(
     format.timestamp(),
     format.errors({ stack: true }),
-    config.isProduction ? format.json() : format.cli({ all: true }),
+    config.isProduction ? format.json() : format.simple(),
   ),
   transports: [
     new transports.Console({
