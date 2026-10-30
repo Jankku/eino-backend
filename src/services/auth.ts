@@ -327,7 +327,9 @@ export const forgotPassword = async (
         await deleteVerification(t, { target: email, type: 'password_reset' });
       }
 
-      const { otp, secret, algorithm, digits, period } = await generateTOTP({ label: email });
+      const { otp, secret, algorithm, digits, period, created_on } = await generateTOTP({
+        label: email,
+      });
 
       await addVerification(t, {
         type: 'password_reset',
@@ -336,7 +338,8 @@ export const forgotPassword = async (
         algorithm,
         digits,
         period,
-        expires_on: DateTime.now().plus({ minutes: 15 }).toJSDate(),
+        created_on,
+        expires_on: DateTime.fromJSDate(created_on).plus({ minutes: 15 }).toJSDate(),
       });
 
       return { user, otp };
@@ -475,7 +478,7 @@ export const resetPassword = async (
       }
 
       if (verification.expires_on && isVerificationExpired(verification.expires_on)) {
-        await deleteVerification(t, { target: email, type: 'email' });
+        await deleteVerification(t, { target: email, type: 'password_reset' });
         throw new SecurityErrorWithStatus(422, 'reset_password_error', 'Verification expired', {
           operation: 'password_reset',
           reason: 'verification_expired',
@@ -483,7 +486,7 @@ export const resetPassword = async (
         });
       }
 
-      if (!validateTOTP({ otp, ...verification })) {
+      if (!validateEmailOTP({ otp, ...verification })) {
         throw new SecurityErrorWithStatus(
           422,
           'reset_password_error',

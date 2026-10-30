@@ -33,18 +33,23 @@ export const generateTOTP = async (config: Partial<TOTPConfigWithLabel>) => {
     ...defaults,
     ...config,
   });
-  const otp = totp.generate();
-  return { otp, ...totp, secret: totp.secret.base32, totpUrl: totp.toString() };
+  const created_on = new Date();
+  const otp = totp.generate({ timestamp: created_on.getTime() });
+  return { otp, ...totp, secret: totp.secret.base32, totpUrl: totp.toString(), created_on };
 };
 
-export const validateEmailOTP = (config: TOTPConfig) => {
+export const validateEmailOTP = (config: TOTPConfig & { created_on: Date }) => {
   const totp = new OTPAuth.TOTP({
     ...config,
     secret: OTPAuth.Secret.fromBase32(config.secret),
     issuer: TOTP_ISSUER,
   });
-  const delta = totp.validate({ token: config.otp });
-  return delta !== null && delta === 0;
+  const delta = totp.validate({
+    token: config.otp,
+    timestamp: config.created_on.getTime(),
+    window: 0,
+  });
+  return delta === 0;
 };
 
 export const validateTOTP = (config: TOTPConfig) => {
