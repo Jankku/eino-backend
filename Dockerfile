@@ -1,4 +1,4 @@
-FROM node:lts-alpine AS build
+FROM node:24-alpine AS build
 WORKDIR /home/node/eino
 RUN apk add --no-cache build-base g++ cairo-dev jpeg-dev pango-dev
 COPY package*.json tsconfig.json ./
@@ -6,7 +6,7 @@ COPY src ./src
 COPY migrations ./migrations
 RUN npm ci --no-audit --no-fund && npm run build && npm prune --omit=dev
 
-FROM node:lts-alpine
+FROM node:24-alpine
 WORKDIR /home/node/eino
 RUN apk add --no-cache cairo jpeg pango && mkdir -p /home/node/eino/profilepicture && chown -R node:node /home/node/eino
 COPY --chown=node:node package*.json docker-entrypoint.sh ./
