@@ -17,7 +17,7 @@ const TOTP_ISSUER = 'Eino';
 
 const generateSecret = async () => {
   const rfc = await import('rfc4648');
-  return rfc.base32.stringify(crypto.randomBytes(16));
+  return rfc.base32.stringify(crypto.randomBytes(20));
 };
 
 export const generateTOTP = async (config: Partial<TOTPConfigWithLabel>) => {
