@@ -37,7 +37,8 @@ export const generateAccessToken = (user: User): string =>
     } satisfies AccessTokenPayload,
     ACCESS_TOKEN_SECRET,
     {
-      expiresIn: ACCESS_TOKEN_VALIDITY as jwt.SignOptions['expiresIn'],
+      algorithm: jwtConstants.ALGORITHM,
+      expiresIn: ACCESS_TOKEN_VALIDITY,
       audience: jwtConstants.AUDIENCE,
       issuer: jwtConstants.ISSUER,
     },
@@ -55,7 +56,8 @@ export const getTokenSubject = (payload: jwt.JwtPayload | string): string => {
 
 export const generateRefreshToken = (user: User): string =>
   jwt.sign({ sub: user.user_id } satisfies RefreshTokenPayload, REFRESH_TOKEN_SECRET, {
-    expiresIn: REFRESH_TOKEN_VALIDITY as jwt.SignOptions['expiresIn'],
+    algorithm: jwtConstants.ALGORITHM,
+    expiresIn: REFRESH_TOKEN_VALIDITY,
     audience: jwtConstants.AUDIENCE,
     issuer: jwtConstants.ISSUER,
   });

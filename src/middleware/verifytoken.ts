@@ -36,6 +36,7 @@ export const verifyToken = async (req: Request, res: TypedResponse, next: NextFu
     const accessToken = tokenSchema.parse(req).headers.authorization;
     const userId = getTokenSubject(
       jwt.verify(accessToken, config.ACCESS_TOKEN_SECRET, {
+        algorithms: [jwtConstants.ALGORITHM],
         audience: jwtConstants.AUDIENCE,
         issuer: jwtConstants.ISSUER,
       }),

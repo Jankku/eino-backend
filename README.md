@@ -102,12 +102,12 @@ EMAIL_MAILTRAP_TEST_INBOX_ID=
 # Optional, send audit logs to Discord channel
 DISCORD_AUDIT_LOG_WEBHOOK_URL=https://discord.com/api/webhooks/...
 
-# Execute jwtsecret.sh script to fill these or manually input a long secret
+# Use jwtsecret.sh to generate two distinct secrets
 ACCESS_TOKEN_SECRET=
 REFRESH_TOKEN_SECRET=
 
-# Number in seconds or a string time span (https://github.com/vercel/ms)
-ACCESS_TOKEN_VALIDITY=3600
+# Positive whole seconds (3600) or a whole-number duration using s, m, h, d, or w
+ACCESS_TOKEN_VALIDITY=1h
 REFRESH_TOKEN_VALIDITY=1d
 
 # Maximum size for JSON request bodies

@@ -264,6 +264,7 @@ export const generateNewAccessToken = async (
   try {
     const userId = getTokenSubject(
       jwt.verify(refreshToken, config.REFRESH_TOKEN_SECRET, {
+        algorithms: [jwtConstants.ALGORITHM],
         audience: jwtConstants.AUDIENCE,
         issuer: jwtConstants.ISSUER,
       }),
