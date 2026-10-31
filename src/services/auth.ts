@@ -1,4 +1,3 @@
-import * as bcrypt from 'bcrypt';
 import { NextFunction, Request } from 'express';
 import jwt from 'jsonwebtoken';
 import {
@@ -7,6 +6,8 @@ import {
   findUserByCredential,
   findUserByEmail,
   findUserById,
+  findUserByIdForUpdate,
+  upgradePassword,
   getUserById,
   updateLastLogin,
   updatePassword,
@@ -16,7 +17,6 @@ import { success } from '../util/response';
 import { Logger } from '../util/logger';
 import {
   generateAccessToken,
-  generatePasswordHash,
   generateRefreshToken,
   getPasswordStrength,
   getTokenSubject,
@@ -35,7 +35,7 @@ import {
   resetPasswordSchema,
 } from '../routes/auth';
 import { addVerification, deleteVerification, findVerification } from '../db/verification';
-import { generateTOTP, validateTOTP } from '../util/totp';
+import { generateTOTP, validateEmailOTP, validateTOTP } from '../util/totp';
 import QRCode from 'qrcode';
 import { DateTime } from 'luxon';
 import { isVerificationExpired } from '../util/verification';
@@ -44,6 +44,7 @@ import { resetPasswordTemplate } from '../util/emailtemplates';
 import { addAudit } from '../db/audit';
 import { getDefaultRoleId } from '../db/role';
 import { jwtConstants } from '../util/jwtconstants';
+import { generatePasswordHash, shouldUpgradePassword, verifyPassword } from '../util/password';
 
 export const register = async (
   _: Request,
@@ -85,60 +86,105 @@ export const login = async (
   const { username: usernameOrEmail, password, twoFactorCode } = res.locals.input.body;
 
   try {
-    const { user } = await db.tx('login', async (t) => {
-      const user = await findUserByCredential(t, usernameOrEmail);
-      if (!user) {
-        throw new SecurityErrorWithStatus(
-          422,
-          'authentication_error',
-          'Incorrect username or password',
-          { operation: 'login', reason: 'invalid_credentials' },
-        );
-      }
+    const verifiedUser = await db.task('login', (t) => findUserByCredential(t, usernameOrEmail));
+    if (!verifiedUser) {
+      throw new SecurityErrorWithStatus(
+        422,
+        'authentication_error',
+        'Incorrect username or password',
+        { operation: 'login', reason: 'invalid_credentials' },
+      );
+    }
 
-      if (user.disabled_on) {
-        throw new SecurityErrorWithStatus(422, 'authentication_error', 'Account disabled', {
+    if (verifiedUser.disabled_on) {
+      throw new SecurityErrorWithStatus(422, 'authentication_error', 'Account disabled', {
+        operation: 'login',
+        reason: 'account_disabled',
+        targetUserId: verifiedUser.user_id,
+      });
+    }
+
+    const isCorrect = await verifyPassword(password, verifiedUser.password);
+    if (!isCorrect) {
+      throw new SecurityErrorWithStatus(
+        422,
+        'authentication_error',
+        'Incorrect username or password',
+        { operation: 'login', reason: 'invalid_credentials', targetUserId: verifiedUser.user_id },
+      );
+    }
+
+    const user = await db.tx('login', async (t) => {
+      const currentUser = await findUserByIdForUpdate(t, verifiedUser.user_id);
+      if (!currentUser || currentUser.disabled_on) {
+        throw new SecurityErrorWithStatus(422, 'authentication_error', 'Account unavailable', {
           operation: 'login',
-          reason: 'account_disabled',
-          targetUserId: user.user_id,
+          reason: currentUser ? 'account_disabled' : 'account_not_found',
+          targetUserId: verifiedUser.user_id,
         });
       }
-
-      const isCorrect = await bcrypt.compare(password, user.password);
-      if (!isCorrect) {
+      if (currentUser.password !== verifiedUser.password) {
         throw new SecurityErrorWithStatus(
           422,
           'authentication_error',
           'Incorrect username or password',
-          { operation: 'login', reason: 'invalid_credentials', targetUserId: user.user_id },
+          { operation: 'login', reason: 'invalid_credentials', targetUserId: currentUser.user_id },
         );
       }
 
-      if (user.totp_enabled_on) {
+      if (currentUser.totp_enabled_on) {
         if (!twoFactorCode) {
           throw new SecurityErrorWithStatus(
             422,
             'authentication_error',
             'One-time password required',
-            { operation: 'login', reason: 'otp_required', targetUserId: user.user_id },
+            { operation: 'login', reason: 'otp_required', targetUserId: currentUser.user_id },
           );
         }
 
-        const verification = await findVerification(t, { target: user.username, type: '2fa' });
+        const verification = await findVerification(t, {
+          target: currentUser.username,
+          type: '2fa',
+        });
         if (!verification || !validateTOTP({ otp: twoFactorCode, ...verification })) {
           throw new SecurityErrorWithStatus(
             422,
             'authentication_error',
             'Incorrect one-time password',
-            { operation: 'login', reason: 'invalid_otp', targetUserId: user.user_id },
+            { operation: 'login', reason: 'invalid_otp', targetUserId: currentUser.user_id },
           );
         }
       }
 
-      await updateLastLogin(t, user.user_id);
-      await addAudit(t, { actor_user_id: user.user_id, username: user.username, action: 'login' });
+      const newHash = shouldUpgradePassword(password, verifiedUser.password)
+        ? await generatePasswordHash(password)
+        : undefined;
 
-      return { user };
+      if (newHash) {
+        await upgradePassword(t, {
+          userId: currentUser.user_id,
+          originalHash: currentUser.password,
+          newHash,
+        });
+        await addAudit(t, {
+          actor_user_id: currentUser.user_id,
+          username: currentUser.username,
+          action: 'password_hash_upgraded',
+          table_name: 'users',
+          record_id: currentUser.user_id,
+          old_data: { algorithm: 'bcrypt' },
+          new_data: { algorithm: 'argon2id' },
+        });
+      }
+
+      await updateLastLogin(t, currentUser.user_id);
+      await addAudit(t, {
+        actor_user_id: currentUser.user_id,
+        username: currentUser.username,
+        action: 'login',
+      });
+
+      return currentUser;
     });
 
     const accessToken = generateAccessToken(user);
@@ -182,7 +228,7 @@ export const loginConfig = async (
         });
       }
 
-      const isCorrect = await bcrypt.compare(password, user.password);
+      const isCorrect = await verifyPassword(password, user.password);
       if (!isCorrect) {
         throw new SecurityErrorWithStatus(
           422,

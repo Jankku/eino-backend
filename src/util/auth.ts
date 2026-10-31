@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
-import * as bcrypt from 'bcrypt';
 import { config } from '../config';
 import { ZxcvbnFactory } from '@zxcvbn-ts/core';
 import * as zxcvbnCommon from '@zxcvbn-ts/language-common';
@@ -60,9 +59,6 @@ export const generateRefreshToken = (user: User): string =>
     audience: jwtConstants.AUDIENCE,
     issuer: jwtConstants.ISSUER,
   });
-
-export const generatePasswordHash = (password: string): Promise<string> =>
-  bcrypt.hash(password, 12);
 
 type PasswordStrengthScore = 0 | 1 | 2 | 3 | 4;
 

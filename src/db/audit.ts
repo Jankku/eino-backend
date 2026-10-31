@@ -13,6 +13,7 @@ export const auditAction = {
   PASSWORD_RESET_EMAIL_SENT: 'password_reset_email_sent',
   PASSWORD_RESETED: 'password_reseted',
   PASSWORD_RESET_FAILED: 'password_reset_failed',
+  PASSWORD_HASH_UPGRADED: 'password_hash_upgraded',
   EMAIL_UPDATED: 'email_updated',
   EMAIL_VERIFICATION_EMAIL_SENT: 'email_verification_email_sent',
   EMAIL_VERIFICATION_FAILED: 'email_verification_failed',

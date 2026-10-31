@@ -1,7 +1,6 @@
 import { ITask } from 'pg-promise';
-import { generatePasswordHash } from '../util/auth';
+import { generatePasswordHash, verifyPassword } from '../util/password';
 import { Logger } from '../util/logger';
-import * as bcrypt from 'bcrypt';
 import { getProfilePicturePathByFileName } from '../util/profilepicture';
 import { roleIdToName } from '../util/role';
 
@@ -20,11 +19,17 @@ export type User = {
   created_on: Date;
 };
 
-export type UserWithRoleName = User & { role: string };
+export type UserWithRoleName = Omit<User, 'password' | 'role_modified_on'> & {
+  role: string;
+  argon2id_migrated: boolean;
+};
 
 export const getAllUsers = async (t: ITask<unknown>): Promise<UserWithRoleName[]> => {
   return await t.map(
-    'SELECT user_id, username, role_id, profile_picture_path, email, email_verified_on, disabled_on, totp_enabled_on, last_login_on, created_on FROM users ORDER BY username ASC',
+    `SELECT user_id, username, role_id, profile_picture_path, email, email_verified_on,
+            disabled_on, totp_enabled_on, last_login_on, created_on,
+            password LIKE '$argon2id$%' AS argon2id_migrated
+     FROM users ORDER BY username ASC`,
     undefined,
     (row) => ({ ...row, role: roleIdToName(row.role_id as number) }),
   );
@@ -60,6 +65,27 @@ export const findUserById = async (t: ITask<unknown>, userId: string): Promise<U
            WHERE user_id = $1`,
     values: [userId],
   });
+};
+
+export const findUserByIdForUpdate = async (
+  t: ITask<unknown>,
+  userId: string,
+): Promise<User | null> => {
+  return await t.oneOrNone({
+    text: 'SELECT * FROM users WHERE user_id = $1 FOR UPDATE',
+    values: [userId],
+  });
+};
+
+export const upgradePassword = async (
+  t: ITask<unknown>,
+  { userId, originalHash, newHash }: { userId: string; originalHash: string; newHash: string },
+): Promise<void> => {
+  const result = await t.result({
+    text: 'UPDATE users SET password = $1 WHERE user_id = $2 AND password = $3',
+    values: [newHash, userId, originalHash],
+  });
+  if (result.rowCount !== 1) throw new Error('Password upgrade could not be saved');
 };
 
 export const getUserByUsername = async (t: ITask<unknown>, username: string): Promise<User> => {
@@ -201,7 +227,7 @@ export const isPasswordCorrect = async (
   { userId, password }: { userId: string; password: string },
 ): Promise<boolean> => {
   const user = await getUserById(t, userId);
-  const isCorrect = await bcrypt.compare(password, user.password);
+  const isCorrect = await verifyPassword(password, user.password);
   return isCorrect;
 };
 

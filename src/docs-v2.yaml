@@ -2301,6 +2301,8 @@ components:
                 format: uuid
               username:
                 type: string
+              argon2id_migrated:
+                type: boolean
               role_id:
                 type: integer
               role:
@@ -2333,6 +2335,7 @@ components:
             required:
               - user_id
               - username
+              - argon2id_migrated
               - role_id
               - role
               - profile_picture_path
