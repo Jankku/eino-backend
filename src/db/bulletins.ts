@@ -4,7 +4,7 @@ import { pgp } from './config';
 export const bulletinTypes = ['success', 'info', 'warning', 'error'] as const;
 export type BulletinType = (typeof bulletinTypes)[number];
 
-export const bulletinVisibilities = ['public', 'user', 'condition'] as const;
+export const bulletinVisibilities = ['public', 'authenticated', 'user', 'condition'] as const;
 export type BulletinVisiblity = (typeof bulletinVisibilities)[number];
 
 export const bulletinConditions = [
@@ -54,6 +54,12 @@ export const getBulletinForAudit = async (
 export const getPublicBulletins = async (t: ITask<unknown>): Promise<DbBulletin[]> => {
   return await t.any(
     "SELECT id, title, message, name, type FROM bulletins WHERE visibility = 'public' AND start_date <= NOW() AND end_date >= NOW()",
+  );
+};
+
+export const getAuthenticatedBulletins = async (t: ITask<unknown>): Promise<DbBulletin[]> => {
+  return await t.any(
+    "SELECT id, title, message, name, type FROM bulletins WHERE visibility = 'authenticated' AND start_date <= NOW() AND end_date >= NOW()",
   );
 };
 

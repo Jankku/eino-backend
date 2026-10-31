@@ -2368,7 +2368,8 @@ components:
           enum: [success, info, warning, error]
         visibility:
           type: string
-          enum: [public, user, condition]
+          description: Public for everyone, authenticated for all signed-in users, user for selected recipients, or condition for users meeting a condition.
+          enum: [public, authenticated, user, condition]
         visibleToUserIds:
           type: array
           items:
@@ -2421,8 +2422,8 @@ components:
           enum: [success, info, warning, error]
         visibility:
           type: string
-          description: Visibility of the bulletin
-          enum: [public, user, condition]
+          description: Public for everyone, authenticated for all signed-in users, user for selected recipients, or condition for users meeting a condition.
+          enum: [public, authenticated, user, condition]
         condition:
           type: string
           nullable: true

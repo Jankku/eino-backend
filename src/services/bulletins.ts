@@ -6,6 +6,7 @@ import { db } from '../db/config';
 import { Logger } from '../util/logger';
 import {
   BulletinCondition,
+  getAuthenticatedBulletins,
   getConditionBulletins,
   getPublicBulletins,
   getUserBulletins,
@@ -29,8 +30,9 @@ export const userBulletins = async (_: Request, res: TypedResponse, next: NextFu
     const bulletins = await db.task('userBulletins', async (t) => {
       let bulletins = await getPublicBulletins(t);
 
+      const authenticatedBulletins = await getAuthenticatedBulletins(t);
       const userBulletins = await getUserBulletins(t, userId);
-      bulletins = [...bulletins, ...userBulletins];
+      bulletins = [...bulletins, ...authenticatedBulletins, ...userBulletins];
 
       const conditionBulletins = await getConditionBulletins(t);
       if (conditionBulletins.length === 0) return bulletins;
