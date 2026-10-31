@@ -1,4 +1,4 @@
-import { CanvasRenderingContext2D, createCanvas, registerFont } from 'canvas';
+import { CanvasRenderingContext2D, createCanvas, loadImage, registerFont } from 'canvas';
 import { DateTime } from 'luxon';
 import { getFontPath } from './share';
 
@@ -26,14 +26,16 @@ const fitText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number) 
   return `${fitted.trimEnd()}…`;
 };
 
-export const renderShareImage = ({
+export const renderShareImage = async ({
   username,
   bookTitles,
   movieTitles,
+  profilePicture,
 }: {
   username: string;
   bookTitles: string[];
   movieTitles: string[];
+  profilePicture?: Buffer;
 }) => {
   const canvas = createCanvas(WIDTH, HEIGHT);
   const ctx = canvas.getContext('2d');
@@ -45,12 +47,37 @@ export const renderShareImage = ({
   ctx.fillStyle = background;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
+  let headerLeft = 27;
+  if (profilePicture) {
+    const image = await loadImage(profilePicture);
+    const size = 60;
+    const top = 21;
+    const sourceSize = Math.min(image.width, image.height);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(headerLeft + size / 2, top + size / 2, size / 2, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(
+      image,
+      (image.width - sourceSize) / 2,
+      (image.height - sourceSize) / 2,
+      sourceSize,
+      sourceSize,
+      headerLeft,
+      top,
+      size,
+      size,
+    );
+    ctx.restore();
+    headerLeft += size + 14;
+  }
+
   ctx.fillStyle = TEXT_COLOR;
-  ctx.font = '700 36px Roboto';
-  ctx.fillText(fitText(ctx, username.replaceAll(/\s+/gu, ' '), 580), 27, 53);
+  ctx.font = '700 34px Roboto';
+  ctx.fillText(fitText(ctx, username.replaceAll(/\s+/gu, ' '), 607 - headerLeft), headerLeft, 53);
   ctx.fillStyle = MUTED_COLOR;
   ctx.font = '400 18px Roboto';
-  ctx.fillText('My top books & movies', 27, 77);
+  ctx.fillText('My top books & movies', headerLeft, 77);
 
   ctx.fillStyle = TEXT_COLOR;
   ctx.font = '52px Pacifico';

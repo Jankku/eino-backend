@@ -172,18 +172,36 @@ export const deleteAccount = async (
 export const generateShareImage = async (_req: Request, res: TypedResponse, next: NextFunction) => {
   try {
     const username = res.locals.username;
-    const { bookTitles, movieTitles } = await db.task('generateShareImage', async (t) => {
-      const bookTitles = await getTop10BookTitles(t, username);
-      const movieTitles = await getTop10MovieTitles(t, username);
-      return { bookTitles, movieTitles };
-    });
+    const { bookTitles, movieTitles, profilePicturePath } = await db.task(
+      'generateShareImage',
+      async (t) => {
+        const bookTitles = await getTop10BookTitles(t, username);
+        const movieTitles = await getTop10MovieTitles(t, username);
+        const profilePicturePath = await findProfilePictureByUsername(t, username);
+        return { bookTitles, movieTitles, profilePicturePath };
+      },
+    );
 
     if (bookTitles.length === 0 && movieTitles.length === 0) {
       next(new ErrorWithStatus(422, 'profile_error', 'Not enough items for image creation'));
       return;
     }
 
-    const imageBuffer = renderShareImage({ username, bookTitles, movieTitles });
+    let profilePicture: Buffer | undefined;
+    if (profilePicturePath) {
+      try {
+        profilePicture = await sharp(profilePicturePath).jpeg().toBuffer();
+      } catch (error) {
+        Logger.warn("Couldn't load profile picture for share image", { error });
+      }
+    }
+
+    const imageBuffer = await renderShareImage({
+      username,
+      bookTitles,
+      movieTitles,
+      profilePicture,
+    });
     const shareImagePath = getShareItemPath(res.locals.userId);
     const shareId = generateShareId();
 
