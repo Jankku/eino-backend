@@ -3,12 +3,15 @@ import { ZodError } from 'zod/v4';
 import { $ZodIssue } from 'zod/v4/core';
 import { Response } from 'express';
 import { Role } from '../db/role';
+import { ListQuery, Pagination } from './pagination';
 
 type AuthLocals = {
   userId: string;
   isDisabled: boolean;
   username: string;
   role: Role['name'];
+  pagination?: Pagination;
+  listQuery?: ListQuery;
 };
 
 export type TypedResponse<T extends z.ZodType = never> = Response<

@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: Eino
   description: Eino API docs
-  version: 2.5.0
+  version: 2.6.0
   license:
     name: MIT
     url: https://github.com/Jankku/eino-backend/blob/master/LICENSE.md
@@ -54,6 +54,9 @@ paths:
               schema: {}
   /admin/audits:
     get:
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
       tags:
         - admin
       summary: Get all audit log entries
@@ -65,7 +68,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuditLogResponse'
+                allOf:
+                  - $ref: '#/components/schemas/AuditLogResponse'
+                  - $ref: '#/components/schemas/OptionalPagination'
         '500':
           $ref: '#/components/responses/InternalServerError'
         '401':
@@ -77,6 +82,9 @@ paths:
       description: Requires an enabled account with the admin role.
   /admin/users:
     get:
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
       tags:
         - admin
       summary: Get all users
@@ -88,7 +96,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UsersResponse'
+                allOf:
+                  - $ref: '#/components/schemas/UsersResponse'
+                  - $ref: '#/components/schemas/OptionalPagination'
         '500':
           $ref: '#/components/responses/InternalServerError'
         '401':
@@ -952,6 +962,8 @@ paths:
   /list/books/{status}:
     get:
       parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
         - name: status
           in: path
           required: true
@@ -994,6 +1006,13 @@ paths:
       tags:
         - books
       summary: Get books by status
+      description: >-
+        Use status=all for the complete list. Supplying page or pageSize opts into database
+        pagination; otherwise the legacy full results response is unchanged. Sorting and
+        filtering apply before pagination. Paginated text sorting uses English ICU collation;
+        nulls and empty text sort last in either direction, with book_id ascending as a
+        tie-breaker. Invalid pagination, sort, order, or filter values return 422 when
+        pagination is enabled.
       security:
         - BearerAuth: []
       responses:
@@ -1002,7 +1021,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BookResponse'
+                allOf:
+                  - $ref: '#/components/schemas/BookResponse'
+                  - $ref: '#/components/schemas/OptionalPagination'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
@@ -1214,6 +1235,8 @@ paths:
   /list/movies/{status}:
     get:
       parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
         - name: status
           in: path
           required: true
@@ -1257,6 +1280,13 @@ paths:
       tags:
         - movies
       summary: Get movies by status
+      description: >-
+        Use status=all for the complete list. Supplying page or pageSize opts into database
+        pagination; otherwise the legacy full results response is unchanged. Sorting and
+        filtering apply before pagination. Paginated text sorting uses English ICU collation;
+        nulls and empty text sort last in either direction, with movie_id ascending as a
+        tie-breaker. Invalid pagination, sort, order, or filter values return 422 when
+        pagination is enabled.
       security:
         - BearerAuth: []
       responses:
@@ -1265,7 +1295,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MovieResponse'
+                allOf:
+                  - $ref: '#/components/schemas/MovieResponse'
+                  - $ref: '#/components/schemas/OptionalPagination'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
@@ -1542,6 +1574,9 @@ paths:
           $ref: '#/components/responses/ValidationError'
   /admin/bulletins:
     get:
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
       tags:
         - admin
       summary: Get all bulletins
@@ -1553,7 +1588,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BulletinResponse'
+                allOf:
+                  - $ref: '#/components/schemas/BulletinResponse'
+                  - $ref: '#/components/schemas/OptionalPagination'
         '500':
           $ref: '#/components/responses/InternalServerError'
         '401':
@@ -1689,7 +1726,57 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 components:
+  parameters:
+    Page:
+      name: page
+      in: query
+      description: >-
+        Positive page number. Supplying page or pageSize enables pagination; omitting both
+        preserves the full legacy response. Defaults to 1 only when pagination is enabled.
+        The offset (page - 1) * pageSize must be a safe integer. Invalid values return 422.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 9007199254740991
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      description: >-
+        Number of rows per page. Defaults to 50 only when pagination is enabled.
+        Values outside 1 through 100, fractions, and repeated parameters return 422.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
   schemas:
+    OptionalPagination:
+      type: object
+      description: >-
+        The pagination property is present only when page or pageSize is supplied.
+        Totals count all matching rows before pagination, using the same snapshot as
+        the returned page. Empty results have totalPages=0; out-of-range pages return
+        an empty results array and retain the actual totals. Concurrent writes can
+        shift rows between separate page requests.
+      properties:
+        pagination:
+          type: object
+          required: [page, pageSize, total, totalPages]
+          properties:
+            page:
+              type: integer
+              minimum: 1
+            pageSize:
+              type: integer
+              minimum: 1
+              maximum: 100
+            total:
+              type: integer
+              minimum: 0
+            totalPages:
+              type: integer
+              minimum: 0
     Username:
       type: string
       minLength: 3

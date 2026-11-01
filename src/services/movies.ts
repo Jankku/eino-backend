@@ -5,6 +5,7 @@ import {
   getAllMovies,
   getMovieById,
   getMoviesByStatus,
+  getMoviesPage,
   likeSearch,
   postMovie,
   postMovieToUserList,
@@ -37,6 +38,33 @@ import {
 import { getItemFilter, itemSorter } from '../util/sort';
 import { addAudit } from '../db/audit';
 import { fillMovieStatuses, StatusCountRow } from '../util/status';
+import { paginationMode } from '../db/pagination';
+
+export const fetchPage = async (
+  req: Request,
+  res: TypedResponse<typeof fetchByStatusSchema>,
+  next: NextFunction,
+) => {
+  const { pagination, listQuery, username } = res.locals;
+  if (!pagination || !listQuery) {
+    next();
+    return;
+  }
+  try {
+    const page = await db.tx({ mode: paginationMode }, (t) =>
+      getMoviesPage(t, {
+        username,
+        pagination,
+        listQuery,
+        status: req.params.status ? res.locals.input.params.status : undefined,
+      }),
+    );
+    res.status(200).json(page);
+  } catch (error) {
+    Logger.error((error as Error).stack);
+    next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't find movies"));
+  }
+};
 
 export const fetchOne = async (
   _: Request,

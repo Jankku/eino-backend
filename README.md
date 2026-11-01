@@ -13,6 +13,38 @@ Eino
 
 You can find the Swagger API documentation [here](https://eino.jankku.fi/api/v2/docs/).
 
+### Optional v2 pagination
+
+Pagination is available on `/api/v2/list/books/{status}` and
+`/api/v2/list/movies/{status}` (including `all`), and on the admin `users`, `audits`,
+and `bulletins` GET endpoints. For example:
+
+```text
+GET /api/v2/list/books/all?page=2&pageSize=25&sort=title&order=ascending
+```
+
+Supplying either `page` or `pageSize` enables pagination, defaulting the omitted
+value to `1` or `50`, respectively. Both must be positive integers and `pageSize`
+must not exceed `100`; invalid values return `422`. The response retains `results`
+and adds `pagination: { page, pageSize, total, totalPages }`. Totals reflect all
+matching rows; out-of-range pages return an empty array, and an empty collection
+has `totalPages: 0`. Omitting both parameters preserves the full legacy response.
+The v1 API is unchanged, including ignoring pagination parameters.
+
+Book/movie sorting and filtering run before pagination. Paginated text uses
+English ICU collation; nulls and empty text sort last in either direction. IDs
+ascending break ties. Date-only filters use the application server's calendar
+timezone, while timestamp filters compare instants at JavaScript millisecond
+precision. Invalid sort/order/filter values return `422` only in paginated mode.
+Admin users retain username ordering; audits and bulletins use creation time
+ascending with IDs as tie-breakers. Row totals and page contents share one
+read-only snapshot, but concurrent writes can shift rows between page requests.
+
+Apply database migrations before enabling paginated clients. The pagination
+migration requires PostgreSQL ICU support (included in the project's PostgreSQL
+Docker image), creates an English collation, and indexes audit creation time/ID.
+No additional runtime dependency is required.
+
 ## Features
 
 - Authentication and authorization

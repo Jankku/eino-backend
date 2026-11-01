@@ -1,4 +1,6 @@
 import { ITask } from 'pg-promise';
+import { getPage } from './pagination';
+import { Pagination } from '../util/pagination';
 
 export const auditAction = {
   REGISTER: 'register',
@@ -59,6 +61,14 @@ export type DbAudit = Omit<Audit, 'actor_user_id' | 'username'> & {
 export const getAllAudits = async (t: ITask<unknown>): Promise<DbAudit[]> => {
   return await t.any('SELECT * FROM audit_log ORDER BY created_on ASC');
 };
+
+export const getAuditsPage = (t: ITask<unknown>, pagination: Pagination) =>
+  getPage<DbAudit>(t, {
+    query: 'SELECT * FROM audit_log',
+    pagination,
+    idColumn: 'id',
+    listQuery: { sort: 'created_on', order: 'ascending' },
+  });
 
 export const getAuditsByActorUserId = async (
   t: ITask<unknown>,
