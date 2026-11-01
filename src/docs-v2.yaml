@@ -755,9 +755,7 @@ paths:
       tags:
         - profile
       summary: Upload profile picture
-      description: >-
-        Requires a non-empty picture file. Missing or empty uploads are rejected without changing
-        the current picture. Use DELETE to remove it.
+      description: Requires a non-empty picture file. Missing or empty uploads are rejected without changing the current picture. Use DELETE to remove it.
       security:
         - BearerAuth: []
       requestBody:
@@ -1006,13 +1004,6 @@ paths:
       tags:
         - books
       summary: Get books by status
-      description: >-
-        Use status=all for the complete list. Supplying page or pageSize opts into database
-        pagination; otherwise the legacy full results response is unchanged. Sorting and
-        filtering apply before pagination. Paginated text sorting uses English ICU collation;
-        nulls and empty text sort last in either direction, with book_id ascending as a
-        tie-breaker. Invalid pagination, sort, order, or filter values return 422 when
-        pagination is enabled.
       security:
         - BearerAuth: []
       responses:
@@ -1280,13 +1271,6 @@ paths:
       tags:
         - movies
       summary: Get movies by status
-      description: >-
-        Use status=all for the complete list. Supplying page or pageSize opts into database
-        pagination; otherwise the legacy full results response is unchanged. Sorting and
-        filtering apply before pagination. Paginated text sorting uses English ICU collation;
-        nulls and empty text sort last in either direction, with movie_id ascending as a
-        tie-breaker. Invalid pagination, sort, order, or filter values return 422 when
-        pagination is enabled.
       security:
         - BearerAuth: []
       responses:
@@ -1730,10 +1714,6 @@ components:
     Page:
       name: page
       in: query
-      description: >-
-        Positive page number. Supplying page or pageSize enables pagination; omitting both
-        preserves the full legacy response. Defaults to 1 only when pagination is enabled.
-        The offset (page - 1) * pageSize must be a safe integer. Invalid values return 422.
       schema:
         type: integer
         minimum: 1
@@ -1742,9 +1722,6 @@ components:
     PageSize:
       name: pageSize
       in: query
-      description: >-
-        Number of rows per page. Defaults to 50 only when pagination is enabled.
-        Values outside 1 through 100, fractions, and repeated parameters return 422.
       schema:
         type: integer
         minimum: 1
@@ -1753,12 +1730,6 @@ components:
   schemas:
     OptionalPagination:
       type: object
-      description: >-
-        The pagination property is present only when page or pageSize is supplied.
-        Totals count all matching rows before pagination, using the same snapshot as
-        the returned page. Empty results have totalPages=0; out-of-range pages return
-        an empty results array and retain the actual totals. Concurrent writes can
-        shift rows between separate page requests.
       properties:
         pagination:
           type: object
