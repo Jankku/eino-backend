@@ -374,7 +374,7 @@ export const forgotPassword = async (
         await deleteVerification(t, { target: email, type: 'password_reset' });
       }
 
-      const { otp, secret, algorithm, digits, period, created_on } = await generateTOTP({
+      const { otp, secret, algorithm, digits, period, created_on } = generateTOTP({
         label: email,
       });
 
@@ -586,7 +586,7 @@ export const generate2FAUrl = async (req: Request, res: TypedResponse, next: Nex
         await deleteVerification(t, { target: user.username, type: '2fa' });
       }
 
-      const { totpUrl, secret, digits, period, algorithm, label } = await generateTOTP({
+      const { totpUrl, secret, digits, period, algorithm, label } = generateTOTP({
         label: user.username,
       });
 

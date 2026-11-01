@@ -19,7 +19,7 @@ export const editUserSchema = z
       username: usernameSchema,
       email: optionalEmailSchema,
       email_verified_on: dateSchema.nullable(),
-      role_id: z.number().int().positive(),
+      role_id: z.int().positive(),
       profile_picture_path: z.string().nullable(),
       totp_enabled_on: dateSchema.nullable(),
     }),

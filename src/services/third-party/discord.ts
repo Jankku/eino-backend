@@ -1,22 +1,25 @@
-import axios from 'axios';
 import { config } from '../../config';
 import { DbAudit } from '../../db/audit';
 import { Logger } from '../../util/logger';
 import { auditToDiscordEmbed } from '../../util/audit';
+import { fetchResponse, HttpError } from '../../util/http';
 
 export const sendAuditsToDiscord = async (audits: DbAudit[]): Promise<void> => {
   if (!config.DISCORD_AUDIT_LOG_WEBHOOK_URL) return;
 
   try {
-    await axios.post(new URL(config.DISCORD_AUDIT_LOG_WEBHOOK_URL).href, {
-      embeds: audits.map((audit) => auditToDiscordEmbed(audit)),
+    const response = await fetchResponse(config.DISCORD_AUDIT_LOG_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ embeds: audits.map((audit) => auditToDiscordEmbed(audit)) }),
     });
+    await response.body?.cancel();
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      Logger.error(
-        `Failed to send audit log to Discord webhook: ${error.response?.status} ${error.response?.statusText}`,
-        { error: error.toJSON(), audits },
-      );
-    }
+    const status =
+      error instanceof HttpError ? `${error.status} ${error.statusText}` : 'request failed';
+    Logger.error(`Failed to send audit log to Discord webhook: ${status}`, {
+      error: error instanceof Error ? { message: error.message, stack: error.stack } : error,
+      audits,
+    });
   }
 };

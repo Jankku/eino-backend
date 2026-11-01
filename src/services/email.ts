@@ -126,7 +126,7 @@ export const sendConfirmationEmail = async (
         throw new ErrorWithStatus(422, 'email_already_verified', 'Email already verified');
       }
 
-      const totp = await generateTOTP({
+      const totp = generateTOTP({
         label: user.email,
         period: 60 * 15, // 15 minutes
       });

@@ -1,8 +1,14 @@
 import { z } from 'zod';
-import dotenv from 'dotenv';
+import { loadEnvFile } from 'node:process';
 import { nonEmptyString } from './util/zodschema';
 
-dotenv.config({ quiet: true });
+try {
+  loadEnvFile();
+} catch (error) {
+  if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) {
+    throw error;
+  }
+}
 
 const tokenSecretSchema = nonEmptyString.refine(
   (value) => value === value.trim() && Buffer.byteLength(value, 'utf8') >= 32,
@@ -36,7 +42,7 @@ const tokenValiditySchema = z
       }
     }
   })
-  .pipe(z.number().int().positive());
+  .pipe(z.int().positive());
 
 const configSchema = z
   .object({

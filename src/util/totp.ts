@@ -1,5 +1,4 @@
 import * as OTPAuth from 'otpauth';
-import crypto from 'node:crypto';
 
 type TOTPConfig = {
   otp: string;
@@ -15,20 +14,14 @@ type TOTPConfigWithLabel = TOTPConfig & {
 
 const TOTP_ISSUER = 'Eino';
 
-const generateSecret = async () => {
-  const rfc = await import('rfc4648');
-  return rfc.base32.stringify(crypto.randomBytes(20));
-};
-
-export const generateTOTP = async (config: Partial<TOTPConfigWithLabel>) => {
-  const secret = await generateSecret();
+export const generateTOTP = (config: Partial<TOTPConfigWithLabel>) => {
   const defaults = {
     issuer: TOTP_ISSUER,
     algorithm: 'SHA1',
     digits: 6,
     period: 30, // 30 seconds
-    secret: OTPAuth.Secret.fromBase32(secret),
-  };
+    secret: new OTPAuth.Secret({ size: 20 }),
+  } satisfies Partial<OTPAuth.TOTP>;
   const totp = new OTPAuth.TOTP({
     ...defaults,
     ...config,

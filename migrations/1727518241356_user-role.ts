@@ -1,10 +1,7 @@
 /* eslint-disable unicorn/filename-case */
 /* eslint-disable @typescript-eslint/require-await */
 import { MigrationBuilder, ColumnDefinitions } from 'node-pg-migrate';
-import dotenv from 'dotenv';
 import * as bcrypt from 'bcrypt';
-
-dotenv.config();
 
 export const shorthands: ColumnDefinitions | undefined = undefined;
 

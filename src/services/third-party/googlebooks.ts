@@ -1,9 +1,9 @@
-import axios from 'axios';
 import { z } from 'zod';
 import { BookFormSchema } from '../../db/model/book';
 import { DateTime } from 'luxon';
 import { languageCodeSchema } from '../../util/zodschema';
 import { config } from '../../config';
+import { fetchJson } from '../../util/http';
 
 const googleBooksSchema = z.object({
   items: z.array(
@@ -57,13 +57,13 @@ export const fetchGoogleBooksByIsbn = async (isbn: string): Promise<BookFormSche
   if (!config.GOOGLE_BOOKS_API_KEY) {
     return [];
   }
-  const response = await axios.get('https://www.googleapis.com/books/v1/volumes', {
-    params: {
-      key: config.GOOGLE_BOOKS_API_KEY,
-      q: `isbn:${isbn}`,
-      maxResults: 5,
-    },
-  });
-  const validated = googleBooksSchema.safeParse(response.data);
+  const url = new URL('https://www.googleapis.com/books/v1/volumes');
+  url.search = new URLSearchParams({
+    key: config.GOOGLE_BOOKS_API_KEY,
+    q: `isbn:${isbn}`,
+    maxResults: '5',
+  }).toString();
+  const response = await fetchJson(url);
+  const validated = googleBooksSchema.safeParse(response);
   return validated.success ? validated.data.items.map((book) => googleBookToBook(book)) : [];
 };

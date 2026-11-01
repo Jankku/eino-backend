@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { z } from 'zod';
 import { cachified } from '@epic-web/cachified';
 import { cache, stringArrayCacheSchema, getCacheKey } from '../../util/cache';
@@ -7,6 +6,7 @@ import { LanguageCode } from '../../util/languages';
 import { languageCodeSchema } from '../../util/zodschema';
 import { DateTime } from 'luxon';
 import { Logger } from '../../util/logger';
+import { fetchJson } from '../../util/http';
 
 const numberOrZero = (value: string | undefined) => {
   if (!value) {
@@ -57,8 +57,8 @@ const fetchOpenLibraryAuthorName = async (authorKey: string): Promise<string> =>
     key: getCacheKey('openlibrary-author', authorKey),
     checkValue: z.string(),
     async getFreshValue(context) {
-      const response = await axios.get(`https://openlibrary.org${authorKey}.json`);
-      const validated = openLibraryAuthorSchema.safeParse(response.data);
+      const response = await fetchJson(`https://openlibrary.org${authorKey}.json`);
+      const validated = openLibraryAuthorSchema.safeParse(response);
       if (!validated.success) {
         context.metadata.ttl = -1;
         throw new Error('Invalid author data from Open Library', { cause: validated.error.cause });
@@ -74,8 +74,8 @@ const fetchOpenLibraryLanguageToIso639Code = async (languageKey: string): Promis
     key: getCacheKey('openlibrary-language', languageKey),
     checkValue: languageCodeSchema,
     async getFreshValue(context) {
-      const response = await axios.get(`https://openlibrary.org${languageKey}.json`);
-      const validated = openLibraryLanguageSchema.safeParse(response.data);
+      const response = await fetchJson(`https://openlibrary.org${languageKey}.json`);
+      const validated = openLibraryLanguageSchema.safeParse(response);
       if (!validated.success) {
         context.metadata.ttl = -1;
         throw new Error('Invalid language data from Open Library', {
@@ -107,8 +107,8 @@ const openLibraryEditionToBook = (
 };
 
 export const fetchOpenLibraryEditionsByIsbn = async (isbn: string): Promise<BookFormSchema[]> => {
-  const editionResponse = await axios.get(`https://openlibrary.org/isbn/${isbn}.json`);
-  const validatedEdition = openLibraryEditionSchema.safeParse(editionResponse.data);
+  const editionResponse = await fetchJson(`https://openlibrary.org/isbn/${isbn}.json`);
+  const validatedEdition = openLibraryEditionSchema.safeParse(editionResponse);
   if (!validatedEdition.success) {
     return [];
   }
@@ -127,21 +127,19 @@ export const fetchOpenLibraryImages = async (query: string): Promise<string[]> =
     key: getCacheKey('openlibrary-image', query),
     checkValue: stringArrayCacheSchema,
     async getFreshValue(context) {
-      const response = await axios.get('https://openlibrary.org/search.json', {
-        params: {
-          q: query,
-          limit: 40,
-          fields: ['cover_i'],
-        },
-      });
-      const validated = openLibraryImageSchema.safeParse(response.data);
+      const url = new URL('https://openlibrary.org/search.json');
+      url.search = new URLSearchParams({
+        q: query,
+        limit: '40',
+        'fields[]': 'cover_i',
+      }).toString();
+      const response = await fetchJson(url);
+      const validated = openLibraryImageSchema.safeParse(response);
       if (!validated.success) {
         context.metadata.ttl = -1;
         Logger.error('Invalid Open Library image data', {
-          error: {
-            message: validated.error.message,
-            stack: validated.error.stack,
-          },
+          query,
+          issues: validated.error.issues,
         });
         return [];
       }
