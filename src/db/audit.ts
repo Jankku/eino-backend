@@ -59,7 +59,7 @@ export type DbAudit = Omit<Audit, 'actor_user_id' | 'username'> & {
 };
 
 export const getAllAudits = async (t: ITask<unknown>): Promise<DbAudit[]> => {
-  return await t.any('SELECT * FROM audit_log ORDER BY created_on ASC');
+  return await t.any('SELECT * FROM audit_log ORDER BY created_on DESC');
 };
 
 export const getAuditsPage = (t: ITask<unknown>, pagination: Pagination) =>
@@ -67,7 +67,7 @@ export const getAuditsPage = (t: ITask<unknown>, pagination: Pagination) =>
     query: 'SELECT * FROM audit_log',
     pagination,
     idColumn: 'id',
-    listQuery: { sort: 'created_on', order: 'ascending' },
+    listQuery: { sort: 'created_on', order: 'descending' },
   });
 
 export const getAuditsByActorUserId = async (
