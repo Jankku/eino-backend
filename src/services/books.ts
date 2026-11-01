@@ -48,7 +48,7 @@ export const fetchPage = async (
   res: TypedResponse<typeof fetchByStatusSchema>,
   next: NextFunction,
 ) => {
-  const { input, pagination, listQuery, username } = res.locals;
+  const { pagination, listQuery, username } = res.locals;
   if (!pagination || !listQuery) {
     next();
     return;
@@ -59,7 +59,7 @@ export const fetchPage = async (
         username,
         pagination,
         listQuery,
-        status: input.params.status,
+        status: req.params.status ? res.locals.input.params.status : undefined,
       }),
     );
     res.status(200).json(page);
