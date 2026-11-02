@@ -1,11 +1,11 @@
-import { Book, DbBook } from './model/book';
+import { Book, DbBook, bookDateKeySchema, bookStringKeySchema } from './model/book';
 import { BookStatus } from './model/bookstatus';
 import { ITask } from 'pg-promise';
 import { prefixSearchQuery } from './search';
+import { getPage } from './pagination';
+import { ListQuery, Pagination } from '../util/pagination';
 
-export const getAllBooks = async (t: ITask<unknown>, username: string): Promise<DbBook[]> => {
-  return await t.any({
-    text: `SELECT b.book_id,
+const booksQuery = `SELECT b.book_id,
                   b.isbn,
                   b.title,
                   b.author,
@@ -24,11 +24,27 @@ export const getAllBooks = async (t: ITask<unknown>, username: string): Promise<
                     INNER JOIN books b USING (book_id)
            WHERE ubl.username = b.submitter
              AND ubl.username = $1
-             AND b.submitter = $1
-           ORDER BY b.title`,
+             AND b.submitter = $1`;
+
+export const getAllBooks = async (t: ITask<unknown>, username: string): Promise<DbBook[]> => {
+  return await t.any({
+    text: `${booksQuery} ORDER BY b.title`,
     values: [username],
   });
 };
+
+export const getBooksPage = (
+  t: ITask<unknown>,
+  options: { username: string; status?: BookStatus; pagination: Pagination; listQuery: ListQuery },
+) =>
+  getPage<DbBook>(t, {
+    ...options,
+    query: `${booksQuery}${options.status ? ' AND ubl.status = $2' : ''}`,
+    values: options.status ? [options.username, options.status] : [options.username],
+    idColumn: 'book_id',
+    stringKeys: bookStringKeySchema.options,
+    dateKeys: bookDateKeySchema.options,
+  });
 
 export const getBookById = async (
   t: ITask<unknown>,

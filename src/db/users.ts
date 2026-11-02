@@ -3,6 +3,8 @@ import { generatePasswordHash, verifyPassword } from '../util/password';
 import { Logger } from '../util/logger';
 import { getProfilePicturePathByFileName } from '../util/profilepicture';
 import { roleIdToName } from '../util/role';
+import { getPage } from './pagination';
+import { Pagination } from '../util/pagination';
 
 export type User = {
   user_id: string;
@@ -24,15 +26,29 @@ export type UserWithRoleName = Omit<User, 'password' | 'role_modified_on'> & {
   argon2id_migrated: boolean;
 };
 
-export const getAllUsers = async (t: ITask<unknown>): Promise<UserWithRoleName[]> => {
-  return await t.map(
-    `SELECT user_id, username, role_id, profile_picture_path, email, email_verified_on,
+const usersQuery = `SELECT user_id, username, role_id, profile_picture_path, email, email_verified_on,
             disabled_on, totp_enabled_on, last_login_on, created_on,
             password LIKE '$argon2id$%' AS argon2id_migrated
-     FROM users ORDER BY username ASC`,
-    undefined,
-    (row) => ({ ...row, role: roleIdToName(row.role_id as number) }),
-  );
+     FROM users`;
+
+export const getAllUsers = async (t: ITask<unknown>): Promise<UserWithRoleName[]> => {
+  return await t.map(`${usersQuery} ORDER BY username ASC`, undefined, (row) => ({
+    ...row,
+    role: roleIdToName(row.role_id as number),
+  }));
+};
+
+export const getUsersPage = async (t: ITask<unknown>, pagination: Pagination) => {
+  const page = await getPage<Omit<UserWithRoleName, 'role'>>(t, {
+    query: usersQuery,
+    pagination,
+    idColumn: 'user_id',
+    listQuery: { sort: 'username', order: 'ascending' },
+  });
+  return {
+    ...page,
+    results: page.results.map((user) => ({ ...user, role: roleIdToName(user.role_id) })),
+  };
 };
 
 export const findUserByCredential = async (

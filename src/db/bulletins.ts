@@ -1,5 +1,7 @@
 import { ITask } from 'pg-promise';
 import { pgp } from './config';
+import { getPage } from './pagination';
+import { Pagination } from '../util/pagination';
 
 export const bulletinTypes = ['success', 'info', 'warning', 'error'] as const;
 export type BulletinType = (typeof bulletinTypes)[number];
@@ -34,6 +36,14 @@ export type DbBulletin = Bulletin & {
 export const getAllBulletins = async (t: ITask<unknown>): Promise<DbBulletin[]> => {
   return await t.any('SELECT * FROM bulletins');
 };
+
+export const getBulletinsPage = (t: ITask<unknown>, pagination: Pagination) =>
+  getPage<DbBulletin>(t, {
+    query: 'SELECT * FROM bulletins',
+    pagination,
+    idColumn: 'id',
+    listQuery: { sort: 'created_on', order: 'ascending' },
+  });
 
 // Lock the parent row so concurrent edits cannot mix audit snapshots and recipients.
 export const getBulletinForAudit = async (

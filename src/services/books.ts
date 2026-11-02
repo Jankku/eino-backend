@@ -5,6 +5,7 @@ import {
   getAllBooks,
   getBookById,
   getBooksByStatus,
+  getBooksPage,
   likeSearch,
   postBook,
   postBookToUserList,
@@ -40,6 +41,33 @@ import { addAudit } from '../db/audit';
 import { fillBookStatuses, StatusCountRow } from '../util/status';
 import { fetchGoogleBooksByIsbn } from './third-party/googlebooks';
 import { firstNonEmpty } from '../util/promise';
+import { paginationMode } from '../db/pagination';
+
+export const fetchPage = async (
+  req: Request,
+  res: TypedResponse<typeof fetchByStatusSchema>,
+  next: NextFunction,
+) => {
+  const { pagination, listQuery, username } = res.locals;
+  if (!pagination || !listQuery) {
+    next();
+    return;
+  }
+  try {
+    const page = await db.tx({ mode: paginationMode }, (t) =>
+      getBooksPage(t, {
+        username,
+        pagination,
+        listQuery,
+        status: req.params.status ? res.locals.input.params.status : undefined,
+      }),
+    );
+    res.status(200).json(page);
+  } catch (error) {
+    Logger.error((error as Error).stack);
+    next(new ErrorWithStatus(422, 'book_list_error', "Couldn't find books"));
+  }
+};
 
 export const fetchOne = async (
   _: Request,

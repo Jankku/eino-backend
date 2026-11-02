@@ -1,11 +1,11 @@
-import { Movie, DbMovie } from './model/movie';
+import { Movie, DbMovie, movieDateKeySchema, movieStringKeySchema } from './model/movie';
 import { MovieStatus } from './model/moviestatus';
 import { ITask } from 'pg-promise';
 import { prefixSearchQuery } from './search';
+import { getPage } from './pagination';
+import { ListQuery, Pagination } from '../util/pagination';
 
-export const getAllMovies = async (t: ITask<unknown>, username: string): Promise<DbMovie[]> => {
-  return await t.any({
-    text: `SELECT m.movie_id,
+const moviesQuery = `SELECT m.movie_id,
                   m.title,
                   m.studio,
                   m.director,
@@ -22,11 +22,27 @@ export const getAllMovies = async (t: ITask<unknown>, username: string): Promise
            FROM user_movie_list uml
                     INNER JOIN movies m USING (movie_id)
            WHERE uml.username = m.submitter
-             AND uml.username = $1
-           ORDER BY m.title`,
+             AND uml.username = $1`;
+
+export const getAllMovies = async (t: ITask<unknown>, username: string): Promise<DbMovie[]> => {
+  return await t.any({
+    text: `${moviesQuery} ORDER BY m.title`,
     values: [username],
   });
 };
+
+export const getMoviesPage = (
+  t: ITask<unknown>,
+  options: { username: string; status?: MovieStatus; pagination: Pagination; listQuery: ListQuery },
+) =>
+  getPage<DbMovie>(t, {
+    ...options,
+    query: `${moviesQuery}${options.status ? ' AND uml.status = $2' : ''}`,
+    values: options.status ? [options.username, options.status] : [options.username],
+    idColumn: 'movie_id',
+    stringKeys: movieStringKeySchema.options,
+    dateKeys: movieDateKeySchema.options,
+  });
 
 export const getMovieById = async (
   t: ITask<unknown>,

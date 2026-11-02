@@ -3,11 +3,13 @@ import { TypedResponse } from '../util/zod';
 import { success } from '../util/response';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { db } from '../db/config';
-import { addAudit, getAllAudits } from '../db/audit';
+import { addAudit, getAllAudits, getAuditsPage } from '../db/audit';
+import { paginationMode } from '../db/pagination';
 import { Logger } from '../util/logger';
 import {
   findProfilePictureByUsername,
   getAllUsers,
+  getUsersPage,
   getUserById,
   updateProfilePicturePath,
 } from '../db/users';
@@ -25,6 +27,7 @@ import {
   createBulletin,
   deleteBulletin,
   getAllBulletins,
+  getBulletinsPage,
   getBulletinForAudit,
   insertBulletinUsers,
   updateBulletin,
@@ -33,6 +36,12 @@ import {
 
 export const getUsers = async (_: Request, res: TypedResponse, next: NextFunction) => {
   try {
+    const { pagination } = res.locals;
+    if (pagination) {
+      const page = await db.tx({ mode: paginationMode }, (t) => getUsersPage(t, pagination));
+      res.status(200).json(page);
+      return;
+    }
     const users = await db.task((t) => getAllUsers(t));
     res.status(200).json(success(users));
   } catch (error) {
@@ -43,6 +52,12 @@ export const getUsers = async (_: Request, res: TypedResponse, next: NextFunctio
 
 export const getAuditLogs = async (_: Request, res: TypedResponse, next: NextFunction) => {
   try {
+    const { pagination } = res.locals;
+    if (pagination) {
+      const page = await db.tx({ mode: paginationMode }, (t) => getAuditsPage(t, pagination));
+      res.status(200).json(page);
+      return;
+    }
     const audits = await db.task((t) => getAllAudits(t));
     res.status(200).json(success(audits));
   } catch (error) {
@@ -209,6 +224,12 @@ export const deleteUser = async (
 
 export const getBulletins = async (_: Request, res: TypedResponse, next: NextFunction) => {
   try {
+    const { pagination } = res.locals;
+    if (pagination) {
+      const page = await db.tx({ mode: paginationMode }, (t) => getBulletinsPage(t, pagination));
+      res.status(200).json(page);
+      return;
+    }
     const bulletins = await db.task('getBulletins', async (t) => await getAllBulletins(t));
     res.status(200).json(success(bulletins));
   } catch (error) {

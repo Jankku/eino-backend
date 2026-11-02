@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: Eino
   description: Eino API docs
-  version: 2.5.0
+  version: 2.6.0
   license:
     name: MIT
     url: https://github.com/Jankku/eino-backend/blob/master/LICENSE.md
@@ -54,6 +54,9 @@ paths:
               schema: {}
   /admin/audits:
     get:
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
       tags:
         - admin
       summary: Get all audit log entries
@@ -65,7 +68,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuditLogResponse'
+                allOf:
+                  - $ref: '#/components/schemas/AuditLogResponse'
+                  - $ref: '#/components/schemas/OptionalPagination'
         '500':
           $ref: '#/components/responses/InternalServerError'
         '401':
@@ -77,6 +82,9 @@ paths:
       description: Requires an enabled account with the admin role.
   /admin/users:
     get:
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
       tags:
         - admin
       summary: Get all users
@@ -88,7 +96,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UsersResponse'
+                allOf:
+                  - $ref: '#/components/schemas/UsersResponse'
+                  - $ref: '#/components/schemas/OptionalPagination'
         '500':
           $ref: '#/components/responses/InternalServerError'
         '401':
@@ -745,9 +755,7 @@ paths:
       tags:
         - profile
       summary: Upload profile picture
-      description: >-
-        Requires a non-empty picture file. Missing or empty uploads are rejected without changing
-        the current picture. Use DELETE to remove it.
+      description: Requires a non-empty picture file. Missing or empty uploads are rejected without changing the current picture. Use DELETE to remove it.
       security:
         - BearerAuth: []
       requestBody:
@@ -952,6 +960,8 @@ paths:
   /list/books/{status}:
     get:
       parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
         - name: status
           in: path
           required: true
@@ -1002,7 +1012,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BookResponse'
+                allOf:
+                  - $ref: '#/components/schemas/BookResponse'
+                  - $ref: '#/components/schemas/OptionalPagination'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
@@ -1214,6 +1226,8 @@ paths:
   /list/movies/{status}:
     get:
       parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
         - name: status
           in: path
           required: true
@@ -1265,7 +1279,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MovieResponse'
+                allOf:
+                  - $ref: '#/components/schemas/MovieResponse'
+                  - $ref: '#/components/schemas/OptionalPagination'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
@@ -1542,6 +1558,9 @@ paths:
           $ref: '#/components/responses/ValidationError'
   /admin/bulletins:
     get:
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
       tags:
         - admin
       summary: Get all bulletins
@@ -1553,7 +1572,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BulletinResponse'
+                allOf:
+                  - $ref: '#/components/schemas/BulletinResponse'
+                  - $ref: '#/components/schemas/OptionalPagination'
         '500':
           $ref: '#/components/responses/InternalServerError'
         '401':
@@ -1689,7 +1710,44 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 components:
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 9007199254740991
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
   schemas:
+    OptionalPagination:
+      type: object
+      properties:
+        pagination:
+          type: object
+          required: [page, pageSize, total, totalPages]
+          properties:
+            page:
+              type: integer
+              minimum: 1
+            pageSize:
+              type: integer
+              minimum: 1
+              maximum: 100
+            total:
+              type: integer
+              minimum: 0
+            totalPages:
+              type: integer
+              minimum: 0
     Username:
       type: string
       minLength: 3
