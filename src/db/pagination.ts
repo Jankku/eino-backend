@@ -13,6 +13,7 @@ type PageOptions = {
   values?: unknown[];
   pagination: Pagination;
   idColumn: string;
+  secondarySort?: string;
   listQuery: ListQuery;
   stringKeys?: readonly string[];
   dateKeys?: readonly string[];
@@ -50,11 +51,7 @@ const filterSql = ({
   return pgp.as.format(`WHERE ${column} ${operator} $1`, [Number(value)]);
 };
 
-const sortColumnSql = ({
-  listQuery: { sort },
-  stringKeys = [],
-  dateKeys = [],
-}: PageOptions): string => {
+const sortColumnSql = ({ stringKeys = [], dateKeys = [] }: PageOptions, sort: string): string => {
   const column = pgp.as.name(sort);
   if (stringKeys.includes(sort)) {
     return `NULLIF(${column}::text, '') COLLATE eino_list_en`;
@@ -64,9 +61,13 @@ const sortColumnSql = ({
 };
 
 const orderBySql = (options: PageOptions): string => {
-  const { listQuery, idColumn } = options;
+  const { listQuery, idColumn, secondarySort } = options;
   const direction = listQuery.order === 'descending' ? 'DESC' : 'ASC';
-  return `ORDER BY ${sortColumnSql(options)} ${direction} NULLS LAST, ${pgp.as.name(idColumn)} ASC`;
+  const secondaryOrder =
+    secondarySort && secondarySort !== listQuery.sort
+      ? `, ${sortColumnSql(options, secondarySort)} ASC NULLS LAST`
+      : '';
+  return `ORDER BY ${sortColumnSql(options, listQuery.sort)} ${direction} NULLS LAST${secondaryOrder}, ${pgp.as.name(idColumn)} ASC`;
 };
 
 export const getPage = async <T>(

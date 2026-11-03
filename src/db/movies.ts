@@ -40,6 +40,7 @@ export const getMoviesPage = (
     query: `${moviesQuery}${options.status ? ' AND uml.status = $2' : ''}`,
     values: options.status ? [options.username, options.status] : [options.username],
     idColumn: 'movie_id',
+    secondarySort: 'title',
     stringKeys: movieStringKeySchema.options,
     dateKeys: movieDateKeySchema.options,
   });

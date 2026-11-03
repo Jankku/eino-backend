@@ -26,7 +26,7 @@ const dateSort = (a: Date, b: Date, order: SortOrder) => {
   return order === 'ascending' ? startDate - endDate : endDate - startDate;
 };
 
-export const itemSorter = ({
+const compareItems = ({
   a,
   b,
   sort,
@@ -44,6 +44,13 @@ export const itemSorter = ({
     return stringSort(a[sort], b[sort], order);
   }
   return isNumber(a[sort]) && isNumber(b[sort]) ? numberSort(a[sort], b[sort], order) : 0;
+};
+
+export const itemSorter = (options: Parameters<typeof compareItems>[0]) => {
+  const result = compareItems(options);
+  return result !== 0 || options.sort === 'title'
+    ? result
+    : compareItems({ ...options, sort: 'title', order: 'ascending' });
 };
 
 const operatorSchema = z.enum(['=', '>', '<']);

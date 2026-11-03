@@ -42,6 +42,7 @@ export const getBooksPage = (
     query: `${booksQuery}${options.status ? ' AND ubl.status = $2' : ''}`,
     values: options.status ? [options.username, options.status] : [options.username],
     idColumn: 'book_id',
+    secondarySort: 'title',
     stringKeys: bookStringKeySchema.options,
     dateKeys: bookDateKeySchema.options,
   });
