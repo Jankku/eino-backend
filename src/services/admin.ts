@@ -5,6 +5,7 @@ import { ErrorWithStatus } from '../util/errorhandler';
 import { db } from '../db/config';
 import { addAudit, getAllAudits, getAuditsPage } from '../db/audit';
 import { paginationMode } from '../db/pagination';
+import { getAdminOverview } from '../db/admin';
 import { Logger } from '../util/logger';
 import {
   findProfilePictureByUsername,
@@ -21,6 +22,8 @@ import {
   editUserSchema,
   enableUserSchema,
   disableUserSchema,
+  overviewSchema,
+  auditQuerySchema,
 } from '../routes/admin/schema';
 import * as fs from 'node:fs/promises';
 import {
@@ -33,6 +36,22 @@ import {
   updateBulletin,
   updateBulletinUsers,
 } from '../db/bulletins';
+
+export const getOverview = async (
+  _: Request,
+  res: TypedResponse<typeof overviewSchema>,
+  next: NextFunction,
+) => {
+  try {
+    const overview = await db.tx({ mode: paginationMode }, (t) =>
+      getAdminOverview(t, res.locals.input.query),
+    );
+    res.status(200).json(success([overview]));
+  } catch (error) {
+    Logger.error((error as Error).stack);
+    next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to get overview'));
+  }
+};
 
 export const getUsers = async (_: Request, res: TypedResponse, next: NextFunction) => {
   try {
@@ -50,15 +69,22 @@ export const getUsers = async (_: Request, res: TypedResponse, next: NextFunctio
   }
 };
 
-export const getAuditLogs = async (_: Request, res: TypedResponse, next: NextFunction) => {
+export const getAuditLogs = async (
+  _: Request,
+  res: TypedResponse<typeof auditQuerySchema>,
+  next: NextFunction,
+) => {
   try {
     const { pagination } = res.locals;
+    const securityEvents = res.locals.input.query.security_events;
     if (pagination) {
-      const page = await db.tx({ mode: paginationMode }, (t) => getAuditsPage(t, pagination));
+      const page = await db.tx({ mode: paginationMode }, (t) =>
+        getAuditsPage(t, pagination, securityEvents),
+      );
       res.status(200).json(page);
       return;
     }
-    const audits = await db.task((t) => getAllAudits(t));
+    const audits = await db.task((t) => getAllAudits(t, securityEvents));
     res.status(200).json(success(audits));
   } catch (error) {
     Logger.error((error as Error).stack);

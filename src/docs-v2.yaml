@@ -52,11 +52,52 @@ paths:
           content:
             application/json:
               schema: {}
+  /admin/overview:
+    get:
+      tags:
+        - admin
+      summary: Get admin overview
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: start_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          example: 2026-10-01
+        - name: end_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          example: 2026-10-31
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminOverviewResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /admin/audits:
     get:
       parameters:
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
+        - name: security_events
+          in: query
+          schema:
+            type: boolean
+            default: false
       tags:
         - admin
       summary: Get all audit log entries
@@ -2308,6 +2349,258 @@ components:
       type: string
       minLength: 6
       maxLength: 6
+    AdminOverviewResponse:
+      type: object
+      required:
+        - results
+      properties:
+        results:
+          type: array
+          minItems: 1
+          maxItems: 1
+          items:
+            $ref: '#/components/schemas/AdminOverview'
+    AdminOverview:
+      type: object
+      required:
+        - generated_on
+        - period
+        - users
+        - books
+        - movies
+        - security_events
+        - recently_active_users
+        - account_security
+        - recent_audit_activity
+        - bulletins
+      properties:
+        generated_on:
+          type: string
+          format: date-time
+        period:
+          type: object
+          required:
+            - start_date
+            - end_date
+            - timezone
+          properties:
+            start_date:
+              type: string
+              format: date
+            end_date:
+              type: string
+              format: date
+            timezone:
+              type: string
+              enum:
+                - UTC
+        users:
+          type: object
+          required:
+            - total
+            - registered
+          properties:
+            total:
+              type: integer
+              minimum: 0
+            registered:
+              type: integer
+              minimum: 0
+        books:
+          type: object
+          required:
+            - total
+            - added
+          properties:
+            total:
+              type: integer
+              minimum: 0
+            added:
+              type: integer
+              minimum: 0
+        movies:
+          type: object
+          required:
+            - total
+            - added
+          properties:
+            total:
+              type: integer
+              minimum: 0
+            added:
+              type: integer
+              minimum: 0
+        security_events:
+          $ref: '#/components/schemas/SecurityEvents'
+        recently_active_users:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminOverviewUser'
+          maxItems: 5
+        account_security:
+          type: object
+          required:
+            - email_verified
+            - email_unverified
+            - two_factor_enabled
+            - two_factor_disabled
+            - disabled_accounts
+          properties:
+            email_verified:
+              type: integer
+              minimum: 0
+            email_unverified:
+              type: integer
+              minimum: 0
+            two_factor_enabled:
+              type: integer
+              minimum: 0
+            two_factor_disabled:
+              type: integer
+              minimum: 0
+            disabled_accounts:
+              type: integer
+              minimum: 0
+        recent_audit_activity:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminOverviewAudit'
+          maxItems: 5
+        bulletins:
+          type: object
+          required:
+            - active
+            - scheduled
+            - items
+          properties:
+            active:
+              type: integer
+              minimum: 0
+            scheduled:
+              type: integer
+              minimum: 0
+            items:
+              type: array
+              items:
+                allOf:
+                  - $ref: '#/components/schemas/Bulletin'
+                  - type: object
+                    required:
+                      - status
+                    properties:
+                      status:
+                        type: string
+                        enum:
+                          - active
+                          - scheduled
+              maxItems: 3
+    SecurityEvents:
+      type: object
+      required:
+        - total
+        - by_action
+      properties:
+        total:
+          type: integer
+          minimum: 0
+        by_action:
+          type: object
+          required:
+            - login_failed
+            - authentication_failed
+            - authorization_denied
+            - two_factor_authentication_failed
+            - password_reset_failed
+            - email_verification_failed
+          additionalProperties: false
+          properties:
+            login_failed:
+              type: integer
+              minimum: 0
+            authentication_failed:
+              type: integer
+              minimum: 0
+            authorization_denied:
+              type: integer
+              minimum: 0
+            two_factor_authentication_failed:
+              type: integer
+              minimum: 0
+            password_reset_failed:
+              type: integer
+              minimum: 0
+            email_verification_failed:
+              type: integer
+              minimum: 0
+    AdminOverviewUser:
+      type: object
+      required:
+        - user_id
+        - username
+        - role_id
+        - role
+        - profile_picture_path
+        - last_login_on
+        - book_count
+        - movie_count
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        role_id:
+          type: integer
+        role:
+          type: string
+          enum:
+            - admin
+            - basic
+            - demo
+        profile_picture_path:
+          type: string
+          nullable: true
+        last_login_on:
+          type: string
+          format: date-time
+        book_count:
+          type: integer
+          minimum: 0
+        movie_count:
+          type: integer
+          minimum: 0
+    AdminOverviewAudit:
+      type: object
+      required:
+        - id
+        - actor_user_id
+        - username
+        - action
+        - table_name
+        - record_id
+        - created_on
+      properties:
+        id:
+          type: integer
+        actor_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        username:
+          type: string
+          nullable: true
+        action:
+          type: string
+        table_name:
+          type: string
+          nullable: true
+        record_id:
+          type: string
+          format: uuid
+          nullable: true
+        created_on:
+          type: string
+          format: date-time
     AuditLogResponse:
       type: object
       required:

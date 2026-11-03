@@ -10,6 +10,33 @@ import { db } from '../../db/config';
 import { isEmailUniqueExcludeUsername } from '../../db/users';
 import { bulletinConditions, bulletinTypes, bulletinVisibilities } from '../../db/bulletins';
 
+const overviewDateSchema = z.iso.date().refine((value) => !value.startsWith('0000'), {
+  message: 'Year must be at least 0001',
+});
+
+export const auditQuerySchema = z.object({
+  query: z.object({
+    security_events: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((value) => value === 'true'),
+  }),
+});
+
+export const overviewSchema = z.object({
+  query: z
+    .object({
+      start_date: overviewDateSchema.optional(),
+      end_date: overviewDateSchema.optional(),
+    })
+    .refine(({ start_date, end_date }) => Boolean(start_date) === Boolean(end_date), {
+      message: 'Provide both start_date and end_date, or neither',
+    })
+    .refine(({ start_date, end_date }) => !start_date || !end_date || start_date <= end_date, {
+      message: 'start_date must be on or before end_date',
+    }),
+});
+
 export const editUserSchema = z
   .object({
     params: z.object({
