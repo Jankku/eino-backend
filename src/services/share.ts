@@ -1,12 +1,12 @@
-import { NextFunction, Request } from 'express';
+import type { NextFunction, Request } from 'express';
 import * as fs from 'node:fs/promises';
-import { getShare } from '../db/share';
-import { ErrorWithStatus } from '../util/errorhandler';
-import { Logger } from '../util/logger';
-import { getShareItemPath } from '../util/share';
-import { TypedResponse } from '../util/zod';
-import { getShareImageSchema } from '../routes/share';
-import { db } from '../db/config';
+import { getShare } from '../db/share.ts';
+import { ErrorWithStatus } from '../util/errorhandler.ts';
+import { Logger } from '../util/logger.ts';
+import { getShareItemPath } from '../util/share.ts';
+import type { TypedResponse } from '../util/zod.ts';
+import type { getShareImageSchema } from '../routes/share/index.ts';
+import { db } from '../db/config.ts';
 
 export const getShareImage = async (
   _: Request,

@@ -1,8 +1,8 @@
 // oxlint-disable typescript/no-unsafe-enum-assignment
-import { config } from '../config';
-import pgPromise, { IInitOptions } from 'pg-promise';
+import { config } from '../config.ts';
+import pgPromise, { type IInitOptions } from 'pg-promise';
 import monitor from 'pg-monitor';
-import { Logger } from '../util/logger';
+import { Logger } from '../util/logger.ts';
 
 const options: IInitOptions = {
   capSQL: true,

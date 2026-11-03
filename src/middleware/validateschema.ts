@@ -1,9 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
-import { ZodType, ZodError } from 'zod/v4';
-import { ErrorWithStatus } from '../util/errorhandler';
-import { formatZodErrors } from '../util/zod';
+import type { Request, Response, NextFunction } from 'express';
+import { type ZodType, ZodError } from 'zod/v4';
+import { ErrorWithStatus } from '../util/errorhandler.ts';
+import { formatZodErrors } from '../util/zod.ts';
 import { z } from 'zod';
-import { auditSecurityFailure, SecurityOperation } from '../util/securityaudit';
+import { auditSecurityFailure, type SecurityOperation } from '../util/securityaudit.ts';
 
 z.config({
   customError: (issue) => {

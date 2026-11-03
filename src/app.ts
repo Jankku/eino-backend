@@ -1,16 +1,16 @@
 import express from 'express';
 import cors from 'cors';
-import { Logger } from './util/logger';
-import { errorHandler, ErrorWithStatus } from './util/errorhandler';
-import { db } from './db/config';
-import { createShareDir } from './util/share';
-import { config } from './config';
-import { routerV1 } from './routes/router-v1';
-import { routerV2 } from './routes/router-v2';
+import { Logger } from './util/logger.ts';
+import { errorHandler, ErrorWithStatus } from './util/errorhandler.ts';
+import { db } from './db/config.ts';
+import { createShareDir } from './util/share.ts';
+import { config } from './config.ts';
+import { routerV1 } from './routes/router-v1.ts';
+import { routerV2 } from './routes/router-v2.ts';
 import closeWithGrace from 'close-with-grace';
-import { initDiscordAuditProcessing } from './services/audit';
-import { createProfilePictureDir } from './util/profilepicture';
-import { initRoleMap } from './db/role';
+import { initDiscordAuditProcessing } from './services/audit.ts';
+import { createProfilePictureDir } from './util/profilepicture.ts';
+import { initRoleMap } from './db/role.ts';
 
 createShareDir().catch((error) => Logger.error('Error creating share dir', { error }));
 createProfilePictureDir().catch((error) =>
@@ -53,12 +53,18 @@ db.connect()
     throw error;
   });
 
-closeWithGrace({ logger: Logger }, ({ err }) => {
+closeWithGrace({ logger: Logger }, async ({ err }) => {
   if (err) {
     Logger.error('closeWithGrace', err);
   }
-  db.$pool.end(() => Logger.info('Pool has ended'));
-  server.close(() => Logger.info('Server closed'));
+  const { resolve, reject } = Promise.withResolvers<void>();
+  server.close((error) => {
+    if (error) reject(error);
+    else resolve();
+  });
+  Logger.info('Server closed');
+  await db.$pool.end();
+  Logger.info('Pool has ended');
 });
 
 export default app;

@@ -1,6 +1,6 @@
-import { fillAndSortResponse } from '../util/profile';
-import { ITask } from 'pg-promise';
-import { fillBookStatuses, fillMovieStatuses, StatusCountRow } from '../util/status';
+import { fillAndSortResponse } from '../util/profile.ts';
+import type { ITask } from 'pg-promise';
+import { fillBookStatuses, fillMovieStatuses, type StatusCountRow } from '../util/status.ts';
 
 type UserInfo = {
   user_id: string;

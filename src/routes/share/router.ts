@@ -1,7 +1,7 @@
 import express from 'express';
-import { validateSchema } from '../../middleware/validateschema';
-import { getShareImage } from '../../services/share';
-import { getShareImageSchema } from './schema';
+import { validateSchema } from '../../middleware/validateschema.ts';
+import { getShareImage } from '../../services/share.ts';
+import { getShareImageSchema } from './schema.ts';
 
 export const shareRouter = express.Router();
 

@@ -1,17 +1,17 @@
-import { Request, NextFunction } from 'express';
-import { TypedResponse } from '../util/zod';
-import { success } from '../util/response';
-import { ErrorWithStatus } from '../util/errorhandler';
-import { db } from '../db/config';
-import { Logger, logError } from '../util/logger';
+import type { Request, NextFunction } from 'express';
+import type { TypedResponse } from '../util/zod.ts';
+import { success } from '../util/response.ts';
+import { ErrorWithStatus } from '../util/errorhandler.ts';
+import { db } from '../db/config.ts';
+import { Logger, logError } from '../util/logger.ts';
 import {
-  BulletinCondition,
+  type BulletinCondition,
   getAuthenticatedBulletins,
   getConditionBulletins,
   getPublicBulletins,
   getUserBulletins,
-} from '../db/bulletins';
-import { getUserById } from '../db/users';
+} from '../db/bulletins.ts';
+import { getUserById } from '../db/users.ts';
 import { DateTime } from 'luxon';
 
 export const publicBulletins = async (_: Request, res: TypedResponse, next: NextFunction) => {

@@ -1,6 +1,6 @@
 /* oxlint-disable security/detect-object-injection */
 import { DateTime } from 'luxon';
-import { SortOrder } from './zodschema';
+import type { SortOrder } from './zodschema.ts';
 import { z } from 'zod';
 
 const isDate = (value: unknown): value is Date =>

@@ -1,20 +1,20 @@
 import express from 'express';
-import { authRouter } from './auth';
-import { adminRouter } from './admin';
-import { bookRouterV2 } from './books';
-import { movieRouterV2 } from './movies';
-import { profileRouterV2 } from './profile';
-import { profilePictureRouter } from './profilepicture';
-import { shareRouter } from './share';
-import { emailRouter } from './email';
-import { verifyToken } from '../middleware/verifytoken';
+import { authRouter } from './auth/index.ts';
+import { adminRouter } from './admin/index.ts';
+import { bookRouterV2 } from './books/index.ts';
+import { movieRouterV2 } from './movies/index.ts';
+import { profileRouterV2 } from './profile/index.ts';
+import { profilePictureRouter } from './profilepicture/index.ts';
+import { shareRouter } from './share/index.ts';
+import { emailRouter } from './email/index.ts';
+import { verifyToken } from '../middleware/verifytoken.ts';
 import swaggerUi from 'swagger-ui-express';
 import yaml from 'yaml';
 import { z } from 'zod';
 import { readFileSync } from 'node:fs';
-import { requireAdmin } from '../middleware/requirerole';
-import { userEnabled } from '../middleware/userenabled';
-import { bulletinsRouter } from './bulletins';
+import { requireAdmin } from '../middleware/requirerole.ts';
+import { userEnabled } from '../middleware/userenabled.ts';
+import { bulletinsRouter } from './bulletins/index.ts';
 
 export const routerV2 = express.Router();
 

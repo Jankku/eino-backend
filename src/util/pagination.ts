@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { SortOrder } from './zodschema';
+import type { SortOrder } from './zodschema.ts';
 
 const positiveInteger = z
   .string()

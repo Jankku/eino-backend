@@ -1,5 +1,5 @@
-import { NextFunction, Request } from 'express';
-import { logError } from '../util/logger';
+import type { NextFunction, Request } from 'express';
+import { logError } from '../util/logger.ts';
 import {
   ftsSearch,
   getAllMovies,
@@ -10,15 +10,15 @@ import {
   postMovie,
   postMovieToUserList,
   updateMovie,
-} from '../db/movies';
-import { success } from '../util/response';
-import { db } from '../db/config';
-import { config } from '../config';
-import { getItemCountByUsernameForUpdate } from '../db/users';
-import { ErrorWithStatus } from '../util/errorhandler';
-import { fetchTmdbImages } from './third-party/tmdb';
-import { fetchFinnaImages } from './third-party/finna';
-import {
+} from '../db/movies.ts';
+import { success } from '../util/response.ts';
+import { db } from '../db/config.ts';
+import { config } from '../config.ts';
+import { getItemCountByUsernameForUpdate } from '../db/users.ts';
+import { ErrorWithStatus } from '../util/errorhandler.ts';
+import { fetchTmdbImages } from './third-party/tmdb.ts';
+import { fetchFinnaImages } from './third-party/finna.ts';
+import type {
   addOneSchema,
   deleteOneSchema,
   fetchByStatusSchema,
@@ -26,19 +26,19 @@ import {
   fetchOneSchema,
   searchSchema,
   updateOneSchema,
-} from '../routes/movies';
-import { TypedResponse } from '../util/zod';
+} from '../routes/movies/index.ts';
+import type { TypedResponse } from '../util/zod.ts';
 import {
-  DbMovie,
+  type DbMovie,
   movieNumberKeySchema,
   movieSortSchema,
   movieStringKeySchema,
   movieDateKeySchema,
-} from '../db/model/movie';
-import { getItemFilter, itemSorter } from '../util/sort';
-import { addAudit } from '../db/audit';
-import { fillMovieStatuses, StatusCountRow } from '../util/status';
-import { paginationMode } from '../db/pagination';
+} from '../db/model/movie.ts';
+import { getItemFilter, itemSorter } from '../util/sort.ts';
+import { addAudit } from '../db/audit.ts';
+import { fillMovieStatuses, type StatusCountRow } from '../util/status.ts';
+import { paginationMode } from '../db/pagination.ts';
 
 export const fetchPage = async (
   req: Request,

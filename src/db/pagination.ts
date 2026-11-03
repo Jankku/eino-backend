@@ -1,7 +1,7 @@
-import { ITask } from 'pg-promise';
+import type { ITask } from 'pg-promise';
 import { DateTime } from 'luxon';
-import { pgp } from './config';
-import { ListQuery, PaginatedResponse, Pagination } from '../util/pagination';
+import { pgp } from './config.ts';
+import type { ListQuery, PaginatedResponse, Pagination } from '../util/pagination.ts';
 
 export const paginationMode = new pgp.txMode.TransactionMode({
   tiLevel: pgp.txMode.isolationLevel.repeatableRead,

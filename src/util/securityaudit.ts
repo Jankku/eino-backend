@@ -1,9 +1,9 @@
 /* oxlint-disable unicorn/no-null -- SQL NULL represents an unauthenticated actor. */
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { LRUCache } from 'lru-cache';
-import { addAudit, Audit, AuditAction } from '../db/audit';
-import { db } from '../db/config';
-import { Logger } from './logger';
+import { addAudit, type Audit, type AuditAction } from '../db/audit.ts';
+import { db } from '../db/config.ts';
+import { Logger } from './logger.ts';
 
 const failureActions = {
   login: 'login_failed',

@@ -1,7 +1,7 @@
-import { NextFunction, Request } from 'express';
-import { z } from 'zod';
-import { ListQuery, paginationSchema } from '../util/pagination';
-import { formatZodErrors, TypedResponse } from '../util/zod';
+import type { NextFunction, Request } from 'express';
+import type { z } from 'zod';
+import { type ListQuery, paginationSchema } from '../util/pagination.ts';
+import { formatZodErrors, type TypedResponse } from '../util/zod.ts';
 
 export const validatePagination =
   (sortSchema?: z.ZodType<ListQuery>) => (req: Request, res: TypedResponse, next: NextFunction) => {

@@ -1,10 +1,10 @@
 import { DateTime } from 'luxon';
-import { AuditAction, getAuditsByActionNewerThan } from '../db/audit';
-import { db } from '../db/config';
-import { Logger } from '../util/logger';
-import { sendAuditsToDiscord } from './third-party/discord';
-import { chunkArray, sequentially, wait } from '../util/audit';
-import { config } from '../config';
+import { type AuditAction, getAuditsByActionNewerThan } from '../db/audit.ts';
+import { db } from '../db/config.ts';
+import { Logger } from '../util/logger.ts';
+import { sendAuditsToDiscord } from './third-party/discord.ts';
+import { chunkArray, sequentially, wait } from '../util/audit.ts';
+import { config } from '../config.ts';
 
 const discordAuditActions: AuditAction[] = [
   'register',

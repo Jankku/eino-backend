@@ -1,11 +1,11 @@
-import { NextFunction, Request } from 'express';
+import type { NextFunction, Request } from 'express';
 import * as fs from 'node:fs/promises';
-import { db } from '../db/config';
-import { ErrorWithStatus } from '../util/errorhandler';
-import { findProfilePicturePathByFileName } from '../db/users';
-import { logError } from '../util/logger';
-import { TypedResponse } from '../util/zod';
-import { getProfilePictureSchema } from '../routes/profilepicture/schema';
+import { db } from '../db/config.ts';
+import { ErrorWithStatus } from '../util/errorhandler.ts';
+import { findProfilePicturePathByFileName } from '../db/users.ts';
+import { logError } from '../util/logger.ts';
+import type { TypedResponse } from '../util/zod.ts';
+import type { getProfilePictureSchema } from '../routes/profilepicture/schema.ts';
 
 export const getProfilePicture = async (
   _: Request,

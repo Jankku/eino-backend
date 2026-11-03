@@ -1,5 +1,5 @@
-import { NextFunction, Request } from 'express';
-import { logError } from '../util/logger';
+import type { NextFunction, Request } from 'express';
+import { logError } from '../util/logger.ts';
 import {
   ftsSearch,
   getAllBooks,
@@ -10,16 +10,19 @@ import {
   postBook,
   postBookToUserList,
   updateBook,
-} from '../db/books';
-import { success } from '../util/response';
-import { db } from '../db/config';
-import { config } from '../config';
-import { getItemCountByUsernameForUpdate } from '../db/users';
-import { ErrorWithStatus } from '../util/errorhandler';
-import { fetchFinnaImages } from './third-party/finna';
-import { fetchOpenLibraryEditionsByIsbn, fetchOpenLibraryImages } from './third-party/openlibrary';
-import { TypedResponse } from '../util/zod';
+} from '../db/books.ts';
+import { success } from '../util/response.ts';
+import { db } from '../db/config.ts';
+import { config } from '../config.ts';
+import { getItemCountByUsernameForUpdate } from '../db/users.ts';
+import { ErrorWithStatus } from '../util/errorhandler.ts';
+import { fetchFinnaImages } from './third-party/finna.ts';
 import {
+  fetchOpenLibraryEditionsByIsbn,
+  fetchOpenLibraryImages,
+} from './third-party/openlibrary.ts';
+import type { TypedResponse } from '../util/zod.ts';
+import type {
   addOneSchema,
   deleteOneSchema,
   fetchByStatusSchema,
@@ -28,20 +31,20 @@ import {
   searchIsbnSchema,
   searchSchema,
   updateOneSchema,
-} from '../routes/books';
+} from '../routes/books/index.ts';
 import {
   bookSortSchema,
   bookNumberKeySchema,
   bookStringKeySchema,
   bookDateKeySchema,
-  DbBook,
-} from '../db/model/book';
-import { itemSorter, getItemFilter } from '../util/sort';
-import { addAudit } from '../db/audit';
-import { fillBookStatuses, StatusCountRow } from '../util/status';
-import { fetchGoogleBooksByIsbn } from './third-party/googlebooks';
-import { firstNonEmpty } from '../util/promise';
-import { paginationMode } from '../db/pagination';
+  type DbBook,
+} from '../db/model/book.ts';
+import { itemSorter, getItemFilter } from '../util/sort.ts';
+import { addAudit } from '../db/audit.ts';
+import { fillBookStatuses, type StatusCountRow } from '../util/status.ts';
+import { fetchGoogleBooksByIsbn } from './third-party/googlebooks.ts';
+import { firstNonEmpty } from '../util/promise.ts';
+import { paginationMode } from '../db/pagination.ts';
 
 export const fetchPage = async (
   req: Request,

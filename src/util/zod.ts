@@ -1,9 +1,9 @@
-import { z } from 'zod';
-import { ZodError } from 'zod/v4';
-import { $ZodIssue } from 'zod/v4/core';
-import { Response } from 'express';
-import { Role } from '../db/role';
-import { ListQuery, Pagination } from './pagination';
+import type { z } from 'zod';
+import type { ZodError } from 'zod/v4';
+import type { $ZodIssue } from 'zod/v4/core';
+import type { Response } from 'express';
+import type { Role } from '../db/role.ts';
+import type { ListQuery, Pagination } from './pagination.ts';
 
 type AuthLocals = {
   userId: string;

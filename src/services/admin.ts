@@ -1,20 +1,20 @@
-import { Request, NextFunction } from 'express';
-import { TypedResponse } from '../util/zod';
-import { success } from '../util/response';
-import { ErrorWithStatus } from '../util/errorhandler';
-import { db } from '../db/config';
-import { addAudit, getAllAudits, getAuditsPage } from '../db/audit';
-import { paginationMode } from '../db/pagination';
-import { getAdminOverview } from '../db/admin';
-import { logError } from '../util/logger';
+import type { Request, NextFunction } from 'express';
+import type { TypedResponse } from '../util/zod.ts';
+import { success } from '../util/response.ts';
+import { ErrorWithStatus } from '../util/errorhandler.ts';
+import { db } from '../db/config.ts';
+import { addAudit, getAllAudits, getAuditsPage } from '../db/audit.ts';
+import { paginationMode } from '../db/pagination.ts';
+import { getAdminOverview } from '../db/admin.ts';
+import { logError } from '../util/logger.ts';
 import {
   findProfilePictureByUsername,
   getAllUsers,
   getUsersPage,
   getUserById,
   updateProfilePicturePath,
-} from '../db/users';
-import {
+} from '../db/users.ts';
+import type {
   createBulletinSchema,
   deleteBulletinSchema,
   deleteUserSchema,
@@ -24,7 +24,7 @@ import {
   disableUserSchema,
   overviewSchema,
   auditQuerySchema,
-} from '../routes/admin/schema';
+} from '../routes/admin/schema.ts';
 import * as fs from 'node:fs/promises';
 import {
   createBulletin,
@@ -35,7 +35,7 @@ import {
   insertBulletinUsers,
   updateBulletin,
   updateBulletinUsers,
-} from '../db/bulletins';
+} from '../db/bulletins.ts';
 
 export const getOverview = async (
   _: Request,

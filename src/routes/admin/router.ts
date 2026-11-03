@@ -1,7 +1,7 @@
 import express from 'express';
-import * as admin from '../../services/admin';
-import { validateSchema } from '../../middleware/validateschema';
-import { validatePagination } from '../../middleware/pagination';
+import * as admin from '../../services/admin.ts';
+import { validateSchema } from '../../middleware/validateschema.ts';
+import { validatePagination } from '../../middleware/pagination.ts';
 import {
   createBulletinSchema,
   deleteBulletinSchema,
@@ -12,7 +12,7 @@ import {
   enableUserSchema,
   overviewSchema,
   auditQuerySchema,
-} from './schema';
+} from './schema.ts';
 
 export const adminRouter = express.Router();
 

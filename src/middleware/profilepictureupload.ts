@@ -1,8 +1,8 @@
-import { NextFunction, Request } from 'express';
+import type { NextFunction, Request } from 'express';
 import multer from 'multer';
-import { ErrorWithStatus } from '../util/errorhandler';
-import { profilePictureLimits } from '../util/profilepicture';
-import { TypedResponse } from '../util/zod';
+import { ErrorWithStatus } from '../util/errorhandler.ts';
+import { profilePictureLimits } from '../util/profilepicture.ts';
+import type { TypedResponse } from '../util/zod.ts';
 
 const upload = multer({
   storage: multer.memoryStorage(),

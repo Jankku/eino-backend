@@ -1,8 +1,8 @@
 import crypto from 'node:crypto';
-import { ItemScoreRow } from '../db/profile';
-import { Book } from '../db/model/book';
-import { Movie } from '../db/model/movie';
-import { pgp } from '../db/config';
+import type { ItemScoreRow } from '../db/profile.ts';
+import type { Book } from '../db/model/book.ts';
+import type { Movie } from '../db/model/movie.ts';
+import { pgp } from '../db/config.ts';
 
 /**
 Fills array gaps so that there are ItemScoreRow objects which have score

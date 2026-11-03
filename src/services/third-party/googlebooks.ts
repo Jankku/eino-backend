@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { BookFormSchema } from '../../db/model/book';
+import type { BookFormSchema } from '../../db/model/book.ts';
 import { DateTime } from 'luxon';
-import { languageCodeSchema } from '../../util/zodschema';
-import { config } from '../../config';
-import { fetchJson } from '../../util/http';
+import { languageCodeSchema } from '../../util/zodschema.ts';
+import { config } from '../../config.ts';
+import { fetchJson } from '../../util/http.ts';
 
 const googleBooksSchema = z.object({
   items: z.array(

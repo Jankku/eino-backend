@@ -1,6 +1,6 @@
-import { Mail, MailtrapClient, SendError, SendResponse } from 'mailtrap';
-import { config } from '../config';
-import { Logger } from './logger';
+import { type Mail, MailtrapClient, type SendError, type SendResponse } from 'mailtrap';
+import { config } from '../config.ts';
+import { Logger } from './logger.ts';
 
 export type EmailTemplate = {
   subject: string;

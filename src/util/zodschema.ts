@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { errorMessages } from './errormessages';
-import { languageCodes } from './languages';
+import { errorMessages } from './errormessages.ts';
+import { languageCodes } from './languages.ts';
 
 export const dateStringSchema = z.string().refine((arg) => {
   return arg ? !Number.isNaN(new Date(arg).getTime()) : false;

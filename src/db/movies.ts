@@ -1,9 +1,14 @@
-import { Movie, DbMovie, movieDateKeySchema, movieStringKeySchema } from './model/movie';
-import { MovieStatus } from './model/moviestatus';
-import { ITask } from 'pg-promise';
-import { prefixSearchQuery } from './search';
-import { getPage } from './pagination';
-import { ListQuery, Pagination } from '../util/pagination';
+import {
+  type Movie,
+  type DbMovie,
+  movieDateKeySchema,
+  movieStringKeySchema,
+} from './model/movie.ts';
+import type { MovieStatus } from './model/moviestatus.ts';
+import type { ITask } from 'pg-promise';
+import { prefixSearchQuery } from './search.ts';
+import { getPage } from './pagination.ts';
+import type { ListQuery, Pagination } from '../util/pagination.ts';
 
 const moviesQuery = `SELECT m.movie_id,
                   m.title,

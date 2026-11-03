@@ -1,13 +1,13 @@
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
-import { config } from '../config';
+import { config } from '../config.ts';
 import { ZxcvbnFactory } from '@zxcvbn-ts/core';
 import * as zxcvbnCommon from '@zxcvbn-ts/language-common';
 import * as zxcvbnEn from '@zxcvbn-ts/language-en';
 import * as zxcvbnFi from '@zxcvbn-ts/language-fi';
-import { User } from '../db/users';
-import { roleIdToName } from './role';
-import { jwtConstants } from './jwtconstants';
+import type { User } from '../db/users.ts';
+import { roleIdToName } from './role.ts';
+import { jwtConstants } from './jwtconstants.ts';
 
 const { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, ACCESS_TOKEN_VALIDITY, REFRESH_TOKEN_VALIDITY } =
   config;

@@ -1,5 +1,5 @@
-import { ITask } from 'pg-promise';
-import { Logger } from '../util/logger';
+import type { ITask } from 'pg-promise';
+import { Logger } from '../util/logger.ts';
 
 export type Role = {
   id: number;

@@ -1,6 +1,6 @@
-import { pgp } from './config';
-import type { AuditAction } from './audit';
-import type { SecurityFailure } from '../util/securityaudit';
+import { pgp } from './config.ts';
+import type { AuditAction } from './audit.ts';
+import type { SecurityFailure } from '../util/securityaudit.ts';
 
 // Explicitly allow reasons: routine errors, unknown reasons and legacy rows without
 // a reason should never become dashboard alerts

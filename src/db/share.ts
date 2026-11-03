@@ -1,5 +1,5 @@
-import { ITask } from 'pg-promise';
-import { DbShare } from './model/dbshare';
+import type { ITask } from 'pg-promise';
+import type { DbShare } from './model/dbshare.ts';
 
 export const getShare = async (
   t: ITask<unknown>,

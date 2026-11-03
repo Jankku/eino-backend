@@ -2,6 +2,7 @@
   "name": "eino-backend",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Book and movie tracker with web and Android clients",
   "license": "MIT",
   "author": "Jankku",
@@ -9,11 +10,11 @@
     "type": "git",
     "url": "git+https://github.com/Jankku/eino-backend.git"
   },
-  "main": "./dist/app.js",
+  "main": "./dist/src/app.js",
   "scripts": {
-    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && npx tsc",
+    "build": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\" && tsc",
     "start": "npm run build && node ./dist/src/app.js",
-    "dev": "node -r ts-node/register --watch-path=src src/app.ts",
+    "dev": "node --watch src/app.ts",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint src migrations",
     "lint:fix": "oxlint --fix src migrations",
@@ -73,7 +74,6 @@
     "oxlint": "^1.91.0",
     "oxlint-tsgolint": "^7.0.2005",
     "pin-github-action": "^3.5.2",
-    "ts-node": "^10.9.2",
     "typescript": "^6.0.2"
   },
   "commitlint": {

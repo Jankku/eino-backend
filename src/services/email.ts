@@ -1,24 +1,24 @@
-import { NextFunction, Request } from 'express';
-import { success } from '../util/response';
-import { ErrorWithStatus, SecurityErrorWithStatus } from '../util/errorhandler';
-import { generateTOTP, validateEmailOTP, validateTOTP } from '../util/totp';
-import { addVerification, deleteVerification, findVerification } from '../db/verification';
-import { logError } from '../util/logger';
+import type { NextFunction, Request } from 'express';
+import { success } from '../util/response.ts';
+import { ErrorWithStatus, SecurityErrorWithStatus } from '../util/errorhandler.ts';
+import { generateTOTP, validateEmailOTP, validateTOTP } from '../util/totp.ts';
+import { addVerification, deleteVerification, findVerification } from '../db/verification.ts';
+import { logError } from '../util/logger.ts';
 import {
   getUserById,
   isEmailAlreadyUsed,
   isEmailVerified,
   updateEmailAddress,
   updateEmailVerifiedTimestamp,
-} from '../db/users';
-import { TypedResponse } from '../util/zod';
-import { updateEmailSchema, verifyEmailSchema } from '../routes/email';
+} from '../db/users.ts';
+import type { TypedResponse } from '../util/zod.ts';
+import type { updateEmailSchema, verifyEmailSchema } from '../routes/email/index.ts';
 import { DateTime } from 'luxon';
-import { isVerificationExpired } from '../util/verification';
-import { sendEmail } from '../util/email';
-import { confirmEmailTemplate } from '../util/emailtemplates';
-import { db } from '../db/config';
-import { addAudit } from '../db/audit';
+import { isVerificationExpired } from '../util/verification.ts';
+import { sendEmail } from '../util/email.ts';
+import { confirmEmailTemplate } from '../util/emailtemplates.ts';
+import { db } from '../db/config.ts';
+import { addAudit } from '../db/audit.ts';
 
 export const updateEmail = async (
   _: Request,

@@ -1,6 +1,6 @@
-import { NextFunction, Request, Response } from 'express';
-import { Logger } from './logger';
-import { auditSecurityFailure, SecurityFailure } from './securityaudit';
+import type { NextFunction, Request, Response } from 'express';
+import { Logger } from './logger.ts';
+import { auditSecurityFailure, type SecurityFailure } from './securityaudit.ts';
 
 export class ErrorWithStatus extends Error {
   status: number;

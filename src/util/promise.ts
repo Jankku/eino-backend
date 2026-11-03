@@ -1,4 +1,4 @@
-import { Logger } from './logger';
+import { Logger } from './logger.ts';
 
 export async function firstNonEmpty<T>(promiseFactories: (() => Promise<T[]>)[]): Promise<T[]> {
   for (const factory of promiseFactories) {

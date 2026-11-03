@@ -4,9 +4,9 @@ import {
   fixedNonEmptyStringSchema,
   optionalOtpSchema,
   passwordSchema,
-} from '../../util/zodschema';
-import { dbBookSchema } from '../../db/model/book';
-import { dbMovieSchema } from '../../db/model/movie';
+} from '../../util/zodschema.ts';
+import { dbBookSchema } from '../../db/model/book.ts';
+import { dbMovieSchema } from '../../db/model/movie.ts';
 
 export const deleteAccountSchema = z.object({
   body: z.object({

@@ -1,9 +1,9 @@
-import { Book, DbBook, bookDateKeySchema, bookStringKeySchema } from './model/book';
-import { BookStatus } from './model/bookstatus';
-import { ITask } from 'pg-promise';
-import { prefixSearchQuery } from './search';
-import { getPage } from './pagination';
-import { ListQuery, Pagination } from '../util/pagination';
+import { type Book, type DbBook, bookDateKeySchema, bookStringKeySchema } from './model/book.ts';
+import type { BookStatus } from './model/bookstatus.ts';
+import type { ITask } from 'pg-promise';
+import { prefixSearchQuery } from './search.ts';
+import { getPage } from './pagination.ts';
+import type { ListQuery, Pagination } from '../util/pagination.ts';
 
 const booksQuery = `SELECT b.book_id,
                   b.isbn,

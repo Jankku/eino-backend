@@ -7,9 +7,9 @@ import {
   nonnegativeNumberSchema,
   scoreSchema,
   sortOrderSchema,
-} from '../../util/zodschema';
-import { movieStatusEnum } from './moviestatus';
-import { parseFilter } from '../../util/sort';
+} from '../../util/zodschema.ts';
+import { movieStatusEnum } from './moviestatus.ts';
+import { parseFilter } from '../../util/sort.ts';
 
 export const movieSchema = z.object({
   title: fixedStringSchema,

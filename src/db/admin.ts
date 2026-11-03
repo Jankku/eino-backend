@@ -1,9 +1,13 @@
-import { ITask } from 'pg-promise';
+import type { ITask } from 'pg-promise';
 import { DateTime } from 'luxon';
-import { roleIdToName } from '../util/role';
-import { DbBulletin } from './bulletins';
-import { DbAudit } from './audit';
-import { securityEventReasons, SecurityEventAction, securityEventsWhere } from './securityevents';
+import { roleIdToName } from '../util/role.ts';
+import type { DbBulletin } from './bulletins.ts';
+import type { DbAudit } from './audit.ts';
+import {
+  securityEventReasons,
+  type SecurityEventAction,
+  securityEventsWhere,
+} from './securityevents.ts';
 
 export const getAdminOverview = async (
   t: ITask<unknown>,

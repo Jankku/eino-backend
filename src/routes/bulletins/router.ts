@@ -1,7 +1,7 @@
 import express from 'express';
-import * as bulletins from '../../services/bulletins';
-import { userEnabled } from '../../middleware/userenabled';
-import { verifyToken } from '../../middleware/verifytoken';
+import * as bulletins from '../../services/bulletins.ts';
+import { userEnabled } from '../../middleware/userenabled.ts';
+import { verifyToken } from '../../middleware/verifytoken.ts';
 
 export const bulletinsRouter = express.Router();
 

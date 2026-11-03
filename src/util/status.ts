@@ -1,5 +1,5 @@
-import { bookStatuses } from '../db/model/bookstatus';
-import { movieStatuses } from '../db/model/moviestatus';
+import { bookStatuses } from '../db/model/bookstatus.ts';
+import { movieStatuses } from '../db/model/moviestatus.ts';
 
 export type StatusCountRow = {
   status: string;

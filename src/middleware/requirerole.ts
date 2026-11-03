@@ -1,7 +1,7 @@
-import { Request, NextFunction } from 'express';
-import { TypedResponse } from '../util/zod';
-import { Role } from '../db/role';
-import { SecurityErrorWithStatus } from '../util/errorhandler';
+import type { Request, NextFunction } from 'express';
+import type { TypedResponse } from '../util/zod.ts';
+import type { Role } from '../db/role.ts';
+import { SecurityErrorWithStatus } from '../util/errorhandler.ts';
 
 /**
 Checks if the user has the required role for the route.

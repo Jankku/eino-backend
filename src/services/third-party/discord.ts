@@ -1,8 +1,8 @@
-import { config } from '../../config';
-import { DbAudit } from '../../db/audit';
-import { Logger } from '../../util/logger';
-import { auditToDiscordEmbed } from '../../util/audit';
-import { fetchResponse, HttpError } from '../../util/http';
+import { config } from '../../config.ts';
+import type { DbAudit } from '../../db/audit.ts';
+import { Logger } from '../../util/logger.ts';
+import { auditToDiscordEmbed } from '../../util/audit.ts';
+import { fetchResponse, HttpError } from '../../util/http.ts';
 
 export const sendAuditsToDiscord = async (audits: DbAudit[]): Promise<void> => {
   if (!config.DISCORD_AUDIT_LOG_WEBHOOK_URL) return;

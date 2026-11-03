@@ -1,4 +1,4 @@
-import { EmailTemplate } from '../util/email';
+import type { EmailTemplate } from '../util/email.ts';
 
 export const confirmEmailTemplate = (totp: string): EmailTemplate => ({
   category: 'confirm_email',

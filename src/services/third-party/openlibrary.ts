@@ -1,12 +1,12 @@
 import { z } from 'zod';
 import { cachified } from '@epic-web/cachified';
-import { cache, stringArrayCacheSchema, getCacheKey } from '../../util/cache';
-import { BookFormSchema } from '../../db/model/book';
-import { LanguageCode } from '../../util/languages';
-import { languageCodeSchema } from '../../util/zodschema';
+import { cache, stringArrayCacheSchema, getCacheKey } from '../../util/cache.ts';
+import type { BookFormSchema } from '../../db/model/book.ts';
+import type { LanguageCode } from '../../util/languages.ts';
+import { languageCodeSchema } from '../../util/zodschema.ts';
 import { DateTime } from 'luxon';
-import { Logger } from '../../util/logger';
-import { fetchJson } from '../../util/http';
+import { Logger } from '../../util/logger.ts';
+import { fetchJson } from '../../util/http.ts';
 
 const numberOrZero = (value: string | undefined) => {
   if (!value) {

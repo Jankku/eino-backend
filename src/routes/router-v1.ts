@@ -1,15 +1,15 @@
 import express from 'express';
-import { authRouter } from './auth';
-import { bookRouter } from './books';
-import { movieRouter } from './movies';
-import { profileRouter } from './profile';
-import { shareRouter } from './share';
-import { verifyToken } from '../middleware/verifytoken';
+import { authRouter } from './auth/index.ts';
+import { bookRouter } from './books/index.ts';
+import { movieRouter } from './movies/index.ts';
+import { profileRouter } from './profile/index.ts';
+import { shareRouter } from './share/index.ts';
+import { verifyToken } from '../middleware/verifytoken.ts';
 import swaggerUi from 'swagger-ui-express';
 import yaml from 'yaml';
 import { z } from 'zod';
 import { readFileSync } from 'node:fs';
-import { userEnabled } from '../middleware/userenabled';
+import { userEnabled } from '../middleware/userenabled.ts';
 
 export const routerV1 = express.Router();
 

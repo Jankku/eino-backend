@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isEmailUnique, isUserUnique } from '../../db/users';
+import { isEmailUnique, isUserUnique } from '../../db/users.ts';
 import {
   emailSchema,
   optionalEmailSchema,
@@ -9,10 +9,10 @@ import {
   passwordStrengthInputSchema,
   usernameOrEmailSchema,
   usernameSchema,
-} from '../../util/zodschema';
-import { errorMessages } from '../../util/errormessages';
-import { getPasswordStrength } from '../../util/auth';
-import { db } from '../../db/config';
+} from '../../util/zodschema.ts';
+import { errorMessages } from '../../util/errormessages.ts';
+import { getPasswordStrength } from '../../util/auth.ts';
+import { db } from '../../db/config.ts';
 
 export const registerSchema = z
   .object({

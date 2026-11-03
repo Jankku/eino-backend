@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { loadEnvFile } from 'node:process';
-import { nonEmptyString } from './util/zodschema';
+import { nonEmptyString } from './util/zodschema.ts';
 
 try {
   loadEnvFile();

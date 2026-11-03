@@ -1,7 +1,7 @@
-import { ITask } from 'pg-promise';
-import { getPage } from './pagination';
-import { Pagination } from '../util/pagination';
-import { securityEventsWhere } from './securityevents';
+import type { ITask } from 'pg-promise';
+import { getPage } from './pagination.ts';
+import type { Pagination } from '../util/pagination.ts';
+import { securityEventsWhere } from './securityevents.ts';
 
 export const auditAction = {
   REGISTER: 'register',

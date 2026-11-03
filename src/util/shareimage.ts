@@ -1,6 +1,6 @@
-import { CanvasRenderingContext2D, createCanvas, loadImage, registerFont } from 'canvas';
+import { type CanvasRenderingContext2D, createCanvas, loadImage, registerFont } from 'canvas';
 import { DateTime } from 'luxon';
-import { getFontPath } from './share';
+import { getFontPath } from './share.ts';
 
 registerFont(getFontPath('pacifico.ttf'), { family: 'Pacifico' });
 registerFont(getFontPath('roboto-regular.ttf'), { family: 'Roboto', weight: '400' });

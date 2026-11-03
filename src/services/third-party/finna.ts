@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { cachified } from '@epic-web/cachified';
-import { cache, stringArrayCacheSchema, getCacheKey } from '../../util/cache';
-import { Logger } from '../../util/logger';
-import { fetchJson } from '../../util/http';
+import { cache, stringArrayCacheSchema, getCacheKey } from '../../util/cache.ts';
+import { Logger } from '../../util/logger.ts';
+import { fetchJson } from '../../util/http.ts';
 
 const finnaImagesSchema = z
   .object({

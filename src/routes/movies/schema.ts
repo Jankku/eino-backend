@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { movieStatusEnum } from '../../db/model/moviestatus';
-import { listIdSchema } from '../../util/zodschema';
-import { errorMessages } from '../../util/errormessages';
-import { movieSchema, movieSortSchema } from '../../db/model/movie';
+import { movieStatusEnum } from '../../db/model/moviestatus.ts';
+import { listIdSchema } from '../../util/zodschema.ts';
+import { errorMessages } from '../../util/errormessages.ts';
+import { movieSchema, movieSortSchema } from '../../db/model/movie.ts';
 
 export const searchSchema = z.object({
   query: z.object({

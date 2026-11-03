@@ -1,8 +1,8 @@
 import express from 'express';
-import { validateSchema } from '../../middleware/validateschema';
-import { validatePagination } from '../../middleware/pagination';
-import { bookSortSchema } from '../../db/model/book';
-import * as books from '../../services/books';
+import { validateSchema } from '../../middleware/validateschema.ts';
+import { validatePagination } from '../../middleware/pagination.ts';
+import { bookSortSchema } from '../../db/model/book.ts';
+import * as books from '../../services/books.ts';
 import {
   addOneSchema,
   deleteOneSchema,
@@ -12,7 +12,7 @@ import {
   searchSchema,
   updateOneSchema,
   searchIsbnSchema,
-} from './schema';
+} from './schema.ts';
 
 const createBookRouter = (paginated: boolean) => {
   const bookRouter = express.Router();

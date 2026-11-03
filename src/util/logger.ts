@@ -1,6 +1,6 @@
 import { createLogger, format, transports } from 'winston';
 import { inspect } from 'node:util';
-import { config } from '../config';
+import { config } from '../config.ts';
 
 const readableFormat = format.printf(({ timestamp, level, message, ...metadata }) => {
   const details = Object.fromEntries(Object.entries(metadata));

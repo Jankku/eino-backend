@@ -1,5 +1,5 @@
 import express from 'express';
-import { validateSchema } from '../../middleware/validateschema';
+import { validateSchema } from '../../middleware/validateschema.ts';
 import {
   deleteAccount,
   getProfile,
@@ -9,9 +9,9 @@ import {
   getProfileV2,
   saveProfilePicture,
   deleteProfilePicture,
-} from '../../services/profile';
-import { deleteAccountSchema, exportProfileSchema, importProfileSchema } from './schema';
-import { withProfilePictureUpload } from '../../middleware/profilepictureupload';
+} from '../../services/profile.ts';
+import { deleteAccountSchema, exportProfileSchema, importProfileSchema } from './schema.ts';
+import { withProfilePictureUpload } from '../../middleware/profilepictureupload.ts';
 
 export const profileRouter = express.Router();
 

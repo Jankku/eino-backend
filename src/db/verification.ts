@@ -1,4 +1,4 @@
-import { ITask } from 'pg-promise';
+import type { ITask } from 'pg-promise';
 
 type DbVerification = {
   id: string;

@@ -1,2 +1,2 @@
-export * from './router';
-export * from './schema';
+export * from './router.ts';
+export * from './schema.ts';

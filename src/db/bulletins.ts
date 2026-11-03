@@ -1,7 +1,7 @@
-import { ITask } from 'pg-promise';
-import { pgp } from './config';
-import { getPage } from './pagination';
-import { Pagination } from '../util/pagination';
+import type { ITask } from 'pg-promise';
+import { pgp } from './config.ts';
+import { getPage } from './pagination.ts';
+import type { Pagination } from '../util/pagination.ts';
 
 export const bulletinTypes = ['success', 'info', 'warning', 'error'] as const;
 export type BulletinType = (typeof bulletinTypes)[number];

@@ -1,4 +1,4 @@
-import { Role, roleMap } from '../db/role';
+import { type Role, roleMap } from '../db/role.ts';
 
 export const roleIdToName = (id: number): Role['name'] => {
   for (const [name, role] of roleMap) {

@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { bookStatusEnum } from '../../db/model/bookstatus';
-import { errorMessages } from '../../util/errormessages';
-import { listIdSchema } from '../../util/zodschema';
-import { bookSchema, bookSortSchema } from '../../db/model/book';
+import { bookStatusEnum } from '../../db/model/bookstatus.ts';
+import { errorMessages } from '../../util/errormessages.ts';
+import { listIdSchema } from '../../util/zodschema.ts';
+import { bookSchema, bookSortSchema } from '../../db/model/book.ts';
 
 export const searchSchema = z.object({
   query: z.object({

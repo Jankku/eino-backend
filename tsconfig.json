@@ -2,11 +2,15 @@
   "extends": "./node_modules/@tsconfig/node-lts/tsconfig.json",
   "include": ["src/**/*", "migrations/**/*"],
   "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "types": ["node"],
     "rootDir": ".",
     "outDir": "./dist",
     "removeComments": true,
     "importHelpers": true,
-    "erasableSyntaxOnly": true
+    "erasableSyntaxOnly": true,
+    "rewriteRelativeImportExtensions": true,
+    "verbatimModuleSyntax": true
   }
 }

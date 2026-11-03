@@ -1,6 +1,6 @@
 import express from 'express';
-import { validateSchema } from '../../middleware/validateschema';
-import * as auth from '../../services/auth';
+import { validateSchema } from '../../middleware/validateschema.ts';
+import * as auth from '../../services/auth.ts';
 import {
   registerSchema,
   loginSchema,
@@ -10,9 +10,9 @@ import {
   enable2FASchema,
   forgotPasswordSchema,
   resetPasswordSchema,
-} from './schema';
-import { verifyToken } from '../../middleware/verifytoken';
-import { userEnabled } from '../../middleware/userenabled';
+} from './schema.ts';
+import { verifyToken } from '../../middleware/verifytoken.ts';
+import { userEnabled } from '../../middleware/userenabled.ts';
 
 export const authRouter = express.Router();
 

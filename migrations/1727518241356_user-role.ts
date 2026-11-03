@@ -1,4 +1,4 @@
-import { MigrationBuilder, ColumnDefinitions } from 'node-pg-migrate';
+import type { MigrationBuilder, ColumnDefinitions } from 'node-pg-migrate';
 import * as bcrypt from 'bcrypt';
 
 export const shorthands: ColumnDefinitions | undefined = undefined;

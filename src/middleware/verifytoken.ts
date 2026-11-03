@@ -1,16 +1,16 @@
-import { NextFunction, Request } from 'express';
+import type { NextFunction, Request } from 'express';
 import jwt from 'jsonwebtoken';
 import { z, ZodError } from 'zod';
-import { config } from '../config';
-import { ErrorWithStatus, SecurityErrorWithStatus } from '../util/errorhandler';
-import { formatZodErrors, TypedResponse } from '../util/zod';
-import { getTokenSubject } from '../util/auth';
-import { db } from '../db/config';
-import { findUserById } from '../db/users';
-import { roleIdToName } from '../util/role';
-import { jwtConstants } from '../util/jwtconstants';
-import { logError } from '../util/logger';
-import { auditSecurityFailure } from '../util/securityaudit';
+import { config } from '../config.ts';
+import { ErrorWithStatus, SecurityErrorWithStatus } from '../util/errorhandler.ts';
+import { formatZodErrors, type TypedResponse } from '../util/zod.ts';
+import { getTokenSubject } from '../util/auth.ts';
+import { db } from '../db/config.ts';
+import { findUserById } from '../db/users.ts';
+import { roleIdToName } from '../util/role.ts';
+import { jwtConstants } from '../util/jwtconstants.ts';
+import { logError } from '../util/logger.ts';
+import { auditSecurityFailure } from '../util/securityaudit.ts';
 
 const tokenSchema = z.object({
   headers: z.object({

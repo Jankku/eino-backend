@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { bookStatusEnum } from './bookstatus';
+import { bookStatusEnum } from './bookstatus.ts';
 import {
   coverUrlSchema,
   dateSchema,
@@ -9,8 +9,8 @@ import {
   nonnegativeNumberSchema,
   scoreSchema,
   sortOrderSchema,
-} from '../../util/zodschema';
-import { parseFilter } from '../../util/sort';
+} from '../../util/zodschema.ts';
+import { parseFilter } from '../../util/sort.ts';
 
 export const bookSchema = z.object({
   isbn: fixedStringSchema,

@@ -1,27 +1,27 @@
-import { NextFunction, Request } from 'express';
-import { db, pgp } from '../db/config';
+import type { NextFunction, Request } from 'express';
+import { db, pgp } from '../db/config.ts';
 import {
   findProfilePictureByUsername,
   getItemCountByUsernameForUpdate,
   getUserById,
   isPasswordCorrect,
   updateProfilePicturePath,
-} from '../db/users';
-import { ErrorWithStatus, SecurityErrorWithStatus } from '../util/errorhandler';
+} from '../db/users.ts';
+import { ErrorWithStatus, SecurityErrorWithStatus } from '../util/errorhandler.ts';
 import * as fs from 'node:fs/promises';
-import { success } from '../util/response';
-import { Logger, logError } from '../util/logger';
-import { getAllBooks, getTop10BookTitles } from '../db/books';
-import { getAllMovies, getTop10MovieTitles } from '../db/movies';
-import { generateShareId, getShareItemPath } from '../util/share';
-import { renderShareImage } from '../util/shareimage';
-import { createShare, getSharesByUsername } from '../db/share';
-import { getProfileData, getProfileDataV2 } from '../db/profile';
-import {
+import { success } from '../util/response.ts';
+import { Logger, logError } from '../util/logger.ts';
+import { getAllBooks, getTop10BookTitles } from '../db/books.ts';
+import { getAllMovies, getTop10MovieTitles } from '../db/movies.ts';
+import { generateShareId, getShareItemPath } from '../util/share.ts';
+import { renderShareImage } from '../util/shareimage.ts';
+import { createShare, getSharesByUsername } from '../db/share.ts';
+import { getProfileData, getProfileDataV2 } from '../db/profile.ts';
+import type {
   deleteAccountSchema,
   exportProfileSchema,
   importProfileSchema,
-} from '../routes/profile/schema';
+} from '../routes/profile/schema.ts';
 import {
   booksCs,
   booksListCs,
@@ -29,13 +29,13 @@ import {
   calculateMovieHash,
   moviesCs,
   moviesListCs,
-} from '../util/profile';
-import { config } from '../config';
-import { TypedResponse } from '../util/zod';
-import { findVerification } from '../db/verification';
-import { validateTOTP } from '../util/totp';
-import { addAudit, getAuditsByActorUserId } from '../db/audit';
-import { generateProfilePicturePath, profilePictureLimits } from '../util/profilepicture';
+} from '../util/profile.ts';
+import { config } from '../config.ts';
+import type { TypedResponse } from '../util/zod.ts';
+import { findVerification } from '../db/verification.ts';
+import { validateTOTP } from '../util/totp.ts';
+import { addAudit, getAuditsByActorUserId } from '../db/audit.ts';
+import { generateProfilePicturePath, profilePictureLimits } from '../util/profilepicture.ts';
 import sharp from 'sharp';
 
 export const getProfile = async (_: Request, res: TypedResponse, next: NextFunction) => {

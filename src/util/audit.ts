@@ -1,6 +1,6 @@
 /* oxlint-disable unicorn/no-array-reduce */
 /* oxlint-disable unicorn/numeric-separators-style */
-import { DbAudit } from '../db/audit';
+import type { DbAudit } from '../db/audit.ts';
 
 const DISCORD_COLOR_BLUE = 3447003;
 

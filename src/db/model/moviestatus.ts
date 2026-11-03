@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { errorMessages } from '../../util/errormessages';
+import { errorMessages } from '../../util/errormessages.ts';
 
 export const movieStatuses = ['completed', 'watching', 'on-hold', 'dropped', 'planned'] as const;
 

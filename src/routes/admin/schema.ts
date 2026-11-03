@@ -1,14 +1,14 @@
 import { z } from 'zod';
-import { errorMessages } from '../../util/errormessages';
+import { errorMessages } from '../../util/errormessages.ts';
 import {
   dateSchema,
   nonEmptyString,
   optionalEmailSchema,
   usernameSchema,
-} from '../../util/zodschema';
-import { db } from '../../db/config';
-import { isEmailUniqueExcludeUsername } from '../../db/users';
-import { bulletinConditions, bulletinTypes, bulletinVisibilities } from '../../db/bulletins';
+} from '../../util/zodschema.ts';
+import { db } from '../../db/config.ts';
+import { isEmailUniqueExcludeUsername } from '../../db/users.ts';
+import { bulletinConditions, bulletinTypes, bulletinVisibilities } from '../../db/bulletins.ts';
 
 const overviewDateSchema = z.iso.date().refine((value) => !value.startsWith('0000'), {
   message: 'Year must be at least 0001',

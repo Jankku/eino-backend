@@ -1,4 +1,4 @@
-import { NextFunction, Request } from 'express';
+import type { NextFunction, Request } from 'express';
 import jwt from 'jsonwebtoken';
 import {
   disableTOTP,
@@ -11,20 +11,20 @@ import {
   getUserById,
   updateLastLogin,
   updatePassword,
-} from '../db/users';
-import { db } from '../db/config';
-import { success } from '../util/response';
-import { logError } from '../util/logger';
+} from '../db/users.ts';
+import { db } from '../db/config.ts';
+import { success } from '../util/response.ts';
+import { logError } from '../util/logger.ts';
 import {
   generateAccessToken,
   generateRefreshToken,
   getPasswordStrength,
   getTokenSubject,
-} from '../util/auth';
-import { ErrorWithStatus, SecurityErrorWithStatus } from '../util/errorhandler';
-import { config } from '../config';
-import { TypedResponse } from '../util/zod';
-import {
+} from '../util/auth.ts';
+import { ErrorWithStatus, SecurityErrorWithStatus } from '../util/errorhandler.ts';
+import { config } from '../config.ts';
+import type { TypedResponse } from '../util/zod.ts';
+import type {
   enable2FASchema,
   forgotPasswordSchema,
   loginConfigSchema,
@@ -33,18 +33,18 @@ import {
   refreshTokenSchema,
   registerSchema,
   resetPasswordSchema,
-} from '../routes/auth';
-import { addVerification, deleteVerification, findVerification } from '../db/verification';
-import { generateTOTP, validateEmailOTP, validateTOTP } from '../util/totp';
+} from '../routes/auth/index.ts';
+import { addVerification, deleteVerification, findVerification } from '../db/verification.ts';
+import { generateTOTP, validateEmailOTP, validateTOTP } from '../util/totp.ts';
 import QRCode from 'qrcode';
 import { DateTime } from 'luxon';
-import { isVerificationExpired } from '../util/verification';
-import { sendEmail } from '../util/email';
-import { resetPasswordTemplate } from '../util/emailtemplates';
-import { addAudit } from '../db/audit';
-import { getDefaultRoleId } from '../db/role';
-import { jwtConstants } from '../util/jwtconstants';
-import { generatePasswordHash, shouldUpgradePassword, verifyPassword } from '../util/password';
+import { isVerificationExpired } from '../util/verification.ts';
+import { sendEmail } from '../util/email.ts';
+import { resetPasswordTemplate } from '../util/emailtemplates.ts';
+import { addAudit } from '../db/audit.ts';
+import { getDefaultRoleId } from '../db/role.ts';
+import { jwtConstants } from '../util/jwtconstants.ts';
+import { generatePasswordHash, shouldUpgradePassword, verifyPassword } from '../util/password.ts';
 
 export const register = async (
   _: Request,

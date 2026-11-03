@@ -1,10 +1,10 @@
-import { ITask } from 'pg-promise';
-import { generatePasswordHash, verifyPassword } from '../util/password';
-import { logError } from '../util/logger';
-import { getProfilePicturePathByFileName } from '../util/profilepicture';
-import { roleIdToName } from '../util/role';
-import { getPage } from './pagination';
-import { Pagination } from '../util/pagination';
+import type { ITask } from 'pg-promise';
+import { generatePasswordHash, verifyPassword } from '../util/password.ts';
+import { logError } from '../util/logger.ts';
+import { getProfilePicturePathByFileName } from '../util/profilepicture.ts';
+import { roleIdToName } from '../util/role.ts';
+import { getPage } from './pagination.ts';
+import type { Pagination } from '../util/pagination.ts';
 
 export type User = {
   user_id: string;

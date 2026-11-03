@@ -1,8 +1,8 @@
 import express from 'express';
-import { validateSchema } from '../../middleware/validateschema';
-import { validatePagination } from '../../middleware/pagination';
-import { movieSortSchema } from '../../db/model/movie';
-import * as movies from '../../services/movies';
+import { validateSchema } from '../../middleware/validateschema.ts';
+import { validatePagination } from '../../middleware/pagination.ts';
+import { movieSortSchema } from '../../db/model/movie.ts';
+import * as movies from '../../services/movies.ts';
 import {
   addOneSchema,
   deleteOneSchema,
@@ -11,7 +11,7 @@ import {
   fetchOneSchema,
   searchSchema,
   updateOneSchema,
-} from './schema';
+} from './schema.ts';
 
 const createMovieRouter = (paginated: boolean) => {
   const movieRouter = express.Router();
