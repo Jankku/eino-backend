@@ -79,7 +79,7 @@ export const getAdminOverview = async (
       action,
       securityCounts.find((row) => row.action === action)?.count ?? 0,
     ]),
-  ) as Record<SecurityEventAction, number>;
+  );
 
   const users = await t.any<OverviewUser>(
     `SELECT u.user_id, u.username, u.role_id, u.profile_picture_path, u.last_login_on,

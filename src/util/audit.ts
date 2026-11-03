@@ -1,5 +1,5 @@
-/* eslint-disable unicorn/no-array-reduce */
-/* eslint-disable unicorn/numeric-separators-style */
+/* oxlint-disable unicorn/no-array-reduce */
+/* oxlint-disable unicorn/numeric-separators-style */
 import { DbAudit } from '../db/audit';
 
 const DISCORD_COLOR_BLUE = 3447003;
@@ -74,8 +74,8 @@ export const auditToDiscordEmbed = (audit: DbAudit): DiscordEmbed => {
   }
 
   if (audit.old_data) {
-    if (audit.old_data.email) {
-      audit.old_data.email = redactEmail(audit.old_data.email as string);
+    if (typeof audit.old_data.email === 'string' && audit.old_data.email.length > 0) {
+      audit.old_data.email = redactEmail(audit.old_data.email);
     }
     fields.push({
       name: 'Old Data',
@@ -85,8 +85,8 @@ export const auditToDiscordEmbed = (audit: DbAudit): DiscordEmbed => {
   }
 
   if (audit.new_data) {
-    if (audit.new_data.email) {
-      audit.new_data.email = redactEmail(audit.new_data.email as string);
+    if (typeof audit.new_data.email === 'string' && audit.new_data.email.length > 0) {
+      audit.new_data.email = redactEmail(audit.new_data.email);
     }
     fields.push({
       name: 'New Data',

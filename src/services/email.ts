@@ -3,7 +3,7 @@ import { success } from '../util/response';
 import { ErrorWithStatus, SecurityErrorWithStatus } from '../util/errorhandler';
 import { generateTOTP, validateEmailOTP, validateTOTP } from '../util/totp';
 import { addVerification, deleteVerification, findVerification } from '../db/verification';
-import { Logger } from '../util/logger';
+import { logError } from '../util/logger';
 import {
   getUserById,
   isEmailAlreadyUsed,
@@ -100,7 +100,7 @@ export const updateEmail = async (
     if (error instanceof ErrorWithStatus) {
       next(error);
     } else {
-      Logger.error((error as Error).stack);
+      logError(error);
       next(new ErrorWithStatus(500, 'update_email_error', "Couldn't update email"));
     }
   }
@@ -165,7 +165,7 @@ export const sendConfirmationEmail = async (
     if (error instanceof ErrorWithStatus) {
       next(error);
     } else {
-      Logger.error((error as Error).stack);
+      logError(error);
       next(new ErrorWithStatus(500, 'email_error', "Couldn't send confirmation email"));
     }
   }
@@ -242,7 +242,7 @@ export const verifyEmail = async (
     if (error instanceof ErrorWithStatus) {
       next(error);
     } else {
-      Logger.error((error as Error).stack);
+      logError(error);
       next(new ErrorWithStatus(500, 'email_verification_error', "Couldn't verify email"));
     }
   }

@@ -33,7 +33,7 @@ export const generateAccessToken = (user: User): string =>
       userId: user.user_id,
       username: user.username,
       role: roleIdToName(user.role_id),
-      is2FAEnabled: user.totp_enabled_on ? true : false,
+      is2FAEnabled: !!user.totp_enabled_on,
     } satisfies AccessTokenPayload,
     ACCESS_TOKEN_SECRET,
     {

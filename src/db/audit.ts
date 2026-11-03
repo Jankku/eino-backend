@@ -42,11 +42,18 @@ export const auditAction = {
 export type AuditAction = (typeof auditAction)[keyof typeof auditAction];
 
 export type Audit = (
-  { actor_user_id: string; username: string } | { actor_user_id: null; username: null }
+  | { actor_user_id: string; username: string }
+  | { actor_user_id: null; username: null }
 ) & {
   action: AuditAction;
   table_name?:
-    'users' | 'books' | 'movies' | 'user_book_list' | 'user_movie_list' | 'bulletins' | 'audit_log';
+    | 'users'
+    | 'books'
+    | 'movies'
+    | 'user_book_list'
+    | 'user_movie_list'
+    | 'bulletins'
+    | 'audit_log';
   record_id?: string;
   old_data?: Record<string, unknown>;
   new_data?: Record<string, unknown>;

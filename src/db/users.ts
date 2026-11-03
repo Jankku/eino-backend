@@ -1,6 +1,6 @@
 import { ITask } from 'pg-promise';
 import { generatePasswordHash, verifyPassword } from '../util/password';
-import { Logger } from '../util/logger';
+import { logError } from '../util/logger';
 import { getProfilePicturePathByFileName } from '../util/profilepicture';
 import { roleIdToName } from '../util/role';
 import { getPage } from './pagination';
@@ -32,8 +32,9 @@ const usersQuery = `SELECT user_id, username, role_id, profile_picture_path, ema
      FROM users`;
 
 export const getAllUsers = async (t: ITask<unknown>): Promise<UserWithRoleName[]> => {
-  return await t.map(`${usersQuery} ORDER BY username ASC`, undefined, (row) => ({
+  return await t.map<UserWithRoleName>(`${usersQuery} ORDER BY username ASC`, undefined, (row) => ({
     ...row,
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     role: roleIdToName(row.role_id as number),
   }));
 };
@@ -257,7 +258,7 @@ export const isUserUnique = async (t: ITask<unknown>, username: string): Promise
     });
     return result.rowCount === 0;
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     return false;
   }
 };
@@ -272,7 +273,7 @@ export const isEmailUnique = async (t: ITask<unknown>, email: string): Promise<b
     });
     return result.rowCount === 0;
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     return false;
   }
 };
@@ -291,7 +292,7 @@ export const isEmailUniqueExcludeUsername = async (
     });
     return result.rowCount === 0;
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     return false;
   }
 };

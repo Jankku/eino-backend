@@ -22,3 +22,7 @@ export const Logger = createLogger({
 });
 
 Logger.on('error', () => {});
+
+export const logError = (error: unknown): void => {
+  Logger.error(error instanceof Error ? (error.stack ?? error.message) : inspect(error));
+};

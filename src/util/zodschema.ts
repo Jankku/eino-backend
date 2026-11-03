@@ -7,7 +7,10 @@ export const dateStringSchema = z.string().refine((arg) => {
 });
 
 export const dateSchema = z.preprocess((arg) => {
-  if (typeof arg == 'string' || arg instanceof Date) return new Date(arg);
+  if (typeof arg == 'string' || arg instanceof Date) {
+    return new Date(arg);
+  }
+  return arg;
 }, z.date()) as z.ZodType<Date>;
 
 export const nonEmptyString = z.string().min(1);

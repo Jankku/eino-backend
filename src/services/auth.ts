@@ -14,7 +14,7 @@ import {
 } from '../db/users';
 import { db } from '../db/config';
 import { success } from '../util/response';
-import { Logger } from '../util/logger';
+import { logError } from '../util/logger';
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -67,7 +67,7 @@ export const register = async (
 
     res.status(200).json(success([{ name: 'user_registered', message: username }]));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(
       new ErrorWithStatus(
         500,
@@ -195,7 +195,7 @@ export const login = async (
     if (error instanceof ErrorWithStatus) {
       next(error);
     } else {
-      Logger.error((error as Error).stack);
+      logError(error);
       next(new ErrorWithStatus(500, 'authentication_error', 'Incorrect username or password'));
     }
   }
@@ -210,8 +210,8 @@ export const loginConfig = async (
 
   try {
     const { user } = await db.tx('loginConfig', async (t) => {
-      const user = await findUserByCredential(t, usernameOrEmail);
-      if (!user) {
+      const foundUser = await findUserByCredential(t, usernameOrEmail);
+      if (!foundUser) {
         throw new SecurityErrorWithStatus(
           422,
           'authentication_error',
@@ -220,35 +220,37 @@ export const loginConfig = async (
         );
       }
 
-      if (user.disabled_on) {
+      if (foundUser.disabled_on) {
         throw new SecurityErrorWithStatus(422, 'authentication_error', 'Account disabled', {
           operation: 'login_config',
           reason: 'account_disabled',
-          targetUserId: user.user_id,
+          targetUserId: foundUser.user_id,
         });
       }
 
-      const isCorrect = await verifyPassword(password, user.password);
+      const isCorrect = await verifyPassword(password, foundUser.password);
       if (!isCorrect) {
         throw new SecurityErrorWithStatus(
           422,
           'authentication_error',
           'Incorrect username or password',
-          { operation: 'login_config', reason: 'invalid_credentials', targetUserId: user.user_id },
+          {
+            operation: 'login_config',
+            reason: 'invalid_credentials',
+            targetUserId: foundUser.user_id,
+          },
         );
       }
 
-      return { user };
+      return { user: foundUser };
     });
 
-    res.status(200).json({
-      is2FAEnabled: user.totp_enabled_on ? true : false,
-    });
+    res.status(200).json({ is2FAEnabled: !!user.totp_enabled_on });
   } catch (error) {
     if (error instanceof ErrorWithStatus) {
       next(error);
     } else {
-      Logger.error((error as Error).stack);
+      logError(error);
       next(new ErrorWithStatus(500, 'authentication_error', 'Incorrect username or password'));
     }
   }
@@ -308,8 +310,16 @@ export const generateNewAccessToken = async (
         }),
       );
     } else {
-      Logger.error((error as Error).stack);
-      next(new ErrorWithStatus(500, 'jwt_refresh_error', (error as Error)?.message));
+      logError(error);
+      next(
+        new ErrorWithStatus(
+          500,
+          'jwt_refresh_error',
+          error instanceof Error
+            ? error.message
+            : 'Unknown error while trying to refresh access token',
+        ),
+      );
     }
   }
 };
@@ -329,7 +339,7 @@ export const passwordStrength = (
     }
     res.status(200).json(success([{ message: 'Password is strong', score }]));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(
       new ErrorWithStatus(500, 'password_strength_error', 'Unknown error while checking password'),
     );
@@ -429,7 +439,7 @@ export const forgotPassword = async (
         {
           name: 'password_reset_email_sent',
           message: 'Check your email for one-time password',
-          is2FAEnabled: user.totp_enabled_on ? true : false,
+          is2FAEnabled: !!user.totp_enabled_on,
         },
       ]),
     );
@@ -437,7 +447,7 @@ export const forgotPassword = async (
     if (error instanceof ErrorWithStatus) {
       next(error);
     } else {
-      Logger.error((error as Error).stack);
+      logError(error);
       next(
         new ErrorWithStatus(
           500,
@@ -558,7 +568,7 @@ export const resetPassword = async (
     if (error instanceof ErrorWithStatus) {
       next(error);
     } else {
-      Logger.error((error as Error).stack);
+      logError(error);
       next(
         new ErrorWithStatus(
           500,
@@ -616,7 +626,7 @@ export const generate2FAUrl = async (req: Request, res: TypedResponse, next: Nex
     if (error instanceof ErrorWithStatus) {
       next(error);
     } else {
-      Logger.error((error as Error).stack);
+      logError(error);
       next(new ErrorWithStatus(422, '2fa_error', "Couldn't generate url"));
     }
   }
@@ -660,7 +670,7 @@ export const enable2FA = async (
     if (error instanceof ErrorWithStatus) {
       next(error);
     } else {
-      Logger.error((error as Error).stack);
+      logError(error);
       next(new ErrorWithStatus(422, '2fa_error', "Couldn't enable 2FA"));
     }
   }
@@ -705,7 +715,7 @@ export const disable2FA = async (
     if (error instanceof ErrorWithStatus) {
       next(error);
     } else {
-      Logger.error((error as Error).stack);
+      logError(error);
       next(new ErrorWithStatus(422, '2fa_error', "Couldn't disable 2FA"));
     }
   }

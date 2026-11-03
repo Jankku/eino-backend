@@ -3,7 +3,7 @@ import { TypedResponse } from '../util/zod';
 import { success } from '../util/response';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { db } from '../db/config';
-import { Logger } from '../util/logger';
+import { Logger, logError } from '../util/logger';
 import {
   BulletinCondition,
   getAuthenticatedBulletins,
@@ -19,7 +19,7 @@ export const publicBulletins = async (_: Request, res: TypedResponse, next: Next
     const bulletins = await db.task('publicBulletins', async (t) => await getPublicBulletins(t));
     res.status(200).json(success(bulletins));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'bulletin_error', 'Unknown error while trying to get bulletins'));
   }
 };
@@ -68,7 +68,7 @@ export const userBulletins = async (_: Request, res: TypedResponse, next: NextFu
 
     res.status(200).json(success(bulletins));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'bulletin_error', 'Unknown error while trying to get bulletins'));
   }
 };

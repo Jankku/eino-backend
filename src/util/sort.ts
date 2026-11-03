@@ -1,4 +1,4 @@
-/* eslint-disable security/detect-object-injection */
+/* oxlint-disable security/detect-object-injection */
 import { DateTime } from 'luxon';
 import { SortOrder } from './zodschema';
 import { z } from 'zod';
@@ -62,7 +62,7 @@ const dateValue = (value: unknown): number | undefined => {
     !/^\d{4}-\d{2}-\d{2}$/.test(value.slice(0, 10)) ||
     (value.length > 10 && value[10] !== 'T')
   )
-    return;
+    return undefined;
   const date = DateTime.fromISO(value, { zone: 'utc' });
   return date.isValid ? date.toMillis() : undefined;
 };
@@ -79,7 +79,7 @@ export const parseFilter = ({
   stringKeySchema: z.ZodType;
   numberKeySchema: z.ZodType;
   dateKeySchema: z.ZodType;
-}) => {
+}): [] | [string, z.infer<typeof operatorSchema>, string] => {
   // Input format: <key>:<operator>:<value>
   // Split only the separators: titles and ISO timestamps can contain colons.
   const firstSeparator = input.indexOf(':');
@@ -87,16 +87,18 @@ export const parseFilter = ({
   if (firstSeparator === -1 || secondSeparator === -1) return [];
 
   const key = input.slice(0, firstSeparator);
-  const operator = input.slice(firstSeparator + 1, secondSeparator);
+  const parsedOperator = operatorSchema.safeParse(input.slice(firstSeparator + 1, secondSeparator));
   const value = input.slice(secondSeparator + 1);
 
   if (
     !filterableKeySchema.safeParse(key).success ||
-    !operatorSchema.safeParse(operator).success ||
+    !parsedOperator.success ||
     value.trim().length === 0
   ) {
     return [];
   }
+
+  const operator = parsedOperator.data;
 
   if (stringKeySchema.safeParse(key).success) {
     if (operator !== '=') return [];
@@ -108,7 +110,7 @@ export const parseFilter = ({
     return [];
   }
 
-  return [key, operator, value] as [string, z.infer<typeof operatorSchema>, string];
+  return [key, operator, value];
 };
 
 const compareNumbers = (actual: number, expected: number, operator: string): boolean => {
@@ -165,7 +167,7 @@ export const getItemFilter = ({
   numberSchema,
   dateSchema,
 }: {
-  key: string;
+  key: string | undefined;
   stringSchema: z.ZodType;
   numberSchema: z.ZodType;
   dateSchema: z.ZodType;
@@ -173,4 +175,5 @@ export const getItemFilter = ({
   if (numberSchema.safeParse(key).success) return itemNumberFilter;
   if (dateSchema.safeParse(key).success) return itemDateFilter;
   if (stringSchema.safeParse(key).success) return itemStringFilter;
+  return () => false;
 };

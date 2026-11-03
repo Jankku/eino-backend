@@ -11,6 +11,7 @@ z.config({
       return;
     }
     const field = issue.path?.at(-1);
+    // oxlint-disable-next-line typescript/consistent-return
     return { message: `${String(field)}: ${issue.message}` };
   },
 });
@@ -32,7 +33,13 @@ export const validateSchema =
       next(
         error instanceof ZodError
           ? formatZodErrors(error)
-          : new ErrorWithStatus(500, 'schema_validation_error', (error as Error)?.message),
+          : new ErrorWithStatus(
+              500,
+              'schema_validation_error',
+              error instanceof Error
+                ? error.message
+                : 'Unknown error while trying to validate input',
+            ),
       );
     }
   };

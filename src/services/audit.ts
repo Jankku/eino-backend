@@ -36,7 +36,6 @@ const processAuditsDiscord = async () => {
 
   if (audits.length === 0) return;
 
-  // eslint-disable-next-line unicorn/no-top-level-assignment-in-function
   lastProcessed = DateTime.utc();
 
   Logger.debug(`Processing ${audits.length} audits and sending to Discord`);

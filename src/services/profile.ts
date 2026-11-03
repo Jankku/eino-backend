@@ -10,7 +10,7 @@ import {
 import { ErrorWithStatus, SecurityErrorWithStatus } from '../util/errorhandler';
 import * as fs from 'node:fs/promises';
 import { success } from '../util/response';
-import { Logger } from '../util/logger';
+import { Logger, logError } from '../util/logger';
 import { getAllBooks, getTop10BookTitles } from '../db/books';
 import { getAllMovies, getTop10MovieTitles } from '../db/movies';
 import { generateShareId, getShareItemPath } from '../util/share';
@@ -62,7 +62,7 @@ export const getProfile = async (_: Request, res: TypedResponse, next: NextFunct
       },
     });
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'profile_error', "Couldn't fetch profile"));
   }
 };
@@ -87,7 +87,7 @@ export const getProfileV2 = async (_req: Request, res: TypedResponse, next: Next
       },
     });
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'profile_error', "Couldn't fetch profile"));
   }
 };
@@ -326,7 +326,7 @@ export const importProfileData = async (
 
         // Map inserted books to be compatible with user_book_list table
         const bookListItems = newBooks.map((book) => ({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          // oxlint-disable-next-line @typescript-eslint/no-unsafe-argument
           ...bookHashMap[calculateBookHash(book)],
           book_id: book.book_id,
           username,
@@ -343,7 +343,7 @@ export const importProfileData = async (
 
         // Map inserted movies to be compatible with user_movie_list table
         const movieListItems = newMovies.map((movie) => ({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          // oxlint-disable-next-line @typescript-eslint/no-unsafe-argument
           ...movieHashMap[calculateMovieHash(movie)],
           movie_id: movie.movie_id,
           username,
@@ -421,7 +421,7 @@ export const saveProfilePicture = async (req: Request, res: TypedResponse, next:
       .status(200)
       .json(success([{ name: 'profile_picture_uploaded', message: 'Profile picture uploaded' }]));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'profile_picture_error', "Couldn't save profile picture"));
   }
 };
@@ -445,7 +445,7 @@ export const deleteProfilePicture = async (_: Request, res: TypedResponse, next:
       .status(200)
       .json(success([{ name: 'profile_picture_removed', message: 'Profile picture removed' }]));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'profile_picture_error', "Couldn't remove profile picture"));
   }
 };

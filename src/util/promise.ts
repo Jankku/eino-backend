@@ -1,8 +1,6 @@
 import { Logger } from './logger';
 
-export async function firstNonEmpty<T extends unknown[]>(
-  promiseFactories: (() => Promise<T>)[],
-): Promise<T> {
+export async function firstNonEmpty<T>(promiseFactories: (() => Promise<T[]>)[]): Promise<T[]> {
   for (const factory of promiseFactories) {
     try {
       const result = await factory();
@@ -20,5 +18,5 @@ export async function firstNonEmpty<T extends unknown[]>(
       });
     }
   }
-  return [] as unknown as T;
+  return [];
 }

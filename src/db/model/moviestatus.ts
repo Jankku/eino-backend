@@ -9,5 +9,6 @@ export const movieStatusEnum = z.enum(movieStatuses, {
   error: errorMessages.LIST_STATUS_INVALID,
 });
 
-export const isMovieStatus = (status: string): status is MovieStatus =>
-  movieStatuses.includes(status as MovieStatus);
+export const isMovieStatus = (status: string): status is MovieStatus => {
+  return movieStatuses.some((s) => s === status);
+};

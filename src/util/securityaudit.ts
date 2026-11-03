@@ -1,4 +1,4 @@
-/* eslint-disable unicorn/no-null -- SQL NULL represents an unauthenticated actor. */
+/* oxlint-disable unicorn/no-null -- SQL NULL represents an unauthenticated actor. */
 import { Request, Response } from 'express';
 import { LRUCache } from 'lru-cache';
 import { addAudit, Audit, AuditAction } from '../db/audit';
@@ -57,7 +57,9 @@ const getAuditActor = (res: Response) => {
     : { actor_user_id: null, username: null };
 };
 
-const startFailureWindow = (key: string) => {
+const startFailureWindow = (
+  key: string,
+): { suppressedAttempts: number; cancel: () => void } | void => {
   const previous = failures.get(key);
   const now = Date.now();
   if (previous && now < previous.nextLogAt) {
@@ -90,7 +92,7 @@ export const auditSecurityFailure = async (
   const audit = {
     ...actor,
     // The operation comes from a closed union of application-defined values.
-    // eslint-disable-next-line security/detect-object-injection
+    // oxlint-disable-next-line security/detect-object-injection
     action: failureActions[operation],
     table_name: targetUserId ? 'users' : undefined,
     record_id: targetUserId,

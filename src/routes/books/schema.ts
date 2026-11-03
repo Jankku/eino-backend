@@ -55,6 +55,7 @@ export const searchIsbnSchema = z.object({
 });
 
 export const fetchByStatusSchema = z.object({
+  // oxlint-disable-next-line unicorn/no-useless-undefined -- Zod requires an explicit fallback value.
   query: bookSortSchema.optional().catch(undefined),
   params: z.object({
     status: bookStatusEnum,

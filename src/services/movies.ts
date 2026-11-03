@@ -1,5 +1,5 @@
 import { NextFunction, Request } from 'express';
-import { Logger } from '../util/logger';
+import { logError } from '../util/logger';
 import {
   ftsSearch,
   getAllMovies,
@@ -51,7 +51,7 @@ export const fetchPage = async (
     return;
   }
   try {
-    const page = await db.tx({ mode: paginationMode }, (t) =>
+    const page = await db.tx({ mode: paginationMode }, async (t) =>
       getMoviesPage(t, {
         username,
         pagination,
@@ -61,7 +61,7 @@ export const fetchPage = async (
     );
     res.status(200).json(page);
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't find movies"));
   }
 };
@@ -81,7 +81,7 @@ export const fetchOne = async (
     );
     res.status(200).json(success([movie]));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't find movie"));
   }
 };
@@ -113,7 +113,7 @@ export const fetchAll = async (req: Request, res: TypedResponse, next: NextFunct
 
     res.status(200).json(success(movies));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't find movies"));
   }
 };
@@ -153,7 +153,7 @@ export const fetchByStatus = async (
 
     res.status(200).json(success(movies));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't find movies"));
   }
 };
@@ -194,7 +194,7 @@ export const addOne = async (
       next(error);
       return;
     }
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't create movie"));
   }
 };
@@ -226,7 +226,7 @@ export const updateOne = async (
     });
     res.status(200).json(success([updatedMovie]));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't update movie"));
   }
 };
@@ -261,7 +261,7 @@ export const deleteOne = async (
 
     res.status(200).json(success([{ name: 'movie_deleted', message: 'Movie deleted' }]));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't delete movie"));
   }
 };
@@ -307,7 +307,7 @@ export const search = async (
 
     res.status(200).json(success(results));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'movie_list_error', 'Search failed'));
   }
 };
@@ -331,7 +331,7 @@ export const fetchImages = async (
 
     res.status(200).json(success(images));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'movie_list_error', 'Failed to fetch images'));
   }
 };
@@ -354,7 +354,7 @@ export const countByStatus = async (req: Request, res: TypedResponse, next: Next
 
     res.status(200).json(result);
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'movie_list_error', "Couldn't count books"));
   }
 };

@@ -10,6 +10,7 @@ import { emailRouter } from './email';
 import { verifyToken } from '../middleware/verifytoken';
 import swaggerUi from 'swagger-ui-express';
 import yaml from 'yaml';
+import { z } from 'zod';
 import { readFileSync } from 'node:fs';
 import { requireAdmin } from '../middleware/requirerole';
 import { userEnabled } from '../middleware/userenabled';
@@ -17,10 +18,9 @@ import { bulletinsRouter } from './bulletins';
 
 export const routerV2 = express.Router();
 
-const swaggerDocs = yaml.parse(readFileSync('./src/docs-v2.yaml', 'utf8')) as Record<
-  string,
-  unknown
->;
+const swaggerDocs = z
+  .record(z.string(), z.unknown())
+  .parse(yaml.parse(readFileSync('./src/docs-v2.yaml', 'utf8')));
 routerV2.use('/docs', swaggerUi.serveFiles(swaggerDocs));
 routerV2.get('/docs', swaggerUi.setup(swaggerDocs, { customSiteTitle: 'Eino API Docs v2' }));
 routerV2.get('/docs.json', (_, res) => {

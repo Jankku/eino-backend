@@ -1,5 +1,3 @@
-/* eslint-disable unicorn/filename-case */
-/* eslint-disable @typescript-eslint/require-await */
 import { MigrationBuilder, ColumnDefinitions } from 'node-pg-migrate';
 
 export const shorthands: ColumnDefinitions | undefined = undefined;

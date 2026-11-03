@@ -37,6 +37,7 @@ export const deleteOneSchema = z.object({
 });
 
 export const fetchByStatusSchema = z.object({
+  // oxlint-disable-next-line unicorn/no-useless-undefined -- Zod requires an explicit fallback value.
   query: movieSortSchema.optional().catch(undefined),
   params: z.object({
     status: movieStatusEnum,

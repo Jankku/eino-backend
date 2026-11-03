@@ -9,7 +9,7 @@ import { db } from '../db/config';
 import { findUserById } from '../db/users';
 import { roleIdToName } from '../util/role';
 import { jwtConstants } from '../util/jwtconstants';
-import { Logger } from '../util/logger';
+import { logError } from '../util/logger';
 import { auditSecurityFailure } from '../util/securityaudit';
 
 const tokenSchema = z.object({
@@ -72,7 +72,7 @@ export const verifyToken = async (req: Request, res: TypedResponse, next: NextFu
         }),
       );
     } else {
-      Logger.error((error as Error).stack);
+      logError(error);
       next(
         new ErrorWithStatus(
           500,

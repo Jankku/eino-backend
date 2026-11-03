@@ -10,4 +10,4 @@ export const bookStatusEnum = z.enum(bookStatuses, {
 export type BookStatus = (typeof bookStatuses)[number];
 
 export const isBookStatus = (status: string): status is BookStatus =>
-  bookStatuses.includes(status as BookStatus);
+  bookStatuses.some((candidate) => candidate === status);

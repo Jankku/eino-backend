@@ -1,3 +1,4 @@
+// oxlint-disable typescript/no-unsafe-enum-assignment
 import { config } from '../config';
 import pgPromise, { IInitOptions } from 'pg-promise';
 import monitor from 'pg-monitor';

@@ -35,6 +35,7 @@ export const getCacheKey = (service: ThirdPartyService, query: string) => {
     .trim()
     .toLowerCase()
     .normalize()
-    .replaceAll(/\s+/g, ' ').replaceAll(' ', '-');
+    .replaceAll(/\s+/g, ' ')
+    .replaceAll(' ', '-');
   return `${service}-${normalizedQuery}`;
 };

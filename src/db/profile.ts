@@ -71,7 +71,9 @@ const getBookDataV2 = async (t: ITask<unknown>, username: string): Promise<BookD
 
   const totalBookCount = rows.reduce((acc, curr) => acc + curr.count, 0);
   const statuses = [...fillBookStatuses(rows), { status: 'all', count: totalBookCount }];
-  const count = Object.fromEntries(statuses.map(({ status, count }) => [status, count]));
+  const count = Object.fromEntries(
+    statuses.map((statusCount) => [statusCount.status, statusCount.count]),
+  );
 
   return {
     count,
@@ -130,7 +132,9 @@ const getMovieDataV2 = async (client: ITask<unknown>, username: string): Promise
     ...fillMovieStatuses(rows),
     { status: 'all', count: totalMovieCount },
   ];
-  const count = Object.fromEntries(statuses.map(({ status, count }) => [status, count]));
+  const count = Object.fromEntries(
+    statuses.map((statusCount) => [statusCount.status, statusCount.count]),
+  );
 
   return {
     count,

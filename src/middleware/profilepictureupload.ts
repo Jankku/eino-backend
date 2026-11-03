@@ -20,7 +20,7 @@ const upload = multer({
       return;
     }
     // Multer's success callback requires null as the error argument.
-    // eslint-disable-next-line unicorn/no-null
+    // oxlint-disable-next-line unicorn/no-null
     callback(null, true);
   },
 }).single('picture');

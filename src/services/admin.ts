@@ -6,7 +6,7 @@ import { db } from '../db/config';
 import { addAudit, getAllAudits, getAuditsPage } from '../db/audit';
 import { paginationMode } from '../db/pagination';
 import { getAdminOverview } from '../db/admin';
-import { Logger } from '../util/logger';
+import { logError } from '../util/logger';
 import {
   findProfilePictureByUsername,
   getAllUsers,
@@ -48,7 +48,7 @@ export const getOverview = async (
     );
     res.status(200).json(success([overview]));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to get overview'));
   }
 };
@@ -64,7 +64,7 @@ export const getUsers = async (_: Request, res: TypedResponse, next: NextFunctio
     const users = await db.task((t) => getAllUsers(t));
     res.status(200).json(success(users));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to get users'));
   }
 };
@@ -87,7 +87,7 @@ export const getAuditLogs = async (
     const audits = await db.task((t) => getAllAudits(t, securityEvents));
     res.status(200).json(success(audits));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to get audits'));
   }
 };
@@ -136,7 +136,7 @@ export const editUser = async (
     if (error instanceof ErrorWithStatus) {
       next(error);
     } else {
-      Logger.error((error as Error).stack);
+      logError(error);
       next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to edit user'));
     }
   }
@@ -171,7 +171,7 @@ export const enableUser = async (
     if (error instanceof ErrorWithStatus) {
       next(error);
     } else {
-      Logger.error((error as Error).stack);
+      logError(error);
       next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to enable user'));
     }
   }
@@ -207,7 +207,7 @@ export const disableUser = async (
     if (error instanceof ErrorWithStatus) {
       next(error);
     } else {
-      Logger.error((error as Error).stack);
+      logError(error);
       next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to disable user'));
     }
   }
@@ -242,7 +242,7 @@ export const deleteUser = async (
     if (error instanceof ErrorWithStatus) {
       next(error);
     } else {
-      Logger.error((error as Error).stack);
+      logError(error);
       next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to delete user'));
     }
   }
@@ -259,7 +259,7 @@ export const getBulletins = async (_: Request, res: TypedResponse, next: NextFun
     const bulletins = await db.task('getBulletins', async (t) => await getAllBulletins(t));
     res.status(200).json(success(bulletins));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to get bulletins'));
   }
 };
@@ -289,7 +289,7 @@ export const postBulletin = async (
       .status(200)
       .json(success([{ name: 'bulletin_created', message: 'Bulletin created successfully' }]));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to create bulletin'));
   }
 };
@@ -324,7 +324,7 @@ export const editBulletin = async (
       .status(200)
       .json(success([{ name: 'bulletin_updated', message: 'Bulletin updated successfully' }]));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to update bulletin'));
   }
 };
@@ -352,7 +352,7 @@ export const removeBulletin = async (
       .status(200)
       .json(success([{ name: 'bulletin_deleted', message: 'Bulletin deleted successfully' }]));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to create bulletin'));
   }
 };

@@ -1,5 +1,3 @@
-/* eslint-disable unicorn/filename-case */
-/* eslint-disable @typescript-eslint/require-await */
 import { MigrationBuilder } from 'node-pg-migrate';
 
 export async function up(pgm: MigrationBuilder): Promise<void> {

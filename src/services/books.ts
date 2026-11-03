@@ -1,5 +1,5 @@
 import { NextFunction, Request } from 'express';
-import { Logger } from '../util/logger';
+import { logError } from '../util/logger';
 import {
   ftsSearch,
   getAllBooks,
@@ -64,7 +64,7 @@ export const fetchPage = async (
     );
     res.status(200).json(page);
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(422, 'book_list_error', "Couldn't find books"));
   }
 };
@@ -81,7 +81,7 @@ export const fetchOne = async (
     const book = await db.task('fetchOne', async (t) => await getBookById(t, { bookId, username }));
     res.status(200).json(success([book]));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(422, 'book_list_error', "Couldn't find book"));
   }
 };
@@ -113,7 +113,7 @@ export const fetchAll = async (req: Request, res: TypedResponse, next: NextFunct
 
     res.status(200).json(success(books));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(422, 'book_list_error', "Couldn't find books"));
   }
 };
@@ -150,7 +150,7 @@ export const fetchByStatus = async (
 
     res.status(200).json(success(books));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(422, 'book_list_error', "Couldn't find books"));
   }
 };
@@ -189,7 +189,7 @@ export const addOne = async (
       next(error);
       return;
     }
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(422, 'book_list_error', "Couldn't add book"));
   }
 };
@@ -222,7 +222,7 @@ export const updateOne = async (
 
     res.status(200).json(success([updatedBook]));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'book_list_error', "Couldn't update book"));
   }
 };
@@ -257,7 +257,7 @@ export const deleteOne = async (
 
     res.status(200).json(success([{ name: 'book_deleted', message: 'Book deleted' }]));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'book_list_error', "Couldn't delete book"));
   }
 };
@@ -304,7 +304,7 @@ export const search = async (
 
     res.status(200).json(success(results));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'book_list_error', 'Search failed'));
   }
 };
@@ -323,7 +323,7 @@ export const searchIsbn = async (
     ]);
     res.status(200).json(success(books));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(422, 'isbn_search_error', "Couldn't find book with this ISBN"));
   }
 };
@@ -347,7 +347,7 @@ export const fetchImages = async (
 
     res.status(200).json(success(images));
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'book_list_error', 'Failed to fetch images'));
   }
 };
@@ -370,7 +370,7 @@ export const countByStatus = async (req: Request, res: TypedResponse, next: Next
 
     res.status(200).json(result);
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'book_list_error', "Couldn't count books"));
   }
 };

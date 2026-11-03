@@ -3,7 +3,7 @@ import * as fs from 'node:fs/promises';
 import { db } from '../db/config';
 import { ErrorWithStatus } from '../util/errorhandler';
 import { findProfilePicturePathByFileName } from '../db/users';
-import { Logger } from '../util/logger';
+import { logError } from '../util/logger';
 import { TypedResponse } from '../util/zod';
 import { getProfilePictureSchema } from '../routes/profilepicture/schema';
 
@@ -26,7 +26,7 @@ export const getProfilePicture = async (
     const profilePicture = await fs.readFile(path);
     res.set({ 'Content-Type': 'image/avif' }).send(profilePicture);
   } catch (error) {
-    Logger.error((error as Error).stack);
+    logError(error);
     next(new ErrorWithStatus(500, 'profile_picture_error', "Couldn't fetch profile picture"));
   }
 };
