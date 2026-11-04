@@ -1,4 +1,3 @@
-import { fillAndSortResponse } from '../util/profile.ts';
 import type { ITask } from 'pg-promise';
 import { fillBookStatuses, fillMovieStatuses, type StatusCountRow } from '../util/status.ts';
 
@@ -28,59 +27,7 @@ type BookData = {
   score_average: number;
 };
 
-const getBookData = async (t: ITask<unknown>, username: string): Promise<BookData> => {
-  const pagesAndAvgScore = await t.one({
-    text: `SELECT * FROM
-            (SELECT count(*) FROM books WHERE submitter = $1) count,
-            (SELECT coalesce(sum(b.pages) FILTER (WHERE ubl.status = 'completed'), 0) as pages_read,
-                   coalesce(round(avg(ubl.score) FILTER (WHERE ubl.score > 0), 1), 0) AS average
-            FROM books b
-            INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
-            WHERE b.submitter = $1) pages_and_avg_score`,
-    values: [username],
-  });
-  const response: BookData = {
-    count: pagesAndAvgScore.count,
-    pages_read: pagesAndAvgScore.pages_read,
-    score_average: pagesAndAvgScore.average,
-  };
-  return response;
-};
-
-type BookDataV2 = {
-  count: Record<string, number>;
-  pages_read: number;
-  score_average: number;
-};
-
-const getBookDataV2 = async (t: ITask<unknown>, username: string): Promise<BookDataV2> => {
-  const rows = await t.any<StatusCountRow & { pages_read: number; average: number }>({
-    text: `SELECT * FROM
-            (SELECT ubl.status, COALESCE(count(*), 0) AS count
-              FROM books b
-              INNER JOIN user_book_list ubl ON b.book_id=ubl.book_id
-              WHERE b.submitter = $1
-              GROUP BY ubl.status) count,
-            (SELECT COALESCE(sum(b.pages) FILTER (WHERE ubl.status = 'completed'), 0) AS pages_read,
-                    COALESCE(round(avg(ubl.score) FILTER (WHERE ubl.score > 0), 1), 0) AS average
-              FROM books b
-              INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
-              WHERE b.submitter = $1) pages_and_avg_score`,
-    values: [username],
-  });
-
-  const totalBookCount = rows.reduce((acc, curr) => acc + curr.count, 0);
-  const statuses = [...fillBookStatuses(rows), { status: 'all', count: totalBookCount }];
-  const count = Object.fromEntries(
-    statuses.map((statusCount) => [statusCount.status, statusCount.count]),
-  );
-
-  return {
-    count,
-    pages_read: rows?.[0]?.pages_read || 0,
-    score_average: rows?.[0]?.average || 0,
-  };
-};
+type BookDataV2 = Omit<BookData, 'count'> & { count: Record<string, number> };
 
 type MovieData = {
   count: number;
@@ -88,88 +35,83 @@ type MovieData = {
   score_average: number;
 };
 
-const getMovieData = async (t: ITask<unknown>, username: string): Promise<MovieData> => {
-  const movieData = await t.any({
-    text: `SELECT * FROM
-            (SELECT count(*) FROM movies WHERE submitter = $1) count,
-            (SELECT coalesce(sum(m.duration) FILTER (WHERE uml.status = 'completed') / 60, 0) as watch_time,
-                   coalesce(round(avg(uml.score) FILTER (WHERE uml.score > 0), 1), 0) AS average
-            FROM movies m INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
-            WHERE m.submitter = $1) watch_time_and_avg_score`,
-    values: [username],
-  });
-  return {
-    count: movieData[0].count,
-    watch_time: movieData[0].watch_time,
-    score_average: movieData[0].average,
-  };
-};
-
-type MovieDataV2 = {
-  count: Record<string, number>;
-  watch_time: number;
-  score_average: number;
-};
-
-const getMovieDataV2 = async (client: ITask<unknown>, username: string): Promise<MovieDataV2> => {
-  const rows = await client.any<StatusCountRow & { watch_time: number; average: number }>({
-    text: `SELECT * FROM
-            (SELECT uml.status, COALESCE(count(*), 0) AS count
-              FROM movies m
-              LEFT JOIN user_movie_list uml ON m.movie_id=uml.movie_id
-              WHERE m.submitter = $1
-              GROUP BY uml.status) count,
-            (SELECT COALESCE(sum(m.duration) FILTER (WHERE uml.status = 'completed') / 60, 0) AS watch_time,
-                    COALESCE(round(avg(uml.score) FILTER (WHERE uml.score > 0), 1), 0) AS average
-              FROM movies m
-              INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
-              WHERE m.submitter = $1) watch_time_and_avg_score`,
-    values: [username],
-  });
-
-  const totalMovieCount = rows.reduce((acc, curr) => acc + curr.count, 0);
-  const statuses: StatusCountRow[] = [
-    ...fillMovieStatuses(rows),
-    { status: 'all', count: totalMovieCount },
-  ];
-  const count = Object.fromEntries(
-    statuses.map((statusCount) => [statusCount.status, statusCount.count]),
-  );
-
-  return {
-    count,
-    watch_time: rows?.[0]?.watch_time || 0,
-    score_average: rows?.[0]?.average || 0,
-  };
-};
+type MovieDataV2 = Omit<MovieData, 'count'> & { count: Record<string, number> };
 
 export type ItemScoreRow = {
   score: number;
   count: number;
 };
 
-const getBookScores = async (t: ITask<unknown>, username: string): Promise<ItemScoreRow[]> => {
-  const rows = await t.any<ItemScoreRow>({
-    text: `SELECT ubl.score, count(ubl.score)
-           FROM books b
-                    INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
-           WHERE b.submitter = $1 AND ubl.score > 0
-           GROUP BY ubl.score;`,
-    values: [username],
-  });
-  return await fillAndSortResponse(rows);
+type StatsRow = {
+  status: string | null;
+  score: number | null;
+  count: number;
+  completed_total: number;
+  average: number;
+  is_status_summary: boolean;
+  is_score_summary: boolean;
 };
 
-const getMovieScores = async (t: ITask<unknown>, username: string): Promise<ItemScoreRow[]> => {
-  const rows = await t.any<ItemScoreRow>({
-    text: `SELECT uml.score, count(uml.score)
-           FROM movies m
-                    INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
-           WHERE m.submitter = $1 AND uml.score > 0
-           GROUP BY uml.score;`,
-    values: [username],
-  });
-  return await fillAndSortResponse(rows);
+const summarizeStats = (
+  rows: StatsRow[],
+  fillStatuses: (rows: StatusCountRow[]) => StatusCountRow[],
+) => {
+  const total = rows.find((row) => !row.is_status_summary && !row.is_score_summary)!;
+  const statuses = fillStatuses(
+    rows
+      .filter((row) => row.is_status_summary && row.status !== null)
+      .map((row) => ({
+        status: row.status!,
+        count: row.count,
+      })),
+  );
+  const count = Object.fromEntries([
+    ...statuses.map(({ status, count }) => [status, count]),
+    ['all', total.count],
+  ]);
+  const scoreCounts = new Map(
+    rows
+      .filter((row) => row.is_score_summary && row.score !== null && row.score > 0)
+      .map((row) => [row.score, row.count]),
+  );
+  const scores = Array.from({ length: 10 }, (_, index) => ({
+    score: index + 1,
+    count: scoreCounts.get(index + 1) ?? 0,
+  }));
+  return { total, count, scores };
+};
+
+// Grouping sets produce status counts, score distributions, and totals from one join.
+const getBookStats = async (t: ITask<unknown>, username: string) => {
+  const rows = await t.any<StatsRow>(
+    `SELECT ubl.status, ubl.score, count(*) AS count,
+            COALESCE(sum(b.pages) FILTER (WHERE ubl.status = 'completed'), 0) AS completed_total,
+            COALESCE(round(avg(ubl.score) FILTER (WHERE ubl.score > 0), 1), 0) AS average,
+            GROUPING(ubl.status) = 0 AS is_status_summary,
+            GROUPING(ubl.score) = 0 AS is_score_summary
+     FROM books b
+     INNER JOIN user_book_list ubl USING (book_id)
+     WHERE b.submitter = $1
+     GROUP BY GROUPING SETS ((ubl.status), (ubl.score), ())`,
+    [username],
+  );
+  return summarizeStats(rows, fillBookStatuses);
+};
+
+const getMovieStats = async (t: ITask<unknown>, username: string) => {
+  const rows = await t.any<StatsRow>(
+    `SELECT uml.status, uml.score, count(*) AS count,
+            COALESCE(sum(m.duration) FILTER (WHERE uml.status = 'completed') / 60, 0) AS completed_total,
+            COALESCE(round(avg(uml.score) FILTER (WHERE uml.score > 0), 1), 0) AS average,
+            GROUPING(uml.status) = 0 AS is_status_summary,
+            GROUPING(uml.score) = 0 AS is_score_summary
+     FROM movies m
+     INNER JOIN user_movie_list uml USING (movie_id)
+     WHERE m.submitter = $1
+     GROUP BY GROUPING SETS ((uml.status), (uml.score), ())`,
+    [username],
+  );
+  return summarizeStats(rows, fillMovieStatuses);
 };
 
 type ProfileData = {
@@ -180,27 +122,9 @@ type ProfileData = {
   movieScores: ItemScoreRow[];
 };
 
-export const getProfileData = async (t: ITask<unknown>, username: string): Promise<ProfileData> => {
-  const userInfo = await getUserInfo(t, username);
-  const bookData = await getBookData(t, username);
-  const movieData = await getMovieData(t, username);
-  const bookScores = await getBookScores(t, username);
-  const movieScores = await getMovieScores(t, username);
-  return {
-    userInfo,
-    bookData,
-    movieData,
-    bookScores,
-    movieScores,
-  };
-};
-
-type ProfileDataV2 = {
-  userInfo: UserInfo;
+type ProfileDataV2 = Omit<ProfileData, 'bookData' | 'movieData'> & {
   bookData: BookDataV2;
   movieData: MovieDataV2;
-  bookScores: ItemScoreRow[];
-  movieScores: ItemScoreRow[];
 };
 
 export const getProfileDataV2 = async (
@@ -208,15 +132,42 @@ export const getProfileDataV2 = async (
   username: string,
 ): Promise<ProfileDataV2> => {
   const userInfo = await getUserInfo(t, username);
-  const bookData = await getBookDataV2(t, username);
-  const movieData = await getMovieDataV2(t, username);
-  const bookScores = await getBookScores(t, username);
-  const movieScores = await getMovieScores(t, username);
+  const books = await getBookStats(t, username);
+  const movies = await getMovieStats(t, username);
   return {
     userInfo,
-    bookData,
-    movieData,
-    bookScores,
-    movieScores,
+    bookData: {
+      count: books.count,
+      pages_read: books.total.completed_total,
+      score_average: books.total.average,
+    },
+    movieData: {
+      count: movies.count,
+      watch_time: movies.total.completed_total,
+      score_average: movies.total.average,
+    },
+    bookScores: books.scores,
+    movieScores: movies.scores,
+  };
+};
+
+export const getProfileData = async (t: ITask<unknown>, username: string): Promise<ProfileData> => {
+  const userInfo = await getUserInfo(t, username);
+  const books = await getBookStats(t, username);
+  const movies = await getMovieStats(t, username);
+  return {
+    userInfo,
+    bookData: {
+      count: books.total.count,
+      pages_read: books.total.completed_total,
+      score_average: books.total.average,
+    },
+    movieData: {
+      count: movies.total.count,
+      watch_time: movies.total.completed_total,
+      score_average: movies.total.average,
+    },
+    bookScores: books.scores,
+    movieScores: movies.scores,
   };
 };

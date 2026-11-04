@@ -26,6 +26,7 @@ type ThirdPartyService =
   | 'finna-book'
   | 'finna-video'
   | 'tmdb'
+  | 'openlibrary-isbn'
   | 'openlibrary-image'
   | 'openlibrary-author'
   | 'openlibrary-language';

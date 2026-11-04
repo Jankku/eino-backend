@@ -184,9 +184,14 @@ export const ftsSearch = async (
   t: ITask<unknown>,
   { username, query }: { username: string; query: string },
 ): Promise<DbBook[]> => {
+  const tokens = [...new Set(query.split(/\s+/))];
+  const multipleTokens = tokens.length > 1;
   return await t.any<DbBook>({
     text: `${prefixSearchQuery}
-               SELECT b.book_id,
+             SELECT book_id, isbn, title, author, publisher, image_url, pages, year, language_code, note, status, score, start_date, end_date, created_on
+             FROM (
+               SELECT ${multipleTokens ? 'DISTINCT ON (b.book_id)' : ''}
+                  b.book_id,
                   b.isbn,
                   b.title,
                   b.author,
@@ -200,13 +205,16 @@ export const ftsSearch = async (
                   ubl.score,
                   ubl.start_date,
                   ubl.end_date,
-                  ubl.created_on
-               FROM books b INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
+                  ubl.created_on,
+                  query_index, ts_rank(document, search_query.query) AS search_rank
+               FROM books b
+               INNER JOIN user_book_list ubl USING (book_id)
                CROSS JOIN search_query
-               WHERE document @@ search_query.query
-                 AND submitter = $1
-               ORDER BY ts_rank(document, search_query.query) DESC;`,
-    values: [username, query],
+               WHERE document @@ search_query.query AND submitter = $1
+               ${multipleTokens ? 'ORDER BY b.book_id, query_index' : ''}
+             ) matches
+             ORDER BY query_index, search_rank DESC`,
+    values: [username, tokens],
   });
 };
 

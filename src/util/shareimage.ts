@@ -26,17 +26,19 @@ const fitText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number) 
   return `${fitted.trimEnd()}…`;
 };
 
+export type ShareImageInput = {
+  username: string;
+  bookTitles: string[];
+  movieTitles: string[];
+  profilePicture?: Uint8Array;
+};
+
 export const renderShareImage = async ({
   username,
   bookTitles,
   movieTitles,
   profilePicture,
-}: {
-  username: string;
-  bookTitles: string[];
-  movieTitles: string[];
-  profilePicture?: Buffer;
-}) => {
+}: ShareImageInput) => {
   const canvas = createCanvas(WIDTH, HEIGHT);
   const ctx = canvas.getContext('2d');
   ctx.textBaseline = 'alphabetic';
@@ -49,7 +51,7 @@ export const renderShareImage = async ({
 
   let headerLeft = 27;
   if (profilePicture) {
-    const image = await loadImage(profilePicture);
+    const image = await loadImage(Buffer.from(profilePicture));
     const size = 60;
     const top = 21;
     const sourceSize = Math.min(image.width, image.height);

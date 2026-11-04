@@ -29,7 +29,6 @@ import type {
 } from '../routes/movies/index.ts';
 import type { TypedResponse } from '../util/zod.ts';
 import {
-  type DbMovie,
   movieNumberKeySchema,
   movieSortSchema,
   movieStringKeySchema,
@@ -277,32 +276,11 @@ export const search = async (
       res.status(200).json(success([]));
       return;
     }
-    const queryAsArray = queryString.split(/\s+/);
     const username = res.locals.username;
 
-    const { results } = await db.task('search', async (t) => {
-      const results: DbMovie[] = [];
-
-      for (const queryPart of queryAsArray) {
-        const rows = await ftsSearch(t, { username, query: queryPart });
-        // Push only unique results
-        for (const row of rows) {
-          if (results.every((item) => item.movie_id !== row.movie_id)) {
-            results.push(row);
-          }
-        }
-      }
-
-      if (results.length === 0) {
-        const rows = await likeSearch(t, { username, query: queryString });
-        // Push only unique results
-        for (const row of rows) {
-          if (results.every((item) => item.movie_id !== row.movie_id)) {
-            results.push(row);
-          }
-        }
-      }
-      return { results };
+    const results = await db.task('search', async (t) => {
+      const matches = await ftsSearch(t, { username, query: queryString });
+      return matches.length > 0 ? matches : await likeSearch(t, { username, query: queryString });
     });
 
     res.status(200).json(success(results));

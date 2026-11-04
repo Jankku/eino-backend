@@ -14,7 +14,7 @@ import { Logger, logError } from '../util/logger.ts';
 import { getAllBooks, getTop10BookTitles } from '../db/books.ts';
 import { getAllMovies, getTop10MovieTitles } from '../db/movies.ts';
 import { generateShareId, getShareItemPath } from '../util/share.ts';
-import { renderShareImage } from '../util/shareimage.ts';
+import { renderShareImage } from '../util/shareimagepool.ts';
 import { createShare, getSharesByUsername } from '../db/share.ts';
 import { getProfileData, getProfileDataV2 } from '../db/profile.ts';
 import type {

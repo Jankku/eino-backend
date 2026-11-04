@@ -11,6 +11,7 @@ import closeWithGrace from 'close-with-grace';
 import { initDiscordAuditProcessing } from './services/audit.ts';
 import { createProfilePictureDir } from './util/profilepicture.ts';
 import { initRoleMap } from './db/role.ts';
+import { closeShareImagePool } from './util/shareimagepool.ts';
 
 createShareDir().catch((error) => Logger.error('Error creating share dir', { error }));
 createProfilePictureDir().catch((error) =>
@@ -57,14 +58,17 @@ closeWithGrace({ logger: Logger }, async ({ err }) => {
   if (err) {
     Logger.error('closeWithGrace', err);
   }
-  const { resolve, reject } = Promise.withResolvers<void>();
+  const { promise, resolve, reject } = Promise.withResolvers<void>();
   server.close((error) => {
     if (error) reject(error);
     else resolve();
   });
+  await promise;
   Logger.info('Server closed');
+  await closeShareImagePool();
+  Logger.info('Share image pool closed');
   await db.$pool.end();
-  Logger.info('Pool has ended');
+  Logger.info('Database pool closed');
 });
 
 export default app;

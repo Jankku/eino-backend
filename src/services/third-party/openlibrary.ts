@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { cachified } from '@epic-web/cachified';
 import { cache, stringArrayCacheSchema, getCacheKey } from '../../util/cache.ts';
-import type { BookFormSchema } from '../../db/model/book.ts';
+import { bookSchema, type BookFormSchema } from '../../db/model/book.ts';
 import type { LanguageCode } from '../../util/languages.ts';
 import { languageCodeSchema } from '../../util/zodschema.ts';
 import { DateTime } from 'luxon';
@@ -107,18 +107,29 @@ const openLibraryEditionToBook = (
 };
 
 export const fetchOpenLibraryEditionsByIsbn = async (isbn: string): Promise<BookFormSchema[]> => {
-  const editionResponse = await fetchJson(`https://openlibrary.org/isbn/${isbn}.json`);
-  const validatedEdition = openLibraryEditionSchema.safeParse(editionResponse);
-  if (!validatedEdition.success) {
-    return [];
-  }
-  const authorKey = validatedEdition.data.authors[0].key;
-  const authorName = await fetchOpenLibraryAuthorName(authorKey);
-  const languageKey = validatedEdition.data?.languages?.[0]?.key;
-  const languageCode = languageKey
-    ? await fetchOpenLibraryLanguageToIso639Code(languageKey)
-    : undefined;
-  return [openLibraryEditionToBook(validatedEdition.data, authorName, languageCode)];
+  return cachified({
+    cache,
+    key: getCacheKey('openlibrary-isbn', isbn),
+    checkValue: z.array(
+      bookSchema.omit({ status: true, score: true, start_date: true, end_date: true }),
+    ),
+    async getFreshValue(context) {
+      const response = await fetchJson(`https://openlibrary.org/isbn/${isbn}.json`);
+      const validated = openLibraryEditionSchema.safeParse(response);
+      if (!validated.success) {
+        context.metadata.ttl = -1;
+        return [];
+      }
+      const edition = validated.data;
+      const authorKey = edition.authors[0].key;
+      const languageKey = edition.languages?.[0]?.key;
+      const [authorName, languageCode] = await Promise.all([
+        fetchOpenLibraryAuthorName(authorKey),
+        languageKey ? fetchOpenLibraryLanguageToIso639Code(languageKey) : undefined,
+      ]);
+      return [openLibraryEditionToBook(edition, authorName, languageCode)];
+    },
+  });
 };
 
 export const fetchOpenLibraryImages = async (query: string): Promise<string[]> => {

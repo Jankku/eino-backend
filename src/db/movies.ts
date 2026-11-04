@@ -177,9 +177,14 @@ export const ftsSearch = async (
   t: ITask<unknown>,
   { username, query }: { username: string; query: string },
 ): Promise<DbMovie[]> => {
+  const tokens = [...new Set(query.split(/\s+/))];
+  const multipleTokens = tokens.length > 1;
   return await t.any<DbMovie>({
     text: `${prefixSearchQuery}
-               SELECT m.movie_id,
+             SELECT movie_id, title, studio, director, writer, image_url, duration, year, note, status, score, start_date, end_date, created_on
+             FROM (
+               SELECT ${multipleTokens ? 'DISTINCT ON (m.movie_id)' : ''}
+                  m.movie_id,
                   m.title,
                   m.studio,
                   m.director,
@@ -192,13 +197,16 @@ export const ftsSearch = async (
                   uml.score,
                   uml.start_date,
                   uml.end_date,
-                  uml.created_on
-               FROM movies m INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
+                  uml.created_on,
+                  query_index, ts_rank(document, search_query.query) AS search_rank
+               FROM movies m
+               INNER JOIN user_movie_list uml USING (movie_id)
                CROSS JOIN search_query
-               WHERE document @@ search_query.query
-                 AND submitter = $1
-               ORDER BY ts_rank(document, search_query.query) DESC;`,
-    values: [username, query],
+               WHERE document @@ search_query.query AND submitter = $1
+               ${multipleTokens ? 'ORDER BY m.movie_id, query_index' : ''}
+             ) matches
+             ORDER BY query_index, search_rank DESC`,
+    values: [username, tokens],
   });
 };
 
