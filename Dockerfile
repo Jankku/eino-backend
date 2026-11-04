@@ -1,10 +1,12 @@
 FROM node:26-alpine AS build
 WORKDIR /home/node/eino
 RUN apk add --no-cache build-base g++ cairo-dev jpeg-dev pango-dev
-COPY package*.json tsconfig.json ./
+COPY package*.json ./
+RUN npm ci --no-audit --no-fund
+COPY tsconfig.json ./
 COPY src ./src
 COPY migrations ./migrations
-RUN npm ci --no-audit --no-fund && npm run build && npm prune --omit=dev
+RUN npm run build && npm prune --omit=dev
 
 FROM node:26-alpine
 WORKDIR /home/node/eino
