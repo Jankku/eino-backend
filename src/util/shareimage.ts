@@ -1,5 +1,6 @@
 import { type CanvasRenderingContext2D, createCanvas, loadImage, registerFont } from 'canvas';
 import { DateTime } from 'luxon';
+import sharp from 'sharp';
 import { getFontPath } from './share.ts';
 
 registerFont(getFontPath('pacifico.ttf'), { family: 'Pacifico' });
@@ -8,6 +9,7 @@ registerFont(getFontPath('roboto-bold.ttf'), { family: 'Roboto', weight: '700' }
 
 const WIDTH = 700;
 const HEIGHT = 500;
+const OUTPUT_SCALE = 2;
 const PANEL_WIDTH = 324;
 const PANEL_TOP = 94;
 const PANEL_HEIGHT = 352;
@@ -61,8 +63,9 @@ export const renderShareImage = async ({
   profilePicture,
 }: ShareImageInput) => {
   const colors = theme === 'light' ? THEMES.light : THEMES.dark;
-  const canvas = createCanvas(WIDTH, HEIGHT);
+  const canvas = createCanvas(WIDTH * OUTPUT_SCALE, HEIGHT * OUTPUT_SCALE);
   const ctx = canvas.getContext('2d');
+  ctx.scale(OUTPUT_SCALE, OUTPUT_SCALE);
   ctx.textBaseline = 'alphabetic';
 
   const background = ctx.createLinearGradient(0, 0, WIDTH, HEIGHT);
@@ -165,5 +168,8 @@ export const renderShareImage = async ({
   ctx.lineWidth = 2;
   ctx.strokeRect(1, 1, WIDTH - 2, HEIGHT - 2);
 
-  return canvas.toBuffer('image/png');
+  const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  return sharp(pixels, { raw: { width: canvas.width, height: canvas.height, channels: 4 } })
+    .avif({ effort: 1 })
+    .toBuffer();
 };

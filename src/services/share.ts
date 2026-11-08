@@ -21,7 +21,7 @@ export const getShareImage = async (
     });
     const imagePath = getShareItemPath(share.user_id);
     const shareImage = await fs.readFile(imagePath);
-    res.set({ 'Content-Type': 'image/png' }).send(shareImage);
+    res.set({ 'Content-Type': 'image/avif' }).send(shareImage);
   } catch (error) {
     Logger.error(error);
     next(new ErrorWithStatus(422, 'share_error', "Couldn't find share"));
