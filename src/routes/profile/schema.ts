@@ -8,6 +8,12 @@ import {
 import { dbBookSchema } from '../../db/model/book.ts';
 import { dbMovieSchema } from '../../db/model/movie.ts';
 
+export const generateShareImageSchema = z.object({
+  query: z.object({
+    theme: z.enum(['dark', 'light']).default('dark'),
+  }),
+});
+
 export const deleteAccountSchema = z.object({
   body: z.object({
     password: passwordSchema,

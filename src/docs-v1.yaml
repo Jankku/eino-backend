@@ -215,6 +215,14 @@ paths:
       tags:
         - profile
       summary: Share user profile
+      parameters:
+        - in: query
+          name: theme
+          required: false
+          schema:
+            type: string
+            enum: [dark, light]
+            default: dark
       security:
         - BearerAuth: []
       responses:

@@ -10,13 +10,18 @@ import {
   saveProfilePicture,
   deleteProfilePicture,
 } from '../../services/profile.ts';
-import { deleteAccountSchema, exportProfileSchema, importProfileSchema } from './schema.ts';
+import {
+  deleteAccountSchema,
+  exportProfileSchema,
+  generateShareImageSchema,
+  importProfileSchema,
+} from './schema.ts';
 import { withProfilePictureUpload } from '../../middleware/profilepictureupload.ts';
 
 export const profileRouter = express.Router();
 
 profileRouter.get('/', getProfile);
-profileRouter.get('/share', generateShareImage);
+profileRouter.get('/share', validateSchema(generateShareImageSchema), generateShareImage);
 profileRouter.post(
   '/export',
   validateSchema(exportProfileSchema, 'profile_export'),
@@ -31,7 +36,7 @@ profileRouter.post(
 export const profileRouterV2 = express.Router();
 
 profileRouterV2.get('/', getProfileV2);
-profileRouterV2.get('/share', generateShareImage);
+profileRouterV2.get('/share', validateSchema(generateShareImageSchema), generateShareImage);
 profileRouterV2.post('/profilepicture', withProfilePictureUpload(saveProfilePicture));
 profileRouterV2.delete('/profilepicture', deleteProfilePicture);
 profileRouterV2.post(

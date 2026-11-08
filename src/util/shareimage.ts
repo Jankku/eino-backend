@@ -11,9 +11,28 @@ const HEIGHT = 500;
 const PANEL_WIDTH = 324;
 const PANEL_TOP = 94;
 const PANEL_HEIGHT = 352;
-const ACCENT_COLOR = '#64b5f6';
-const TEXT_COLOR = '#f2f3f5';
-const MUTED_COLOR = '#b7becb';
+const THEMES = {
+  dark: {
+    backgroundStart: '#191b21',
+    backgroundEnd: '#151a20',
+    panelStart: '#23272f',
+    panelEnd: '#20242b',
+    border: '#3a414d',
+    accent: '#64b5f6',
+    text: '#f2f3f5',
+    muted: '#b7becb',
+  },
+  light: {
+    backgroundStart: '#f8fafc',
+    backgroundEnd: '#edf2f7',
+    panelStart: '#ffffff',
+    panelEnd: '#f8fafc',
+    border: '#cbd5e1',
+    accent: '#1565c0',
+    text: '#1e293b',
+    muted: '#526174',
+  },
+};
 
 const fitText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number) => {
   if (ctx.measureText(text).width <= maxWidth) return text;
@@ -27,6 +46,7 @@ const fitText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number) 
 };
 
 export type ShareImageInput = {
+  theme?: keyof typeof THEMES;
   username: string;
   bookTitles: string[];
   movieTitles: string[];
@@ -34,18 +54,20 @@ export type ShareImageInput = {
 };
 
 export const renderShareImage = async ({
+  theme = 'dark',
   username,
   bookTitles,
   movieTitles,
   profilePicture,
 }: ShareImageInput) => {
+  const colors = theme === 'light' ? THEMES.light : THEMES.dark;
   const canvas = createCanvas(WIDTH, HEIGHT);
   const ctx = canvas.getContext('2d');
   ctx.textBaseline = 'alphabetic';
 
   const background = ctx.createLinearGradient(0, 0, WIDTH, HEIGHT);
-  background.addColorStop(0, '#191b21');
-  background.addColorStop(1, '#151a20');
+  background.addColorStop(0, colors.backgroundStart);
+  background.addColorStop(1, colors.backgroundEnd);
   ctx.fillStyle = background;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
@@ -74,14 +96,14 @@ export const renderShareImage = async ({
     headerLeft += size + 14;
   }
 
-  ctx.fillStyle = TEXT_COLOR;
+  ctx.fillStyle = colors.text;
   ctx.font = '700 34px Roboto';
   ctx.fillText(fitText(ctx, username.replaceAll(/\s+/gu, ' '), 607 - headerLeft), headerLeft, 53);
-  ctx.fillStyle = MUTED_COLOR;
+  ctx.fillStyle = colors.muted;
   ctx.font = '400 18px Roboto';
   ctx.fillText('My top books & movies', headerLeft, 77);
 
-  ctx.fillStyle = TEXT_COLOR;
+  ctx.fillStyle = colors.text;
   ctx.font = '52px Pacifico';
   const logo = ctx.measureText('e');
   ctx.fillText('e', WIDTH - 27 - logo.actualBoundingBoxRight, 23 + logo.actualBoundingBoxAscent);
@@ -95,24 +117,24 @@ export const renderShareImage = async ({
 
   for (const { x, heading, titles, category } of columns) {
     const panel = ctx.createLinearGradient(x, PANEL_TOP, x + PANEL_WIDTH, PANEL_TOP + PANEL_HEIGHT);
-    panel.addColorStop(0, '#23272f');
-    panel.addColorStop(1, '#20242b');
+    panel.addColorStop(0, colors.panelStart);
+    panel.addColorStop(1, colors.panelEnd);
     ctx.fillStyle = panel;
-    ctx.strokeStyle = '#3a414d';
+    ctx.strokeStyle = colors.border;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.roundRect(x + 0.5, PANEL_TOP + 0.5, PANEL_WIDTH, PANEL_HEIGHT, 12);
     ctx.fill();
     ctx.stroke();
 
-    ctx.fillStyle = TEXT_COLOR;
+    ctx.fillStyle = colors.text;
     ctx.font = '700 24px Roboto';
     ctx.fillText(heading, x + 19, 132);
-    ctx.fillStyle = '#3a414d';
+    ctx.fillStyle = colors.border;
     ctx.fillRect(x + 15, 149, PANEL_WIDTH - 30, 1);
 
     if (titles.length === 0) {
-      ctx.fillStyle = MUTED_COLOR;
+      ctx.fillStyle = colors.muted;
       ctx.font = '400 16px Roboto';
       ctx.fillText(`No completed ${category} yet`, x + 19, 298);
       continue;
@@ -125,21 +147,21 @@ export const renderShareImage = async ({
       const titleWidth = PANEL_WIDTH - 78;
       const baseline = y + 20;
 
-      ctx.fillStyle = ACCENT_COLOR;
+      ctx.fillStyle = colors.accent;
       ctx.textAlign = 'right';
       ctx.fillText(String(index + 1), x + 39, baseline);
       ctx.textAlign = 'left';
-      ctx.fillStyle = TEXT_COLOR;
+      ctx.fillStyle = colors.text;
       ctx.fillText(fitText(ctx, text, titleWidth), x + 59, baseline);
     }
   }
 
-  ctx.fillStyle = MUTED_COLOR;
+  ctx.fillStyle = colors.muted;
   ctx.font = '400 11px Roboto';
   ctx.textAlign = 'right';
   ctx.fillText(`Shared ${DateTime.now().setLocale('en').toFormat('d LLL yyyy')}`, WIDTH - 19, 475);
 
-  ctx.strokeStyle = ACCENT_COLOR;
+  ctx.strokeStyle = colors.accent;
   ctx.lineWidth = 2;
   ctx.strokeRect(1, 1, WIDTH - 2, HEIGHT - 2);
 

@@ -20,6 +20,7 @@ import { getProfileData, getProfileDataV2 } from '../db/profile.ts';
 import type {
   deleteAccountSchema,
   exportProfileSchema,
+  generateShareImageSchema,
   importProfileSchema,
 } from '../routes/profile/schema.ts';
 import {
@@ -169,7 +170,11 @@ export const deleteAccount = async (
   }
 };
 
-export const generateShareImage = async (_req: Request, res: TypedResponse, next: NextFunction) => {
+export const generateShareImage = async (
+  _req: Request,
+  res: TypedResponse<typeof generateShareImageSchema>,
+  next: NextFunction,
+) => {
   try {
     const username = res.locals.username;
     const { bookTitles, movieTitles, profilePicturePath } = await db.task(
@@ -197,6 +202,7 @@ export const generateShareImage = async (_req: Request, res: TypedResponse, next
     }
 
     const imageBuffer = await renderShareImage({
+      theme: res.locals.input.query.theme,
       username,
       bookTitles,
       movieTitles,
