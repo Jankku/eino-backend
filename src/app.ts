@@ -22,6 +22,8 @@ createProfilePictureDir().catch((error) =>
 
 const app = express();
 
+app.set('trust proxy', config.TRUST_PROXY ?? false);
+
 app.use(express.json({ limit: config.REQUEST_BODY_MAX_SIZE }));
 app.use(cors({ allowedHeaders: ['Content-Type', 'Authorization'] }));
 

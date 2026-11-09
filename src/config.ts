@@ -55,6 +55,11 @@ const configSchema = z
     POSTGRES_PASSWORD: nonEmptyString,
     POSTGRES_DB: nonEmptyString,
     PORT: z.coerce.number().positive().default(5000),
+    TRUST_PROXY: z.optional(
+      nonEmptyString
+        .transform((value) => (/^\d+$/.test(value) ? Number(value) : value))
+        .pipe(z.union([z.int().nonnegative(), nonEmptyString])),
+    ),
     TMDB_API_KEY: z.optional(nonEmptyString),
     GOOGLE_BOOKS_API_KEY: z.optional(nonEmptyString),
     EMAIL_SENDER: z.optional(z.email().min(1)),
