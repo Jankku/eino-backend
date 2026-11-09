@@ -1,59 +1,76 @@
-import { DateTime } from 'luxon';
-import { type AuditAction, getAuditsByActionNewerThan } from '../db/audit.ts';
 import { db } from '../db/config.ts';
+import { claimDiscordAuditBatch, recordDiscordAuditDelivery } from '../db/discordaudit.ts';
 import { Logger } from '../util/logger.ts';
 import { sendAuditsToDiscord } from './third-party/discord.ts';
-import { chunkArray, sequentially, wait } from '../util/audit.ts';
 import { config } from '../config.ts';
 
-const discordAuditActions: AuditAction[] = [
-  'register',
-  'login',
-  'account_deleted',
-  'email_updated',
-  'email_verification_email_sent',
-  'email_verified',
-  'password_forgot',
-  'password_reset_email_sent',
-  'password_reseted',
-  'two_factor_authentication_enabled',
-  'two_factor_authentication_disabled',
-];
+const IDLE_POLL_MS = 60_000;
+const BATCH_DELAY_MS = 1000;
 
-let lastProcessed = DateTime.utc();
+let settingsVersion = 0;
+let timer: ReturnType<typeof setTimeout> | undefined;
+let processing: Promise<void> | undefined;
+let stopped = true;
 
 const processAuditsDiscord = async () => {
-  Logger.profile('processAuditsDiscord', { level: 'debug' });
+  const audits = await db.tx('claimDiscordAuditBatch', claimDiscordAuditBatch);
+  if (audits.length === 0) return false;
 
-  const audits = await db.task(
-    'processAuditsDiscord',
-    async (t) =>
-      await getAuditsByActionNewerThan(t, {
-        actions: discordAuditActions,
-        date: lastProcessed.toJSDate(),
-      }),
-  );
-
-  if (audits.length === 0) return;
-
-  lastProcessed = DateTime.utc();
-
-  Logger.debug(`Processing ${audits.length} audits and sending to Discord`);
-
-  const chunkedAudits = chunkArray(audits, 10);
-  await sequentially(chunkedAudits, async (chunk) => {
-    await wait(1000);
-    await sendAuditsToDiscord(chunk);
-  });
-
-  Logger.profile('processAuditsDiscord');
+  let errorMessage: string | undefined;
+  try {
+    await sendAuditsToDiscord(audits);
+  } catch {
+    errorMessage = 'Discord webhook delivery failed';
+    Logger.error(errorMessage, { auditIds: audits.map((audit) => audit.id) });
+  }
+  await db.task((t) => recordDiscordAuditDelivery(t, errorMessage));
+  return true;
 };
 
-export const initDiscordAuditProcessing = () => {
-  if (!config.DISCORD_AUDIT_LOG_WEBHOOK_URL) {
-    return;
-  }
+const schedule = (delay: number) => {
+  timer = setTimeout(() => {
+    timer = undefined;
+    let nextDelay = IDLE_POLL_MS;
+    processing = processAuditsDiscord()
+      .then((hadAudits) => {
+        if (hadAudits) nextDelay = BATCH_DELAY_MS;
+      })
+      .catch(() => {
+        Logger.error('Failed to process Discord audit queue');
+      })
+      .finally(() => {
+        processing = undefined;
+        if (!stopped) schedule(nextDelay);
+      });
+  }, delay);
+};
 
-  Logger.info('Starting to send audits to Discord');
-  setInterval(processAuditsDiscord, 1000 * 60 * 1); // 1 minute
+// Called after the settings transaction commits; no polling is needed while disabled.
+export const setDiscordAuditProcessingEnabled = (enabled: boolean) => {
+  settingsVersion++;
+  const shouldStop = !enabled || !config.DISCORD_AUDIT_LOG_WEBHOOK_URL;
+  if (stopped === shouldStop) return;
+  stopped = shouldStop;
+  clearTimeout(timer);
+  timer = undefined;
+  // An in-flight batch will schedule the next one when it finishes.
+  if (!stopped && !processing) schedule(0);
+};
+
+export const initDiscordAuditProcessing = async () => {
+  if (!config.DISCORD_AUDIT_LOG_WEBHOOK_URL || !stopped) return;
+  const version = settingsVersion;
+  const { enabled } = await db.task((t) =>
+    t.one<{ enabled: boolean }>('SELECT enabled FROM discord_audit_settings WHERE id = true'),
+  );
+  // A settings change or shutdown during this read takes precedence over startup.
+  if (version === settingsVersion) setDiscordAuditProcessingEnabled(enabled);
+};
+
+export const stopDiscordAuditProcessing = async () => {
+  settingsVersion++;
+  stopped = true;
+  clearTimeout(timer);
+  timer = undefined;
+  await processing;
 };

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { auditAction } from '../../db/audit.ts';
 import { errorMessages } from '../../util/errormessages.ts';
 import {
   dateSchema,
@@ -129,4 +130,18 @@ export const deleteBulletinSchema = z.object({
 
 export const editBulletinSchema = bulletinSchema.safeExtend({
   params: z.object({ bulletinId: z.uuid(errorMessages.UUID_INVALID) }),
+});
+
+export const discordAuditSettingsSchema = z.object({
+  body: z
+    .strictObject({
+      enabled: z.boolean().optional(),
+      actions: z
+        .array(z.enum(Object.values(auditAction)))
+        .refine((actions) => new Set(actions).size === actions.length, 'Actions must be unique')
+        .optional(),
+    })
+    .refine((body) => body.enabled !== undefined || body.actions !== undefined, {
+      message: 'Provide enabled and/or actions',
+    }),
 });

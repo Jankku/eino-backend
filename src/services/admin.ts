@@ -3,6 +3,9 @@ import type { TypedResponse } from '../util/zod.ts';
 import { success } from '../util/response.ts';
 import { ErrorWithStatus } from '../util/errorhandler.ts';
 import { db } from '../db/config.ts';
+import { config } from '../config.ts';
+import { setDiscordAuditProcessingEnabled } from './audit.ts';
+import { getDiscordAuditStatus, updateDiscordAuditSettings } from '../db/discordaudit.ts';
 import { addAudit, getAllAudits, getAuditsPage } from '../db/audit.ts';
 import { paginationMode } from '../db/pagination.ts';
 import { getAdminOverview } from '../db/admin.ts';
@@ -24,6 +27,7 @@ import type {
   disableUserSchema,
   overviewSchema,
   auditQuerySchema,
+  discordAuditSettingsSchema,
 } from '../routes/admin/schema.ts';
 import * as fs from 'node:fs/promises';
 import {
@@ -354,5 +358,35 @@ export const removeBulletin = async (
   } catch (error) {
     logError(error);
     next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to create bulletin'));
+  }
+};
+
+export const getDiscordIntegration = async (_: Request, res: TypedResponse, next: NextFunction) => {
+  try {
+    const status = await db.task(getDiscordAuditStatus);
+    res.status(200).json(success([status]));
+  } catch (error) {
+    logError(error);
+    next(new ErrorWithStatus(500, 'admin_error', 'Unable to get Discord integration status'));
+  }
+};
+
+export const updateDiscordIntegration = async (
+  _: Request,
+  res: TypedResponse<typeof discordAuditSettingsSchema>,
+  next: NextFunction,
+) => {
+  const update = res.locals.input.body;
+  if (update.enabled === true && !config.DISCORD_AUDIT_LOG_WEBHOOK_URL) {
+    next(new ErrorWithStatus(422, 'admin_error', 'Discord webhook URL is not configured'));
+    return;
+  }
+  try {
+    const status = await db.tx((t) => updateDiscordAuditSettings(t, update));
+    setDiscordAuditProcessingEnabled(status.enabled);
+    res.status(200).json(success([status]));
+  } catch (error) {
+    logError(error);
+    next(new ErrorWithStatus(500, 'admin_error', 'Unable to update Discord integration settings'));
   }
 };

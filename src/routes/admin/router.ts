@@ -12,6 +12,7 @@ import {
   enableUserSchema,
   overviewSchema,
   auditQuerySchema,
+  discordAuditSettingsSchema,
 } from './schema.ts';
 
 export const adminRouter = express.Router();
@@ -35,4 +36,11 @@ adminRouter.delete(
   '/bulletins/:bulletinId',
   validateSchema(deleteBulletinSchema),
   admin.removeBulletin,
+);
+
+adminRouter.get('/integrations/discord', admin.getDiscordIntegration);
+adminRouter.patch(
+  '/integrations/discord',
+  validateSchema(discordAuditSettingsSchema),
+  admin.updateDiscordIntegration,
 );

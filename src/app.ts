@@ -10,7 +10,7 @@ import { config } from './config.ts';
 import { routerV1 } from './routes/router-v1.ts';
 import { routerV2 } from './routes/router-v2.ts';
 import closeWithGrace from 'close-with-grace';
-import { initDiscordAuditProcessing } from './services/audit.ts';
+import { initDiscordAuditProcessing, stopDiscordAuditProcessing } from './services/audit.ts';
 import { createProfilePictureDir } from './util/profilepicture.ts';
 import { initRoleMap } from './db/role.ts';
 import { closeShareImagePool } from './util/shareimagepool.ts';
@@ -19,7 +19,6 @@ createShareDir().catch((error) => Logger.error('Error creating share dir', { err
 createProfilePictureDir().catch((error) =>
   Logger.error('Error creating profile picture dir', { error }),
 );
-initDiscordAuditProcessing();
 
 const app = express();
 
@@ -48,6 +47,7 @@ const server = app.listen(config.PORT, () =>
 db.connect()
   .then(async (c) => {
     Logger.info('Connected to database');
+    await initDiscordAuditProcessing();
     await c.task(initRoleMap);
     await c.done();
   })
@@ -67,6 +67,7 @@ closeWithGrace({ logger: Logger }, async ({ err }) => {
   });
   await promise;
   Logger.info('Server closed');
+  await stopDiscordAuditProcessing();
   await closeShareImagePool();
   Logger.info('Share image pool closed');
   await waitForPasswordResetJobs();

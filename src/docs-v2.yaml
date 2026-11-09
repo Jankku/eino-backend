@@ -88,6 +88,64 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /admin/integrations/discord:
+    get:
+      tags: [admin]
+      summary: Get Discord audit forwarding settings and status
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Current settings and delivery status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscordAuditIntegrationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags: [admin]
+      summary: Update Discord audit forwarding settings
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              minProperties: 1
+              properties:
+                enabled:
+                  type: boolean
+                actions:
+                  type: array
+                  uniqueItems: true
+                  items:
+                    $ref: '#/components/schemas/DiscordAuditAction'
+            example:
+              enabled: true
+              actions: [register, login_failed]
+      responses:
+        '200':
+          description: Updated settings and delivery status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscordAuditIntegrationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /admin/audits:
     get:
       parameters:
@@ -1770,6 +1828,87 @@ components:
         maximum: 100
         default: 50
   schemas:
+    DiscordAuditAction:
+      type: string
+      enum:
+        - register
+        - login
+        - login_failed
+        - authentication_failed
+        - authorization_denied
+        - bulletin_created
+        - bulletin_updated
+        - bulletin_deleted
+        - password_forgot
+        - password_reset_email_sent
+        - password_reseted
+        - password_reset_failed
+        - password_hash_upgraded
+        - email_updated
+        - email_verification_email_sent
+        - email_verification_failed
+        - email_verified
+        - two_factor_setup_generated
+        - two_factor_authentication_enabled
+        - two_factor_authentication_disabled
+        - two_factor_authentication_failed
+        - profile_shared
+        - profile_picture_updated
+        - profile_data_exported
+        - profile_data_imported
+        - account_updated
+        - account_enabled
+        - account_disabled
+        - account_deleted
+        - access_token_refresh
+        - create
+        - update
+        - delete
+    DiscordAuditIntegrationResponse:
+      type: object
+      required: [results]
+      properties:
+        results:
+          type: array
+          minItems: 1
+          maxItems: 1
+          items:
+            type: object
+            required:
+              [
+                enabled,
+                actions,
+                available_actions,
+                webhook_configured,
+                pending_count,
+                last_success_on,
+                last_error,
+              ]
+            properties:
+              enabled:
+                type: boolean
+              actions:
+                type: array
+                uniqueItems: true
+                items:
+                  $ref: '#/components/schemas/DiscordAuditAction'
+              available_actions:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DiscordAuditAction'
+              webhook_configured:
+                type: boolean
+              pending_count:
+                type: integer
+                minimum: 0
+              last_success_on:
+                type: string
+                format: date-time
+                nullable: true
+              last_error:
+                type: string
+                nullable: true
+                description: Latest delivery error, cleared after a successful delivery.
     OptionalPagination:
       type: object
       properties:

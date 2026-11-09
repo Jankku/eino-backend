@@ -32,10 +32,8 @@ export const wait = async (ms: number): Promise<void> =>
 export const truncate = (text: string, length: number): string =>
   text.length > length ? `${text.slice(0, length - 3)}...` : text;
 
-export const redactEmail = (email: string) => {
-  const [, domain] = email.split('@', 2);
-  return `*****@${domain}`;
-};
+const serializeDiscordAuditData = (data: Record<string, unknown>): string =>
+  JSON.stringify(data, (key, value: unknown) => (key === 'email' ? undefined : value));
 
 type DiscordEmbed = {
   timestamp: string;
@@ -74,23 +72,17 @@ export const auditToDiscordEmbed = (audit: DbAudit): DiscordEmbed => {
   }
 
   if (audit.old_data) {
-    if (typeof audit.old_data.email === 'string' && audit.old_data.email.length > 0) {
-      audit.old_data.email = redactEmail(audit.old_data.email);
-    }
     fields.push({
       name: 'Old Data',
-      value: truncate(JSON.stringify(audit.old_data), 1024),
+      value: truncate(serializeDiscordAuditData(audit.old_data), 1024),
       inline: false,
     });
   }
 
   if (audit.new_data) {
-    if (typeof audit.new_data.email === 'string' && audit.new_data.email.length > 0) {
-      audit.new_data.email = redactEmail(audit.new_data.email);
-    }
     fields.push({
       name: 'New Data',
-      value: truncate(JSON.stringify(audit.new_data), 1024),
+      value: truncate(serializeDiscordAuditData(audit.new_data), 1024),
       inline: false,
     });
   }
