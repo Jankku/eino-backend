@@ -112,3 +112,26 @@ export const auditSecurityFailure = async (
     Logger.error('Failed to record security audit', { operation, reason });
   }
 };
+
+const pendingAudits = new Set<Promise<void>>();
+
+export const waitForSecurityAudits = async () => {
+  await Promise.allSettled(pendingAudits);
+};
+
+export const auditSecurityFailureAfterResponse = (
+  req: Request,
+  res: Response,
+  failure: SecurityFailure,
+): void => {
+  // Suppression and target-specific database writes must not affect response time.
+  const record = () => {
+    const job = auditSecurityFailure(req, res, failure).catch(() => {
+      Logger.error('Failed to record security audit');
+    });
+    pendingAudits.add(job);
+    void job.finally(() => pendingAudits.delete(job));
+  };
+  res.once('finish', record);
+  res.once('close', record);
+};

@@ -938,25 +938,12 @@ paths:
                 - email
       responses:
         '200':
-          description: Reset password email sent
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForgotPasswordResponse'
         '422':
           $ref: '#/components/responses/ValidationError'
-        '424':
-          description: Email delivery failed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '500':
-          description: Failed to send reset password email
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
   /auth/password/reset:
     post:
       tags:
@@ -1790,14 +1777,11 @@ components:
             required:
               - name
               - message
-              - is2FAEnabled
             properties:
               name:
                 type: string
               message:
                 type: string
-              is2FAEnabled:
-                type: boolean
     ResetPassword:
       type: object
       required:

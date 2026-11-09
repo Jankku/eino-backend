@@ -3,7 +3,10 @@ import { type ZodType, ZodError } from 'zod/v4';
 import { ErrorWithStatus } from '../util/errorhandler.ts';
 import { formatZodErrors } from '../util/zod.ts';
 import { z } from 'zod';
-import { auditSecurityFailure, type SecurityOperation } from '../util/securityaudit.ts';
+import {
+  auditSecurityFailureAfterResponse,
+  type SecurityOperation,
+} from '../util/securityaudit.ts';
 
 z.config({
   customError: (issue) => {
@@ -28,7 +31,7 @@ export const validateSchema =
       next();
     } catch (error) {
       if (operation && error instanceof ZodError) {
-        await auditSecurityFailure(req, res, { operation, reason: 'invalid_input' });
+        auditSecurityFailureAfterResponse(req, res, { operation, reason: 'invalid_input' });
       }
       next(
         error instanceof ZodError

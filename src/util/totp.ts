@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import * as OTPAuth from 'otpauth';
 
 type TOTPConfig = {
@@ -31,26 +32,34 @@ export const generateTOTP = (config: Partial<TOTPConfigWithLabel>) => {
   return { otp, ...totp, secret: totp.secret.base32, totpUrl: totp.toString(), created_on };
 };
 
-export const validateEmailOTP = (config: TOTPConfig & { created_on: Date }) => {
-  const totp = new OTPAuth.TOTP({
-    ...config,
-    secret: OTPAuth.Secret.fromBase32(config.secret),
-    issuer: TOTP_ISSUER,
-  });
-  const delta = totp.validate({
-    token: config.otp,
-    timestamp: config.created_on.getTime(),
-    window: 0,
-  });
-  return delta === 0;
+// Used only to perform equivalent OTP work when a reset record is absent.
+export const dummyEmailVerification = {
+  secret: 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',
+  algorithm: 'SHA1',
+  digits: 6,
+  period: 30,
+  created_on: new Date(0),
 };
 
-export const validateTOTP = (config: TOTPConfig) => {
+const validateOTP = (config: TOTPConfig, timestamp: number, window: number) => {
   const totp = new OTPAuth.TOTP({
     ...config,
     secret: OTPAuth.Secret.fromBase32(config.secret),
     issuer: TOTP_ISSUER,
   });
-  const delta = totp.validate({ token: config.otp, window: 1 });
-  return delta !== null && [-1, 0, 1].includes(delta);
+  // Length and format depend only on caller input, never on a secret prefix.
+  if (config.otp.length !== config.digits || !/^\d+$/.test(config.otp)) return false;
+  const token = Buffer.from(config.otp);
+  let matches = 0;
+  // Check every accepted time step, even after a match.
+  for (let offset = -window; offset <= window; offset++) {
+    const expected = totp.generate({ timestamp: timestamp + offset * config.period * 1000 });
+    matches |= Number(timingSafeEqual(token, Buffer.from(expected)));
+  }
+  return matches !== 0;
 };
+
+export const validateEmailOTP = (config: TOTPConfig & { created_on: Date }) =>
+  validateOTP(config, config.created_on.getTime(), 0);
+
+export const validateTOTP = (config: TOTPConfig) => validateOTP(config, Date.now(), 1);

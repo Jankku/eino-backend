@@ -35,7 +35,12 @@ import type {
   resetPasswordSchema,
 } from '../routes/auth/index.ts';
 import { addVerification, deleteVerification, findVerification } from '../db/verification.ts';
-import { generateTOTP, validateEmailOTP, validateTOTP } from '../util/totp.ts';
+import {
+  dummyEmailVerification,
+  generateTOTP,
+  validateEmailOTP,
+  validateTOTP,
+} from '../util/totp.ts';
 import QRCode from 'qrcode';
 import { DateTime } from 'luxon';
 import { isVerificationExpired } from '../util/verification.ts';
@@ -44,6 +49,7 @@ import { resetPasswordTemplate } from '../util/emailtemplates.ts';
 import { addAudit } from '../db/audit.ts';
 import { getDefaultRoleId } from '../db/role.ts';
 import { jwtConstants } from '../util/jwtconstants.ts';
+import { auditSecurityFailure } from '../util/securityaudit.ts';
 import { generatePasswordHash, shouldUpgradePassword, verifyPassword } from '../util/password.ts';
 
 export const register = async (
@@ -87,30 +93,13 @@ export const login = async (
 
   try {
     const verifiedUser = await db.task('login', (t) => findUserByCredential(t, usernameOrEmail));
-    if (!verifiedUser) {
+    const isCorrect = await verifyPassword(password, verifiedUser?.password);
+    if (!verifiedUser || !isCorrect || verifiedUser.disabled_on) {
       throw new SecurityErrorWithStatus(
         422,
         'authentication_error',
         'Incorrect username or password',
-        { operation: 'login', reason: 'invalid_credentials' },
-      );
-    }
-
-    if (verifiedUser.disabled_on) {
-      throw new SecurityErrorWithStatus(422, 'authentication_error', 'Account disabled', {
-        operation: 'login',
-        reason: 'account_disabled',
-        targetUserId: verifiedUser.user_id,
-      });
-    }
-
-    const isCorrect = await verifyPassword(password, verifiedUser.password);
-    if (!isCorrect) {
-      throw new SecurityErrorWithStatus(
-        422,
-        'authentication_error',
-        'Incorrect username or password',
-        { operation: 'login', reason: 'invalid_credentials', targetUserId: verifiedUser.user_id },
+        { operation: 'login', reason: 'invalid_credentials', targetUserId: verifiedUser?.user_id },
       );
     }
 
@@ -211,25 +200,8 @@ export const loginConfig = async (
   try {
     const { user } = await db.tx('loginConfig', async (t) => {
       const foundUser = await findUserByCredential(t, usernameOrEmail);
-      if (!foundUser) {
-        throw new SecurityErrorWithStatus(
-          422,
-          'authentication_error',
-          'Incorrect username or password',
-          { operation: 'login_config', reason: 'invalid_credentials' },
-        );
-      }
-
-      if (foundUser.disabled_on) {
-        throw new SecurityErrorWithStatus(422, 'authentication_error', 'Account disabled', {
-          operation: 'login_config',
-          reason: 'account_disabled',
-          targetUserId: foundUser.user_id,
-        });
-      }
-
-      const isCorrect = await verifyPassword(password, foundUser.password);
-      if (!isCorrect) {
+      const isCorrect = await verifyPassword(password, foundUser?.password);
+      if (!foundUser || !isCorrect || foundUser.disabled_on) {
         throw new SecurityErrorWithStatus(
           422,
           'authentication_error',
@@ -237,7 +209,7 @@ export const loginConfig = async (
           {
             operation: 'login_config',
             reason: 'invalid_credentials',
-            targetUserId: foundUser.user_id,
+            targetUserId: foundUser?.user_id,
           },
         );
       }
@@ -346,13 +318,13 @@ export const passwordStrength = (
   }
 };
 
-export const forgotPassword = async (
-  _: Request,
-  res: TypedResponse<typeof forgotPasswordSchema>,
-  next: NextFunction,
-) => {
-  const { email } = res.locals.input.body;
+const passwordResetJobs = new Set<Promise<void>>();
 
+export const waitForPasswordResetJobs = async () => {
+  await Promise.allSettled(passwordResetJobs);
+};
+
+const sendPasswordResetEmail = async (email: string, req: Request, res: TypedResponse) => {
   try {
     const { user, otp } = await db.tx('forgotPassword', async (t) => {
       const user = await findUserByEmail(t, email);
@@ -419,44 +391,43 @@ export const forgotPassword = async (
     );
 
     if (!emailResponse.success) {
-      next(
-        new SecurityErrorWithStatus(
-          424,
-          'forget_password_error',
-          "Couldn't send password reset email",
-          {
-            operation: 'password_forgot',
-            reason: 'email_delivery_failed',
-            targetUserId: user.user_id,
-          },
-        ),
-      );
-      return;
-    }
-
-    res.status(200).json(
-      success([
+      throw new SecurityErrorWithStatus(
+        424,
+        'forget_password_error',
+        "Couldn't send password reset email",
         {
-          name: 'password_reset_email_sent',
-          message: 'Check your email for one-time password',
-          is2FAEnabled: !!user.totp_enabled_on,
+          operation: 'password_forgot',
+          reason: 'email_delivery_failed',
+          targetUserId: user.user_id,
         },
-      ]),
-    );
+      );
+    }
   } catch (error) {
-    if (error instanceof ErrorWithStatus) {
-      next(error);
+    if (error instanceof SecurityErrorWithStatus) {
+      await auditSecurityFailure(req, res, error.audit);
     } else {
       logError(error);
-      next(
-        new ErrorWithStatus(
-          500,
-          'forget_password_error',
-          'Unknown error while trying to reset password',
-        ),
-      );
     }
   }
+};
+
+export const forgotPassword = (req: Request, res: TypedResponse<typeof forgotPasswordSchema>) => {
+  const { email } = res.locals.input.body;
+  // Start account-dependent work only after the generic response has been sent.
+  // Track jobs so graceful shutdown waits for delivery and audit writes.
+  res.once('finish', () => {
+    const job = sendPasswordResetEmail(email, req, res).catch(logError);
+    passwordResetJobs.add(job);
+    void job.finally(() => passwordResetJobs.delete(job));
+  });
+  res.status(200).json(
+    success([
+      {
+        name: 'password_reset_email_sent',
+        message: 'If the account is eligible, a password reset email will be sent',
+      },
+    ]),
+  );
 };
 
 export const resetPassword = async (
@@ -469,19 +440,21 @@ export const resetPassword = async (
   try {
     await db.tx('resetPassword', async (t) => {
       const user = await findUserByEmail(t, email);
-      if (!user) {
-        throw new SecurityErrorWithStatus(422, 'reset_password_error', 'Account not found', {
-          operation: 'password_reset',
-          reason: 'account_not_found',
-        });
-      }
-
-      if (user.disabled_on) {
-        throw new SecurityErrorWithStatus(422, 'reset_password_error', 'Account disabled', {
-          operation: 'password_reset',
-          reason: 'account_disabled',
-          targetUserId: user.user_id,
-        });
+      const verification = await findVerification(t, { target: email, type: 'password_reset' });
+      const otpMatches = validateEmailOTP({ otp, ...(verification ?? dummyEmailVerification) });
+      if (
+        !user ||
+        user.disabled_on ||
+        !verification ||
+        !otpMatches ||
+        (verification.expires_on && isVerificationExpired(verification.expires_on))
+      ) {
+        throw new SecurityErrorWithStatus(
+          422,
+          'reset_password_error',
+          'Invalid or expired one-time password',
+          { operation: 'password_reset', reason: 'invalid_otp' },
+        );
       }
 
       if (user.totp_enabled_on) {
@@ -518,38 +491,6 @@ export const resetPassword = async (
           reason: 'password_policy_rejected',
           targetUserId: user.user_id,
         });
-      }
-
-      const verification = await findVerification(t, { target: email, type: 'password_reset' });
-      if (!verification) {
-        throw new SecurityErrorWithStatus(
-          422,
-          'reset_password_error',
-          'Invalid one-time password',
-          {
-            operation: 'password_reset',
-            reason: 'verification_missing',
-            targetUserId: user.user_id,
-          },
-        );
-      }
-
-      if (verification.expires_on && isVerificationExpired(verification.expires_on)) {
-        await deleteVerification(t, { target: email, type: 'password_reset' });
-        throw new SecurityErrorWithStatus(422, 'reset_password_error', 'Verification expired', {
-          operation: 'password_reset',
-          reason: 'verification_expired',
-          targetUserId: user.user_id,
-        });
-      }
-
-      if (!validateEmailOTP({ otp, ...verification })) {
-        throw new SecurityErrorWithStatus(
-          422,
-          'reset_password_error',
-          'Incorrect one-time password',
-          { operation: 'password_reset', reason: 'invalid_otp', targetUserId: user.user_id },
-        );
       }
 
       await updatePassword(t, { email, newPassword });

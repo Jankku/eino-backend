@@ -484,25 +484,18 @@ paths:
                 - email
       responses:
         '200':
-          description: Reset password email sent
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForgotPasswordResponse'
         '500':
-          description: Failed to send reset password email
+          description: Internal server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
         '422':
           $ref: '#/components/responses/ValidationError'
-        '424':
-          description: Email delivery failed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
   /auth/password/reset:
     post:
       tags:
@@ -2837,15 +2830,11 @@ components:
             required:
               - name
               - message
-              - is2FAEnabled
             properties:
               name:
                 type: string
               message:
                 type: string
-              is2FAEnabled:
-                type: boolean
-                description: Whether password reset also requires twoFactorCode.
     CoverUrl:
       type: string
       nullable: true

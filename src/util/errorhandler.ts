@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { Logger } from './logger.ts';
-import { auditSecurityFailure, type SecurityFailure } from './securityaudit.ts';
+import { auditSecurityFailureAfterResponse, type SecurityFailure } from './securityaudit.ts';
 
 export class ErrorWithStatus extends Error {
   status: number;
@@ -22,12 +22,7 @@ export class SecurityErrorWithStatus extends ErrorWithStatus {
   }
 }
 
-export const errorHandler = async (
-  errors: unknown,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
+export const errorHandler = (errors: unknown, req: Request, res: Response, next: NextFunction) => {
   if (res.headersSent) {
     next(errors);
     return;
@@ -39,7 +34,7 @@ export const errorHandler = async (
   }
 
   if (errors instanceof SecurityErrorWithStatus) {
-    await auditSecurityFailure(req, res, errors.audit);
+    auditSecurityFailureAfterResponse(req, res, errors.audit);
   }
 
   if (errors instanceof ErrorWithStatus) {

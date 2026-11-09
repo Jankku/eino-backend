@@ -1,3 +1,5 @@
+import { waitForSecurityAudits } from './util/securityaudit.ts';
+import { waitForPasswordResetJobs } from './services/auth.ts';
 import express from 'express';
 import cors from 'cors';
 import { Logger } from './util/logger.ts';
@@ -67,6 +69,8 @@ closeWithGrace({ logger: Logger }, async ({ err }) => {
   Logger.info('Server closed');
   await closeShareImagePool();
   Logger.info('Share image pool closed');
+  await waitForPasswordResetJobs();
+  await waitForSecurityAudits();
   await db.$pool.end();
   Logger.info('Database pool closed');
 });

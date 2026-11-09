@@ -10,7 +10,7 @@ import { findUserById } from '../db/users.ts';
 import { roleIdToName } from '../util/role.ts';
 import { jwtConstants } from '../util/jwtconstants.ts';
 import { logError } from '../util/logger.ts';
-import { auditSecurityFailure } from '../util/securityaudit.ts';
+import { auditSecurityFailureAfterResponse } from '../util/securityaudit.ts';
 
 const tokenSchema = z.object({
   headers: z.object({
@@ -57,7 +57,7 @@ export const verifyToken = async (req: Request, res: TypedResponse, next: NextFu
     next();
   } catch (error) {
     if (error instanceof ZodError) {
-      await auditSecurityFailure(req, res, {
+      auditSecurityFailureAfterResponse(req, res, {
         operation: 'access_token',
         reason: 'invalid_authorization_header',
       });
