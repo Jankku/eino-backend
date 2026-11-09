@@ -33,7 +33,15 @@ export const truncate = (text: string, length: number): string =>
   text.length > length ? `${text.slice(0, length - 3)}...` : text;
 
 const serializeDiscordAuditData = (data: Record<string, unknown>): string =>
-  JSON.stringify(data, (key, value: unknown) => (key === 'email' ? undefined : value));
+  JSON.stringify(data, (key, value: unknown) =>
+    key === 'email' ||
+    key === 'source_ip' ||
+    key === 'path' ||
+    key === 'profile_picture_path' ||
+    key === 'password'
+      ? undefined
+      : value,
+  );
 
 type DiscordEmbed = {
   timestamp: string;
