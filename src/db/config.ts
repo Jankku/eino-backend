@@ -12,6 +12,9 @@ export const pgp = pgPromise(options);
 
 export const db = pgp({
   connectionString: config.DATABASE_URL,
+  // Fail instead of waiting forever for an unreachable database or a saturated pool,
+  // which also keeps startup interruptible within the shutdown grace period.
+  connectionTimeoutMillis: 5000,
 });
 
 pgp.pg.types.setTypeParser(20, (value: string) => Number.parseInt(value)); // INT8
