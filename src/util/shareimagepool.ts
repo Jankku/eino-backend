@@ -102,6 +102,8 @@ export const renderShareImage = (input: ShareImageInput): Promise<Buffer> => {
 
 export const closeShareImagePool = async (): Promise<void> => {
   closing = true;
+  // The pool closes after the HTTP server, so queued renders belong to disconnected
+  // requests. Rejecting them stops their handlers before they write shares.
   const error = new Error('Share image worker is closed');
   for (const task of queue.splice(0)) task.reject(error);
   // Let native canvas calls finish before terminating their worker.

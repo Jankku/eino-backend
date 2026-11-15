@@ -14,68 +14,122 @@ import { initDiscordAuditProcessing, stopDiscordAuditProcessing } from './servic
 import { createProfilePictureDir } from './util/profilepicture.ts';
 import { initRoleMap } from './db/role.ts';
 import { closeShareImagePool } from './util/shareimagepool.ts';
+import { createServer } from 'node:http';
 
-createShareDir().catch((error) => Logger.error('Error creating share dir', { error }));
-createProfilePictureDir().catch((error) =>
-  Logger.error('Error creating profile picture dir', { error }),
-);
+type ApplicationState = 'starting' | 'ready' | 'draining';
+
+let state: ApplicationState = 'starting';
+
+const isStarting = () => state === 'starting';
+
+// JSON logs omit the non-enumerable message and stack of nested errors.
+const describeError = (error: unknown) => (error instanceof Error ? error.stack : error);
 
 const app = express();
 
 app.set('trust proxy', config.TRUST_PROXY ?? false);
 
-app.use(express.json({ limit: config.REQUEST_BODY_MAX_SIZE }));
+// CORS runs first so cross-origin clients can read the unavailable response.
 app.use(cors({ allowedHeaders: ['Content-Type', 'Authorization'] }));
 
-// Prevent requests when server is closing
-app.use((_req, _res, next) => {
-  // @ts-expect-error - no types
-  if (closeWithGrace.closing) {
+app.use((_req, res, next) => {
+  if (state !== 'ready') {
+    res.setHeader('Connection', 'close');
     next(new ErrorWithStatus(503, 'maintenance', 'Service is currently unavailable'));
     return;
   }
   next();
 });
 
+app.use(express.json({ limit: config.REQUEST_BODY_MAX_SIZE }));
+
 app.use('/api/v1', routerV1);
 app.use('/api/v2', routerV2);
 
 app.use(errorHandler);
 
-const server = app.listen(config.PORT, () =>
-  Logger.info(`Server Listening to port ${config.PORT}`),
-);
+const server = createServer(app);
 
-db.connect()
-  .then(async (c) => {
-    Logger.info('Connected to database');
-    await initDiscordAuditProcessing();
-    await c.task(initRoleMap);
-    await c.done();
-  })
-  .catch((error: Error) => {
-    Logger.error('Error connecting to database', { error });
-    throw error;
-  });
+const grace = closeWithGrace({ logger: Logger }, async ({ err }) => {
+  state = 'draining';
+  Logger.info('Application draining');
 
-closeWithGrace({ logger: Logger }, async ({ err }) => {
+  const errors: unknown[] = [];
+
   if (err) {
     Logger.error('closeWithGrace', err);
+    errors.push(err);
   }
+
+  const cleanup = async (resource: string, close: () => Promise<unknown>) => {
+    try {
+      await close();
+    } catch (error) {
+      errors.push(error);
+      Logger.error(`Failed to close ${resource}`, { error: describeError(error) });
+    }
+  };
+
+  // Startup logs its own failure; recording it makes shutdown exit with failure.
+  await startup.catch((error: unknown) => {
+    errors.push(error);
+  });
+  await cleanup('HTTP server', () => {
+    const { promise, resolve, reject } = Promise.withResolvers<void>();
+    server.close((error) => {
+      // Startup can fail or be interrupted before the server starts listening.
+      if (error && !('code' in error && error.code === 'ERR_SERVER_NOT_RUNNING')) reject(error);
+      else resolve();
+    });
+    return promise;
+  });
+
+  await cleanup('Discord audit processor', stopDiscordAuditProcessing);
+  await cleanup('share image pool', closeShareImagePool);
+  await cleanup('password reset jobs', waitForPasswordResetJobs);
+  await cleanup('security audit jobs', waitForSecurityAudits);
+  await cleanup('database pool', () => db.$pool.end());
+
+  Logger.info('Application stopped');
+
+  if (errors.length > 0) {
+    throw new AggregateError(errors, 'Application shutdown failed');
+  }
+});
+
+const initialize = async () => {
+  await createShareDir();
+  if (!isStarting()) return;
+  await createProfilePictureDir();
+  if (!isStarting()) return;
+
+  // A task acquires and releases its connection even when initialization fails.
+  await db.task(async (t) => {
+    Logger.info('Connected to database');
+    await initRoleMap(t);
+  });
+  if (!isStarting()) return;
+  await initDiscordAuditProcessing();
+  if (!isStarting()) return;
+
   const { promise, resolve, reject } = Promise.withResolvers<void>();
-  server.close((error) => {
-    if (error) reject(error);
-    else resolve();
+  server.once('error', reject);
+  server.listen(config.PORT, () => {
+    server.off('error', reject);
+    resolve();
   });
   await promise;
-  Logger.info('Server closed');
-  await stopDiscordAuditProcessing();
-  await closeShareImagePool();
-  Logger.info('Share image pool closed');
-  await waitForPasswordResetJobs();
-  await waitForSecurityAudits();
-  await db.$pool.end();
-  Logger.info('Database pool closed');
+  if (!isStarting()) return;
+  state = 'ready';
+  Logger.info(`Application ready and listening on port ${config.PORT}`);
+};
+
+const startup = initialize();
+void startup.catch((error: unknown) => {
+  Logger.error('Application startup failed', { error: describeError(error) });
+  // Shutdown also observes the rejected startup promise, so a manual close exits
+  // with failure after cleanup rather than reporting successful termination.
+  if (isStarting()) grace.close();
 });
 
 export default app;
