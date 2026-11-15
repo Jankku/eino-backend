@@ -114,22 +114,25 @@ const bulletinUsersCs = new pgp.helpers.ColumnSet(['bulletin_id', 'user_id'], {
   table: 'bulletin_users',
 });
 
+export const insertBulletinUsers = async (
+  t: ITask<unknown>,
+  { bulletinId, userIds }: { bulletinId: DbBulletin['id']; userIds: string[] },
+) => {
+  // Each recipient is stored once, however often the request lists them.
+  const values = [...new Set(userIds)].map((userId) => ({
+    bulletin_id: bulletinId,
+    user_id: userId,
+  }));
+  await t.none(pgp.helpers.insert(values, bulletinUsersCs));
+};
+
 export const updateBulletinUsers = async (
   t: ITask<unknown>,
   { bulletinId, userIds }: { bulletinId: DbBulletin['id']; userIds: string[] },
 ) => {
   await t.none('DELETE FROM bulletin_users WHERE bulletin_id = $1', bulletinId);
   if (userIds.length === 0) return;
-  const values = userIds.map((userId) => ({ bulletin_id: bulletinId, user_id: userId }));
-  await t.none(pgp.helpers.insert(values, bulletinUsersCs));
-};
-
-export const insertBulletinUsers = async (
-  t: ITask<unknown>,
-  { bulletinId, userIds }: { bulletinId: DbBulletin['id']; userIds: string[] },
-) => {
-  const values = userIds.map((userId) => ({ bulletin_id: bulletinId, user_id: userId }));
-  await t.none(pgp.helpers.insert(values, bulletinUsersCs));
+  await insertBulletinUsers(t, { bulletinId, userIds });
 };
 
 export const deleteBulletin = async (t: ITask<unknown>, bulletinId: string) => {
