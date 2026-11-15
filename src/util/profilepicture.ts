@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import path from 'node:path';
 import * as fs from 'node:fs/promises';
+import { Logger } from './logger.ts';
 
 export const profilePictureLimits = {
   fileSize: 10 * 1024 * 1024,
@@ -20,3 +21,13 @@ export const generateProfilePicturePath = () =>
 
 export const getProfilePicturePathByFileName = (fileName: string) =>
   path.join(PROFILE_PICTURE_PATH, fileName);
+
+// Runs after the database stops referencing the file. A leftover file is harmless,
+// so a failed removal must not fail the already committed change.
+export const removeRetiredProfilePicture = async (path: string) => {
+  try {
+    await fs.rm(path, { force: true });
+  } catch (error) {
+    Logger.warn("Couldn't remove retired profile picture", { path, error });
+  }
+};

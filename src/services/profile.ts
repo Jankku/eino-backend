@@ -36,7 +36,11 @@ import type { TypedResponse } from '../util/zod.ts';
 import { findVerification } from '../db/verification.ts';
 import { validateTOTP } from '../util/totp.ts';
 import { addAudit, getAuditsByActorUserId } from '../db/audit.ts';
-import { generateProfilePicturePath, profilePictureLimits } from '../util/profilepicture.ts';
+import {
+  generateProfilePicturePath,
+  profilePictureLimits,
+  removeRetiredProfilePicture,
+} from '../util/profilepicture.ts';
 import sharp from 'sharp';
 
 export const getProfile = async (_: Request, res: TypedResponse, next: NextFunction) => {
@@ -211,11 +215,13 @@ export const generateShareImage = async (
     const shareImagePath = getShareItemPath(res.locals.userId);
     const shareId = generateShareId();
 
+    // The database cannot roll back file writes, so the image must exist before a share
+    // row references it. The image is per user and replaced by every new share.
+    await fs.writeFile(shareImagePath, imageBuffer);
     await db.tx('createShare', async (t) => {
       await createShare(t, { id: shareId, username });
       await addAudit(t, { actor_user_id: res.locals.userId, username, action: 'profile_shared' });
     });
-    await fs.writeFile(shareImagePath, imageBuffer);
 
     res.status(200).json(success([{ share_id: shareId }]));
   } catch (error) {
@@ -406,22 +412,32 @@ export const saveProfilePicture = async (req: Request, res: TypedResponse, next:
       return;
     }
 
-    await db.tx('saveProfilePicture', async (t) => {
-      const path = generateProfilePicturePath();
-      const oldProfilePicturePath = await findProfilePictureByUsername(t, username);
-      await updateProfilePicturePath(t, { username, path });
-      await addAudit(t, {
-        actor_user_id: res.locals.userId,
-        username,
-        action: 'profile_picture_updated',
-        old_data: oldProfilePicturePath ? { path: oldProfilePicturePath } : undefined,
-        new_data: { path },
+    // The database cannot roll back file changes: write the new picture before referencing
+    // it, and remove the old one only after the new reference is committed.
+    const path = generateProfilePicturePath();
+    // 'wx' refuses to overwrite another user's picture on a random path collision.
+    await fs.writeFile(path, image, { flag: 'wx' });
+    let oldProfilePicturePath: string | null;
+    try {
+      oldProfilePicturePath = await db.tx('saveProfilePicture', async (t) => {
+        const oldPath = await findProfilePictureByUsername(t, username);
+        await updateProfilePicturePath(t, { username, path });
+        await addAudit(t, {
+          actor_user_id: res.locals.userId,
+          username,
+          action: 'profile_picture_updated',
+          old_data: oldPath ? { path: oldPath } : undefined,
+          new_data: { path },
+        });
+        return oldPath;
       });
-      await fs.writeFile(path, image);
-      if (oldProfilePicturePath) {
-        await fs.rm(oldProfilePicturePath, { force: true });
-      }
-    });
+    } catch (error) {
+      await fs.rm(path, { force: true }).catch(() => {});
+      throw error;
+    }
+    if (oldProfilePicturePath) {
+      await removeRetiredProfilePicture(oldProfilePicturePath);
+    }
 
     res
       .status(200)
@@ -435,18 +451,23 @@ export const saveProfilePicture = async (req: Request, res: TypedResponse, next:
 export const deleteProfilePicture = async (_: Request, res: TypedResponse, next: NextFunction) => {
   const username = res.locals.username;
   try {
-    await db.tx('deleteProfilePicture', async (t) => {
-      const oldProfilePicturePath = await findProfilePictureByUsername(t, username);
+    const oldProfilePicturePath = await db.tx('deleteProfilePicture', async (t) => {
+      const oldPath = await findProfilePictureByUsername(t, username);
       await updateProfilePicturePath(t, { username, path: undefined });
-      if (!oldProfilePicturePath) return;
-      await addAudit(t, {
-        actor_user_id: res.locals.userId,
-        username,
-        action: 'profile_picture_updated',
-        old_data: { path: oldProfilePicturePath },
-      });
-      await fs.rm(oldProfilePicturePath, { force: true });
+      if (oldPath) {
+        await addAudit(t, {
+          actor_user_id: res.locals.userId,
+          username,
+          action: 'profile_picture_updated',
+          old_data: { path: oldPath },
+        });
+      }
+      return oldPath;
     });
+    // Removed only after the commit, so a failed transaction keeps a valid reference.
+    if (oldProfilePicturePath) {
+      await removeRetiredProfilePicture(oldProfilePicturePath);
+    }
     res
       .status(200)
       .json(success([{ name: 'profile_picture_removed', message: 'Profile picture removed' }]));
