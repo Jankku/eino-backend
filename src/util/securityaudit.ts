@@ -125,7 +125,11 @@ export const auditSecurityFailureAfterResponse = (
   failure: SecurityFailure,
 ): void => {
   // Suppression and target-specific database writes must not affect response time.
+  // A completed response emits both 'finish' and 'close'; record the failure only once.
+  let recorded = false;
   const record = () => {
+    if (recorded) return;
+    recorded = true;
     const job = auditSecurityFailure(req, res, failure).catch(() => {
       Logger.error('Failed to record security audit');
     });
