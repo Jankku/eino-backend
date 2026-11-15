@@ -13,7 +13,7 @@ import { success } from '../util/response.ts';
 import { Logger, logError } from '../util/logger.ts';
 import { getAllBooks, getTop10BookTitles } from '../db/books.ts';
 import { getAllMovies, getTop10MovieTitles } from '../db/movies.ts';
-import { generateShareId, getShareItemPath } from '../util/share.ts';
+import { generateShareId, getShareItemPath, removeShareImage } from '../util/share.ts';
 import { renderShareImage } from '../util/shareimagepool.ts';
 import { createShare, getSharesByUsername } from '../db/share.ts';
 import { getProfileData, getProfileDataV2 } from '../db/profile.ts';
@@ -106,7 +106,7 @@ export const deleteAccount = async (
   const { password, twoFactorCode } = res.locals.input.body;
 
   try {
-    await db.tx('deleteAccount', async (t) => {
+    const profilePicturePath = await db.tx('deleteAccount', async (t) => {
       const user = await getUserById(t, res.locals.userId);
 
       if (user.totp_enabled_on) {
@@ -156,10 +156,14 @@ export const deleteAccount = async (
         action: 'account_deleted',
         old_data: { ...user, password: undefined },
       });
+      return user.profile_picture_path;
     });
 
-    const shareImagePath = getShareItemPath(res.locals.userId);
-    await fs.rm(shareImagePath, { force: true });
+    // Files are removed only after the deletion commits.
+    await removeShareImage(res.locals.userId);
+    if (profilePicturePath) {
+      await removeRetiredProfilePicture(profilePicturePath);
+    }
 
     res
       .status(200)

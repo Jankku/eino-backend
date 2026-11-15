@@ -30,6 +30,7 @@ import type {
   discordAuditSettingsSchema,
 } from '../routes/admin/schema.ts';
 import { removeRetiredProfilePicture } from '../util/profilepicture.ts';
+import { removeShareImage } from '../util/share.ts';
 import { deleteVerification, renameVerificationTarget } from '../db/verification.ts';
 import {
   createBulletin,
@@ -256,7 +257,7 @@ export const deleteUser = async (
   const adminUsername = res.locals.username;
   const { userId } = res.locals.input.params;
   try {
-    await db.tx('deleteUser', async (t) => {
+    const profilePicturePath = await db.tx('deleteUser', async (t) => {
       const adminUser = await getUserById(t, res.locals.userId);
       const user = await getUserById(t, userId);
       if (adminUser.user_id === user.user_id) {
@@ -271,7 +272,13 @@ export const deleteUser = async (
         record_id: user.user_id,
         old_data: { ...user, password: undefined },
       });
+      return user.profile_picture_path;
     });
+    // Files are removed only after the deletion commits.
+    await removeShareImage(userId);
+    if (profilePicturePath) {
+      await removeRetiredProfilePicture(profilePicturePath);
+    }
     res.status(200).json(success([{ name: 'user_deleted', message: 'User deleted successfully' }]));
   } catch (error) {
     if (error instanceof ErrorWithStatus) {
