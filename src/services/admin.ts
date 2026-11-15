@@ -29,7 +29,8 @@ import type {
   auditQuerySchema,
   discordAuditSettingsSchema,
 } from '../routes/admin/schema.ts';
-import * as fs from 'node:fs/promises';
+import { removeRetiredProfilePicture } from '../util/profilepicture.ts';
+import { deleteVerification, renameVerificationTarget } from '../db/verification.ts';
 import {
   createBulletin,
   deleteBulletin,
@@ -105,12 +106,31 @@ export const editUser = async (
   const { userId } = res.locals.input.params;
   const newUser = res.locals.input.body;
   try {
-    await db.tx('editUser', async (t) => {
+    const retiredPfpPath = await db.tx('editUser', async (t) => {
       const currentUser = await getUserById(t, userId);
+
+      // 2FA can only be enabled by the user, who must confirm a generated secret.
+      // Enabling it here would require a code for which the user has no secret.
+      if (!currentUser.totp_enabled_on && newUser.totp_enabled_on) {
+        throw new ErrorWithStatus(422, 'admin_error', "2FA can't be enabled by an admin");
+      }
+      const disables2FA = Boolean(currentUser.totp_enabled_on) && !newUser.totp_enabled_on;
+      if (disables2FA) {
+        await deleteVerification(t, { target: currentUser.username, type: '2fa' });
+      } else if (newUser.username !== currentUser.username) {
+        // The secret is keyed by username, so it must follow a rename.
+        await renameVerificationTarget(t, {
+          type: '2fa',
+          oldTarget: currentUser.username,
+          newTarget: newUser.username,
+        });
+      }
+
       const currentPfpPath = await findProfilePictureByUsername(t, currentUser.username);
+      let retiredPath: string | undefined;
       if (currentPfpPath && !newUser.profile_picture_path) {
         await updateProfilePicturePath(t, { username: currentUser.username, path: undefined });
-        await fs.rm(currentPfpPath, { force: true });
+        retiredPath = currentPfpPath;
       }
       await t.none(
         `UPDATE users
@@ -121,7 +141,8 @@ export const editUser = async (
           newUser.email || undefined,
           newUser.email_verified_on,
           newUser.role_id,
-          newUser.totp_enabled_on,
+          // An enabled timestamp records when the user confirmed 2FA and is kept as is.
+          disables2FA ? undefined : currentUser.totp_enabled_on,
           userId,
         ],
       );
@@ -132,9 +153,19 @@ export const editUser = async (
         table_name: 'users',
         record_id: userId,
         old_data: { ...currentUser, password: undefined },
-        new_data: { ...currentUser, ...newUser, password: undefined },
+        new_data: {
+          ...currentUser,
+          ...newUser,
+          totp_enabled_on: disables2FA ? undefined : currentUser.totp_enabled_on,
+          password: undefined,
+        },
       });
+      return retiredPath;
     });
+    // Removed only after the commit, so a failed transaction keeps a valid reference.
+    if (retiredPfpPath) {
+      await removeRetiredProfilePicture(retiredPfpPath);
+    }
     res.status(200).json(success([{ name: 'user_updated', message: 'User updated successfully' }]));
   } catch (error) {
     if (error instanceof ErrorWithStatus) {

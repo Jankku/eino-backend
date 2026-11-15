@@ -78,3 +78,21 @@ export const deleteVerification = async (
     values: [target, type],
   });
 };
+
+export const renameVerificationTarget = async (
+  t: ITask<unknown>,
+  {
+    type,
+    oldTarget,
+    newTarget,
+  }: {
+    type: DbVerification['type'];
+    oldTarget: string;
+    newTarget: string;
+  },
+) => {
+  await t.none({
+    text: `UPDATE verifications SET target = $3 WHERE target = $2 AND type = $1`,
+    values: [type, oldTarget, newTarget],
+  });
+};
