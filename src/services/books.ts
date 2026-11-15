@@ -14,7 +14,7 @@ import {
 import { success } from '../util/response.ts';
 import { db } from '../db/config.ts';
 import { config } from '../config.ts';
-import { getItemCountByUsernameForUpdate } from '../db/users.ts';
+import { getItemCountByUserIdForUpdate } from '../db/users.ts';
 import { ErrorWithStatus } from '../util/errorhandler.ts';
 import { fetchFinnaImages } from './third-party/finna.ts';
 import {
@@ -50,7 +50,7 @@ export const fetchPage = async (
   res: TypedResponse<typeof fetchByStatusSchema>,
   next: NextFunction,
 ) => {
-  const { pagination, listQuery, username } = res.locals;
+  const { pagination, listQuery, userId } = res.locals;
   if (!pagination || !listQuery) {
     next();
     return;
@@ -58,7 +58,7 @@ export const fetchPage = async (
   try {
     const page = await db.tx({ mode: paginationMode }, (t) =>
       getBooksPage(t, {
-        username,
+        userId,
         pagination,
         listQuery,
         status: req.params.status ? res.locals.input.params.status : undefined,
@@ -77,10 +77,10 @@ export const fetchOne = async (
   next: NextFunction,
 ) => {
   const { bookId } = res.locals.input.params;
-  const username = res.locals.username;
+  const userId = res.locals.userId;
 
   try {
-    const book = await db.task('fetchOne', async (t) => await getBookById(t, { bookId, username }));
+    const book = await db.task('fetchOne', async (t) => await getBookById(t, { bookId, userId }));
     res.status(200).json(success([book]));
   } catch (error) {
     logError(error);
@@ -89,10 +89,10 @@ export const fetchOne = async (
 };
 
 export const fetchAll = async (req: Request, res: TypedResponse, next: NextFunction) => {
-  const username = res.locals.username;
+  const userId = res.locals.userId;
 
   try {
-    let books = await db.task('fetchAll', async (t) => await getAllBooks(t, username));
+    let books = await db.task('fetchAll', async (t) => await getAllBooks(t, userId));
 
     const queryParams = bookSortSchema.safeParse(req.query);
     if (queryParams.success) {
@@ -125,11 +125,11 @@ export const fetchByStatus = async (
   res: TypedResponse<typeof fetchByStatusSchema>,
   next: NextFunction,
 ) => {
-  const username = res.locals.username;
+  const userId = res.locals.userId;
   const status = res.locals.input.params.status;
 
   try {
-    let books = await db.task(async (t) => await getBooksByStatus(t, { username, status }));
+    let books = await db.task(async (t) => await getBooksByStatus(t, { userId, status }));
 
     const queryParams = res.locals.input.query;
     if (queryParams) {
@@ -162,19 +162,19 @@ export const addOne = async (
   res: TypedResponse<typeof addOneSchema>,
   next: NextFunction,
 ) => {
-  const username = res.locals.username;
+  const { userId, username } = res.locals;
   const book = res.locals.input.body;
 
   try {
     await db.tx('addOne', async (t) => {
-      const { book_count } = await getItemCountByUsernameForUpdate(t, username);
+      const { book_count } = await getItemCountByUserIdForUpdate(t, userId);
       const maxItemCount = config.USER_LIST_ITEM_MAX_COUNT;
       if (book_count + 1 > maxItemCount) {
         throw new ErrorWithStatus(422, 'book_list_error', 'Item count exceeds the maximum count');
       }
 
-      const bookId = await postBook(t, book, username);
-      await postBookToUserList(t, bookId, book, username);
+      const bookId = await postBook(t, book, userId);
+      await postBookToUserList(t, bookId, book);
       await addAudit(t, {
         actor_user_id: res.locals.userId,
         username,
@@ -201,15 +201,15 @@ export const updateOne = async (
   res: TypedResponse<typeof updateOneSchema>,
   next: NextFunction,
 ) => {
-  const username = res.locals.username;
+  const { userId, username } = res.locals;
   const { bookId } = res.locals.input.params;
   const book = res.locals.input.body;
 
   try {
     const { updatedBook } = await db.tx('updateOne', async (t) => {
-      const oldBook = await getBookById(t, { bookId, username });
-      await updateBook(t, { book, bookId, username });
-      const updatedBook = await getBookById(t, { bookId, username });
+      const oldBook = await getBookById(t, { bookId, userId });
+      await updateBook(t, { book, bookId, userId });
+      const updatedBook = await getBookById(t, { bookId, userId });
       await addAudit(t, {
         actor_user_id: res.locals.userId,
         username,
@@ -235,17 +235,17 @@ export const deleteOne = async (
   next: NextFunction,
 ) => {
   const { bookId } = res.locals.input.params;
-  const username = res.locals.username;
+  const { userId, username } = res.locals;
 
   try {
     await db.tx('deleteOne', async (t) => {
-      const book = await getBookById(t, { bookId, username });
+      const book = await getBookById(t, { bookId, userId });
       await t.none({
         text: `DELETE
            FROM books
            WHERE book_id = $1
-             AND submitter = $2`,
-        values: [bookId, username],
+             AND user_id = $2`,
+        values: [bookId, userId],
       });
       await addAudit(t, {
         actor_user_id: res.locals.userId,
@@ -275,11 +275,11 @@ export const search = async (
       res.status(200).json(success([]));
       return;
     }
-    const username = res.locals.username;
+    const userId = res.locals.userId;
 
     const results = await db.task('search', async (t) => {
-      const matches = await ftsSearch(t, { username, query: queryString });
-      return matches.length > 0 ? matches : await likeSearch(t, { username, query: queryString });
+      const matches = await ftsSearch(t, { userId, query: queryString });
+      return matches.length > 0 ? matches : await likeSearch(t, { userId, query: queryString });
     });
 
     res.status(200).json(success(results));
@@ -333,15 +333,16 @@ export const fetchImages = async (
 };
 
 export const countByStatus = async (req: Request, res: TypedResponse, next: NextFunction) => {
-  const username = res.locals.username;
+  const userId = res.locals.userId;
 
   try {
     const rows = await db.any<StatusCountRow>(
-      `SELECT status, COUNT(*) AS count
-        FROM user_book_list
-        WHERE username = $1
-        GROUP BY status`,
-      [username],
+      `SELECT ubl.status, COUNT(*) AS count
+        FROM user_book_list ubl
+        INNER JOIN books b USING (book_id)
+        WHERE b.user_id = $1
+        GROUP BY ubl.status`,
+      [userId],
     );
 
     const total = rows.reduce((acc, curr) => acc + curr.count, 0);

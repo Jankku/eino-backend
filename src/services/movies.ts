@@ -14,7 +14,7 @@ import {
 import { success } from '../util/response.ts';
 import { db } from '../db/config.ts';
 import { config } from '../config.ts';
-import { getItemCountByUsernameForUpdate } from '../db/users.ts';
+import { getItemCountByUserIdForUpdate } from '../db/users.ts';
 import { ErrorWithStatus } from '../util/errorhandler.ts';
 import { fetchTmdbImages } from './third-party/tmdb.ts';
 import { fetchFinnaImages } from './third-party/finna.ts';
@@ -44,7 +44,7 @@ export const fetchPage = async (
   res: TypedResponse<typeof fetchByStatusSchema>,
   next: NextFunction,
 ) => {
-  const { pagination, listQuery, username } = res.locals;
+  const { pagination, listQuery, userId } = res.locals;
   if (!pagination || !listQuery) {
     next();
     return;
@@ -52,7 +52,7 @@ export const fetchPage = async (
   try {
     const page = await db.tx({ mode: paginationMode }, async (t) =>
       getMoviesPage(t, {
-        username,
+        userId,
         pagination,
         listQuery,
         status: req.params.status ? res.locals.input.params.status : undefined,
@@ -71,12 +71,12 @@ export const fetchOne = async (
   next: NextFunction,
 ) => {
   const { movieId } = res.locals.input.params;
-  const username = res.locals.username;
+  const userId = res.locals.userId;
 
   try {
     const movie = await db.task(
       'fetchOne',
-      async (t) => await getMovieById(t, { movieId, username }),
+      async (t) => await getMovieById(t, { movieId, userId }),
     );
     res.status(200).json(success([movie]));
   } catch (error) {
@@ -86,10 +86,10 @@ export const fetchOne = async (
 };
 
 export const fetchAll = async (req: Request, res: TypedResponse, next: NextFunction) => {
-  const username = res.locals.username;
+  const userId = res.locals.userId;
 
   try {
-    let movies = await db.task('fetchAll', async (t) => await getAllMovies(t, username));
+    let movies = await db.task('fetchAll', async (t) => await getAllMovies(t, userId));
 
     const queryParams = movieSortSchema.safeParse(req.query);
     if (queryParams.success) {
@@ -122,13 +122,13 @@ export const fetchByStatus = async (
   res: TypedResponse<typeof fetchByStatusSchema>,
   next: NextFunction,
 ) => {
-  const username = res.locals.username;
+  const userId = res.locals.userId;
   const status = res.locals.input.params.status;
 
   try {
     let movies = await db.task(
       'fetchByStatus',
-      async (t) => await getMoviesByStatus(t, { username, status }),
+      async (t) => await getMoviesByStatus(t, { userId, status }),
     );
 
     const queryParams = res.locals.input.query;
@@ -162,19 +162,19 @@ export const addOne = async (
   res: TypedResponse<typeof addOneSchema>,
   next: NextFunction,
 ) => {
-  const username = res.locals.username;
+  const { userId, username } = res.locals;
   const movie = res.locals.input.body;
 
   try {
     await db.tx('addOne', async (t) => {
-      const { movie_count } = await getItemCountByUsernameForUpdate(t, username);
+      const { movie_count } = await getItemCountByUserIdForUpdate(t, userId);
       const maxItemCount = config.USER_LIST_ITEM_MAX_COUNT;
       if (movie_count + 1 > maxItemCount) {
         throw new ErrorWithStatus(422, 'movie_list_error', 'Item count exceeds the maximum count');
       }
 
-      const movieId = await postMovie(t, movie, username);
-      await postMovieToUserList(t, movieId, movie, username);
+      const movieId = await postMovie(t, movie, userId);
+      await postMovieToUserList(t, movieId, movie);
       await addAudit(t, {
         actor_user_id: res.locals.userId,
         username,
@@ -204,14 +204,14 @@ export const updateOne = async (
   next: NextFunction,
 ) => {
   const { movieId } = res.locals.input.params;
-  const username = res.locals.username;
+  const { userId, username } = res.locals;
   const movie = res.locals.input.body;
 
   try {
     const { updatedMovie } = await db.tx('updateOne', async (t) => {
-      const oldMovie = await getMovieById(t, { movieId, username });
-      await updateMovie(t, { movie, movieId, username });
-      const updatedMovie = await getMovieById(t, { movieId, username });
+      const oldMovie = await getMovieById(t, { movieId, userId });
+      await updateMovie(t, { movie, movieId, userId });
+      const updatedMovie = await getMovieById(t, { movieId, userId });
       await addAudit(t, {
         actor_user_id: res.locals.userId,
         username,
@@ -236,17 +236,17 @@ export const deleteOne = async (
   next: NextFunction,
 ) => {
   const { movieId } = res.locals.input.params;
-  const username = res.locals.username;
+  const { userId, username } = res.locals;
 
   try {
     await db.tx('deleteOne', async (t) => {
-      const movie = await getMovieById(t, { movieId, username });
+      const movie = await getMovieById(t, { movieId, userId });
       await t.none({
         text: `DELETE
            FROM movies
            WHERE movie_id = $1
-             AND submitter = $2`,
-        values: [movieId, username],
+             AND user_id = $2`,
+        values: [movieId, userId],
       });
       await addAudit(t, {
         actor_user_id: res.locals.userId,
@@ -276,11 +276,11 @@ export const search = async (
       res.status(200).json(success([]));
       return;
     }
-    const username = res.locals.username;
+    const userId = res.locals.userId;
 
     const results = await db.task('search', async (t) => {
-      const matches = await ftsSearch(t, { username, query: queryString });
-      return matches.length > 0 ? matches : await likeSearch(t, { username, query: queryString });
+      const matches = await ftsSearch(t, { userId, query: queryString });
+      return matches.length > 0 ? matches : await likeSearch(t, { userId, query: queryString });
     });
 
     res.status(200).json(success(results));
@@ -315,15 +315,16 @@ export const fetchImages = async (
 };
 
 export const countByStatus = async (req: Request, res: TypedResponse, next: NextFunction) => {
-  const username = res.locals.username;
+  const userId = res.locals.userId;
 
   try {
     const rows = await db.any<StatusCountRow>(
-      `SELECT status, COUNT(*) AS count
-        FROM user_movie_list
-        WHERE username = $1
-        GROUP BY status`,
-      [username],
+      `SELECT uml.status, COUNT(*) AS count
+        FROM user_movie_list uml
+        INNER JOIN movies m USING (movie_id)
+        WHERE m.user_id = $1
+        GROUP BY uml.status`,
+      [userId],
     );
 
     const total = rows.reduce((acc, curr) => acc + curr.count, 0);

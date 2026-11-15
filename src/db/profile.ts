@@ -12,12 +12,12 @@ type UserInfo = {
   registration_date: string;
 };
 
-const getUserInfo = async (t: ITask<unknown>, username: string): Promise<UserInfo> => {
+const getUserInfo = async (t: ITask<unknown>, userId: string): Promise<UserInfo> => {
   return await t.one({
     text: `SELECT user_id, username, email, email_verified_on, totp_enabled_on, last_login_on, profile_picture_path, created_on as registration_date
            FROM users
-           WHERE username = $1`,
-    values: [username],
+           WHERE user_id = $1`,
+    values: [userId],
   });
 };
 
@@ -82,7 +82,7 @@ const summarizeStats = (
 };
 
 // Grouping sets produce status counts, score distributions, and totals from one join.
-const getBookStats = async (t: ITask<unknown>, username: string) => {
+const getBookStats = async (t: ITask<unknown>, userId: string) => {
   const rows = await t.any<StatsRow>(
     `SELECT ubl.status, ubl.score, count(*) AS count,
             COALESCE(sum(b.pages) FILTER (WHERE ubl.status = 'completed'), 0) AS completed_total,
@@ -91,14 +91,14 @@ const getBookStats = async (t: ITask<unknown>, username: string) => {
             GROUPING(ubl.score) = 0 AS is_score_summary
      FROM books b
      INNER JOIN user_book_list ubl USING (book_id)
-     WHERE b.submitter = $1
+     WHERE b.user_id = $1
      GROUP BY GROUPING SETS ((ubl.status), (ubl.score), ())`,
-    [username],
+    [userId],
   );
   return summarizeStats(rows, fillBookStatuses);
 };
 
-const getMovieStats = async (t: ITask<unknown>, username: string) => {
+const getMovieStats = async (t: ITask<unknown>, userId: string) => {
   const rows = await t.any<StatsRow>(
     `SELECT uml.status, uml.score, count(*) AS count,
             COALESCE(sum(m.duration) FILTER (WHERE uml.status = 'completed') / 60, 0) AS completed_total,
@@ -107,9 +107,9 @@ const getMovieStats = async (t: ITask<unknown>, username: string) => {
             GROUPING(uml.score) = 0 AS is_score_summary
      FROM movies m
      INNER JOIN user_movie_list uml USING (movie_id)
-     WHERE m.submitter = $1
+     WHERE m.user_id = $1
      GROUP BY GROUPING SETS ((uml.status), (uml.score), ())`,
-    [username],
+    [userId],
   );
   return summarizeStats(rows, fillMovieStatuses);
 };
@@ -129,11 +129,11 @@ type ProfileDataV2 = Omit<ProfileData, 'bookData' | 'movieData'> & {
 
 export const getProfileDataV2 = async (
   t: ITask<unknown>,
-  username: string,
+  userId: string,
 ): Promise<ProfileDataV2> => {
-  const userInfo = await getUserInfo(t, username);
-  const books = await getBookStats(t, username);
-  const movies = await getMovieStats(t, username);
+  const userInfo = await getUserInfo(t, userId);
+  const books = await getBookStats(t, userId);
+  const movies = await getMovieStats(t, userId);
   return {
     userInfo,
     bookData: {
@@ -151,10 +151,10 @@ export const getProfileDataV2 = async (
   };
 };
 
-export const getProfileData = async (t: ITask<unknown>, username: string): Promise<ProfileData> => {
-  const userInfo = await getUserInfo(t, username);
-  const books = await getBookStats(t, username);
-  const movies = await getMovieStats(t, username);
+export const getProfileData = async (t: ITask<unknown>, userId: string): Promise<ProfileData> => {
+  const userInfo = await getUserInfo(t, userId);
+  const books = await getBookStats(t, userId);
+  const movies = await getMovieStats(t, userId);
   return {
     userInfo,
     bookData: {

@@ -22,25 +22,23 @@ const booksQuery = `SELECT b.book_id,
                   ubl.created_on
            FROM user_book_list ubl
                     INNER JOIN books b USING (book_id)
-           WHERE ubl.username = b.submitter
-             AND ubl.username = $1
-             AND b.submitter = $1`;
+           WHERE b.user_id = $1`;
 
-export const getAllBooks = async (t: ITask<unknown>, username: string): Promise<DbBook[]> => {
+export const getAllBooks = async (t: ITask<unknown>, userId: string): Promise<DbBook[]> => {
   return await t.any({
     text: `${booksQuery} ORDER BY b.title`,
-    values: [username],
+    values: [userId],
   });
 };
 
 export const getBooksPage = (
   t: ITask<unknown>,
-  options: { username: string; status?: BookStatus; pagination: Pagination; listQuery: ListQuery },
+  options: { userId: string; status?: BookStatus; pagination: Pagination; listQuery: ListQuery },
 ) =>
   getPage<DbBook>(t, {
     ...options,
     query: `${booksQuery}${options.status ? ' AND ubl.status = $2' : ''}`,
-    values: options.status ? [options.username, options.status] : [options.username],
+    values: options.status ? [options.userId, options.status] : [options.userId],
     idColumn: 'book_id',
     secondarySort: 'title',
     stringKeys: bookStringKeySchema.options,
@@ -49,7 +47,7 @@ export const getBooksPage = (
 
 export const getBookById = async (
   t: ITask<unknown>,
-  { bookId, username }: { bookId: string; username: string },
+  { bookId, userId }: { bookId: string; userId: string },
 ): Promise<DbBook> => {
   return await t.one({
     text: `SELECT b.book_id,
@@ -67,18 +65,17 @@ export const getBookById = async (
                   ubl.start_date,
                   ubl.end_date,
                   ubl.created_on
-           FROM user_book_list ubl,
-                books b
-           WHERE ubl.book_id = b.book_id
-             AND ubl.book_id = $1
-             AND b.submitter = $2`,
-    values: [bookId, username],
+           FROM user_book_list ubl
+                    INNER JOIN books b USING (book_id)
+           WHERE b.book_id = $1
+             AND b.user_id = $2`,
+    values: [bookId, userId],
   });
 };
 
 export const getBooksByStatus = async (
   t: ITask<unknown>,
-  { username, status }: { username: string; status: BookStatus },
+  { userId, status }: { userId: string; status: BookStatus },
 ): Promise<DbBook[]> => {
   return await t.any({
     text: `SELECT b.book_id,
@@ -98,17 +95,16 @@ export const getBooksByStatus = async (
                   ubl.created_on
            FROM user_book_list ubl
                     INNER JOIN books b USING (book_id)
-           WHERE ubl.username = b.submitter
-             AND ubl.username = $1
+           WHERE b.user_id = $1
              AND ubl.status = $2
            ORDER BY b.title`,
-    values: [username, status],
+    values: [userId, status],
   });
 };
 
-export const postBook = async (t: ITask<unknown>, b: Book, submitter: string): Promise<string> => {
+export const postBook = async (t: ITask<unknown>, b: Book, userId: string): Promise<string> => {
   const result = await t.one({
-    text: `INSERT INTO books (isbn, title, author, publisher, image_url, pages, year, language_code, submitter)
+    text: `INSERT INTO books (isbn, title, author, publisher, image_url, pages, year, language_code, user_id)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
            RETURNING book_id`,
     values: [
@@ -120,7 +116,7 @@ export const postBook = async (t: ITask<unknown>, b: Book, submitter: string): P
       b.pages,
       b.year,
       b.language_code,
-      submitter,
+      userId,
     ],
   });
   return result.book_id;
@@ -130,18 +126,17 @@ export const postBookToUserList = async (
   t: ITask<unknown>,
   bookId: string,
   b: Book,
-  username: string,
 ): Promise<void> => {
   await t.none({
-    text: `INSERT INTO user_book_list (book_id, username, status, score, note, start_date, end_date)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-    values: [bookId, username, b.status, b.score, b.note, b.start_date, b.end_date],
+    text: `INSERT INTO user_book_list (book_id, status, score, note, start_date, end_date)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+    values: [bookId, b.status, b.score, b.note, b.start_date, b.end_date],
   });
 };
 
 export const updateBook = async (
   t: ITask<unknown>,
-  { book, bookId, username }: { book: Book; bookId: string; username: string },
+  { book, bookId, userId }: { book: Book; bookId: string; userId: string },
 ): Promise<void> => {
   await t.none({
     text: `UPDATE books
@@ -154,7 +149,7 @@ export const updateBook = async (
                  year=$7,
                  language_code=$8
              WHERE book_id = $9
-               AND submitter = $10`,
+               AND user_id = $10`,
     values: [
       book.title,
       book.author,
@@ -165,24 +160,27 @@ export const updateBook = async (
       book.year,
       book.language_code,
       bookId,
-      username,
+      userId,
     ],
   });
   await t.none({
-    text: `UPDATE user_book_list
+    text: `UPDATE user_book_list ubl
              SET status=$1,
                  score=$2,
                  note=$3,
                  start_date=$4,
                  end_date=$5
-             WHERE book_id = $6`,
-    values: [book.status, book.score, book.note, book.start_date, book.end_date, bookId],
+             FROM books b
+             WHERE ubl.book_id = $6
+               AND b.book_id = ubl.book_id
+               AND b.user_id = $7`,
+    values: [book.status, book.score, book.note, book.start_date, book.end_date, bookId, userId],
   });
 };
 
 export const ftsSearch = async (
   t: ITask<unknown>,
-  { username, query }: { username: string; query: string },
+  { userId, query }: { userId: string; query: string },
 ): Promise<DbBook[]> => {
   const tokens = [...new Set(query.split(/\s+/))];
   const multipleTokens = tokens.length > 1;
@@ -210,17 +208,17 @@ export const ftsSearch = async (
                FROM books b
                INNER JOIN user_book_list ubl USING (book_id)
                CROSS JOIN search_query
-               WHERE document @@ search_query.query AND submitter = $1
+               WHERE document @@ search_query.query AND b.user_id = $1
                ${multipleTokens ? 'ORDER BY b.book_id, query_index' : ''}
              ) matches
              ORDER BY query_index, search_rank DESC`,
-    values: [username, tokens],
+    values: [userId, tokens],
   });
 };
 
 export const likeSearch = async (
   t: ITask<unknown>,
-  { username, query }: { username: string; query: string },
+  { userId, query }: { userId: string; query: string },
 ): Promise<DbBook[]> => {
   return await t.any<DbBook>({
     text: `SELECT b.book_id,
@@ -239,31 +237,27 @@ export const likeSearch = async (
                   ubl.end_date,
                   ubl.created_on
                FROM books b INNER JOIN user_book_list ubl on b.book_id = ubl.book_id
-               WHERE submitter = $1 AND (
+               WHERE b.user_id = $1 AND (
                   title ILIKE $2
                   OR author ILIKE $2
                   OR publisher ILIKE $2)
                LIMIT 100;`,
-    values: [username, `%${query}%`],
+    values: [userId, `%${query}%`],
   });
 };
 
-export const getTop10BookTitles = async (
-  t: ITask<unknown>,
-  username: string,
-): Promise<string[]> => {
+export const getTop10BookTitles = async (t: ITask<unknown>, userId: string): Promise<string[]> => {
   return await t.map(
     {
       text: `SELECT b.title
            FROM user_book_list ubl
            INNER JOIN books b USING (book_id)
-           WHERE ubl.username = b.submitter
-             AND ubl.username = $1
+           WHERE b.user_id = $1
              AND ubl.status = 'completed'
            ORDER BY ubl.score DESC,
                     ubl.end_date DESC
            LIMIT 10;`,
-      values: [username],
+      values: [userId],
     },
     undefined,
     (row) => row.title,

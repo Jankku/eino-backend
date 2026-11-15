@@ -94,6 +94,13 @@ export const findUserByIdForUpdate = async (
   });
 };
 
+export const getUserByIdForUpdate = async (t: ITask<unknown>, userId: string): Promise<User> => {
+  return await t.one({
+    text: 'SELECT * FROM users WHERE user_id = $1 FOR UPDATE',
+    values: [userId],
+  });
+};
+
 export const upgradePassword = async (
   t: ITask<unknown>,
   { userId, originalHash, newHash }: { userId: string; originalHash: string; newHash: string },
@@ -147,6 +154,16 @@ export const findUserByEmail = async (
   });
 };
 
+export const findUserByEmailForUpdate = async (
+  t: ITask<unknown>,
+  email: string,
+): Promise<User | null | undefined> => {
+  return await t.oneOrNone({
+    text: 'SELECT * FROM users WHERE email = $1 FOR UPDATE',
+    values: [email],
+  });
+};
+
 export const updateEmailAddress = async (
   t: ITask<unknown>,
   {
@@ -194,18 +211,18 @@ export const disableTOTP = async (t: ITask<unknown>, userId: string): Promise<vo
 export const isEmailAlreadyUsed = async (
   t: ITask<unknown>,
   {
-    username,
+    userId,
     email,
   }: {
-    username: string;
+    userId: string;
     email: string;
   },
 ): Promise<boolean> => {
   const result = await t.oneOrNone({
     text: `SELECT email
            FROM users
-           WHERE email = $1 AND username != $2`,
-    values: [email, username],
+           WHERE email = $1 AND user_id != $2`,
+    values: [email, userId],
   });
   return result !== null;
 };
@@ -278,17 +295,17 @@ export const isEmailUnique = async (t: ITask<unknown>, email: string): Promise<b
   }
 };
 
-export const isEmailUniqueExcludeUsername = async (
+export const isEmailUniqueExcludeUserId = async (
   t: ITask<unknown>,
-  username: string,
+  userId: string,
   email: string,
 ): Promise<boolean> => {
   try {
     const result = await t.result<{ username: string; email: string }>({
       text: `SELECT username, email
            FROM users
-           WHERE email = $1 AND username != $2`,
-      values: [email, username],
+           WHERE email = $1 AND user_id != $2`,
+      values: [email, userId],
     });
     return result.rowCount === 0;
   } catch (error) {
@@ -307,56 +324,39 @@ export const updateLastLogin = async (t: ITask<unknown>, userId: string): Promis
 };
 
 type UserItemCount = {
-  username: string;
   book_count: number;
   movie_count: number;
 };
 
-export const getItemCountByUsername = async (
-  t: ITask<unknown>,
-  username: string,
-): Promise<UserItemCount> => {
+const getItemCountByUserId = async (t: ITask<unknown>, userId: string): Promise<UserItemCount> => {
   return await t.one({
-    text: `SELECT 
-      $1 AS username, 
-      COALESCE(b.book_count, 0) AS book_count,
-      COALESCE(m.movie_count, 0) AS movie_count
-    FROM 
-      (
-        SELECT COUNT(*) AS book_count 
-        FROM books 
-        WHERE submitter = $1
-      ) b
-    LEFT JOIN 
-      (
-        SELECT COUNT(*) AS movie_count 
-        FROM movies 
-        WHERE submitter = $1
-      ) m ON TRUE;`,
-    values: [username],
+    text: `SELECT
+      (SELECT COUNT(*) FROM books WHERE user_id = $1) AS book_count,
+      (SELECT COUNT(*) FROM movies WHERE user_id = $1) AS movie_count;`,
+    values: [userId],
   });
 };
 
-export const getItemCountByUsernameForUpdate = async (
+export const getItemCountByUserIdForUpdate = async (
   t: ITask<unknown>,
-  username: string,
+  userId: string,
 ): Promise<UserItemCount> => {
   await t.one({
-    text: 'SELECT user_id FROM users WHERE username = $1 FOR NO KEY UPDATE',
-    values: [username],
+    text: 'SELECT user_id FROM users WHERE user_id = $1 FOR NO KEY UPDATE',
+    values: [userId],
   });
-  return await getItemCountByUsername(t, username);
+  return await getItemCountByUserId(t, userId);
 };
 
-export const findProfilePictureByUsername = async (
+export const findProfilePictureByUserId = async (
   t: ITask<unknown>,
-  username: string,
+  userId: string,
 ): Promise<string | null> => {
   const result = await t.oneOrNone({
     text: `SELECT profile_picture_path
            FROM users
-           WHERE username = $1`,
-    values: [username],
+           WHERE user_id = $1`,
+    values: [userId],
   });
   return result?.profile_picture_path;
 };
@@ -376,12 +376,12 @@ export const findProfilePicturePathByFileName = async (
 
 export const updateProfilePicturePath = async (
   t: ITask<unknown>,
-  { username, path }: { username: string; path: string | undefined },
+  { userId, path }: { userId: string; path: string | undefined },
 ): Promise<void> => {
   await t.none({
     text: `UPDATE users
              SET profile_picture_path = $1
-             WHERE username = $2`,
-    values: [path, username],
+             WHERE user_id = $2`,
+    values: [path, userId],
   });
 };

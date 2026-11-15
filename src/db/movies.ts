@@ -26,24 +26,23 @@ const moviesQuery = `SELECT m.movie_id,
                   uml.created_on
            FROM user_movie_list uml
                     INNER JOIN movies m USING (movie_id)
-           WHERE uml.username = m.submitter
-             AND uml.username = $1`;
+           WHERE m.user_id = $1`;
 
-export const getAllMovies = async (t: ITask<unknown>, username: string): Promise<DbMovie[]> => {
+export const getAllMovies = async (t: ITask<unknown>, userId: string): Promise<DbMovie[]> => {
   return await t.any({
     text: `${moviesQuery} ORDER BY m.title`,
-    values: [username],
+    values: [userId],
   });
 };
 
 export const getMoviesPage = (
   t: ITask<unknown>,
-  options: { username: string; status?: MovieStatus; pagination: Pagination; listQuery: ListQuery },
+  options: { userId: string; status?: MovieStatus; pagination: Pagination; listQuery: ListQuery },
 ) =>
   getPage<DbMovie>(t, {
     ...options,
     query: `${moviesQuery}${options.status ? ' AND uml.status = $2' : ''}`,
-    values: options.status ? [options.username, options.status] : [options.username],
+    values: options.status ? [options.userId, options.status] : [options.userId],
     idColumn: 'movie_id',
     secondarySort: 'title',
     stringKeys: movieStringKeySchema.options,
@@ -52,7 +51,7 @@ export const getMoviesPage = (
 
 export const getMovieById = async (
   t: ITask<unknown>,
-  { movieId, username }: { movieId: string; username: string },
+  { movieId, userId }: { movieId: string; userId: string },
 ): Promise<DbMovie> => {
   return await t.one({
     text: `SELECT uml.movie_id,
@@ -69,18 +68,17 @@ export const getMovieById = async (
                   uml.start_date,
                   uml.end_date,
                   uml.created_on
-           FROM user_movie_list uml,
-                movies m
-           WHERE uml.movie_id = m.movie_id
-             AND uml.movie_id = $1
-             AND m.submitter = $2`,
-    values: [movieId, username],
+           FROM user_movie_list uml
+                    INNER JOIN movies m USING (movie_id)
+           WHERE m.movie_id = $1
+             AND m.user_id = $2`,
+    values: [movieId, userId],
   });
 };
 
 export const getMoviesByStatus = async (
   t: ITask<unknown>,
-  { username, status }: { username: string; status: MovieStatus },
+  { userId, status }: { userId: string; status: MovieStatus },
 ): Promise<DbMovie[]> => {
   return await t.any({
     text: `SELECT m.movie_id,
@@ -99,24 +97,19 @@ export const getMoviesByStatus = async (
                   uml.created_on
            FROM user_movie_list uml
                     INNER JOIN movies m USING (movie_id)
-           WHERE uml.username = m.submitter
-             AND uml.username = $1
+           WHERE m.user_id = $1
              AND uml.status = $2
            ORDER BY m.title`,
-    values: [username, status],
+    values: [userId, status],
   });
 };
 
-export const postMovie = async (
-  t: ITask<unknown>,
-  m: Movie,
-  submitter: string,
-): Promise<string> => {
+export const postMovie = async (t: ITask<unknown>, m: Movie, userId: string): Promise<string> => {
   const result = await t.one({
-    text: `INSERT INTO movies (title, studio, director, writer, image_url, duration, year, submitter)
+    text: `INSERT INTO movies (title, studio, director, writer, image_url, duration, year, user_id)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
            RETURNING movie_id`,
-    values: [m.title, m.studio, m.director, m.writer, m.image_url, m.duration, m.year, submitter],
+    values: [m.title, m.studio, m.director, m.writer, m.image_url, m.duration, m.year, userId],
   });
   return result.movie_id;
 };
@@ -125,18 +118,17 @@ export const postMovieToUserList = async (
   t: ITask<unknown>,
   movieId: string,
   m: Movie,
-  username: string,
 ): Promise<void> => {
   await t.none({
-    text: `INSERT INTO user_movie_list (movie_id, username, status, score, note, start_date, end_date)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-    values: [movieId, username, m.status, m.score, m.note, m.start_date, m.end_date],
+    text: `INSERT INTO user_movie_list (movie_id, status, score, note, start_date, end_date)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+    values: [movieId, m.status, m.score, m.note, m.start_date, m.end_date],
   });
 };
 
 export const updateMovie = async (
   t: ITask<unknown>,
-  { movie, movieId, username }: { movie: Movie; movieId: string; username: string },
+  { movie, movieId, userId }: { movie: Movie; movieId: string; userId: string },
 ): Promise<void> => {
   await t.none({
     text: `UPDATE movies
@@ -148,7 +140,7 @@ export const updateMovie = async (
              duration=$6,
              year=$7
          WHERE movie_id=$8
-           AND submitter=$9`,
+           AND user_id=$9`,
     values: [
       movie.title,
       movie.studio,
@@ -158,24 +150,35 @@ export const updateMovie = async (
       movie.duration,
       movie.year,
       movieId,
-      username,
+      userId,
     ],
   });
   await t.none({
-    text: `UPDATE user_movie_list
+    text: `UPDATE user_movie_list uml
             SET status=$1,
                 score=$2,
                 note=$3,
                 start_date=$4,
                 end_date=$5
-            WHERE movie_id = $6`,
-    values: [movie.status, movie.score, movie.note, movie.start_date, movie.end_date, movieId],
+            FROM movies m
+            WHERE uml.movie_id = $6
+              AND m.movie_id = uml.movie_id
+              AND m.user_id = $7`,
+    values: [
+      movie.status,
+      movie.score,
+      movie.note,
+      movie.start_date,
+      movie.end_date,
+      movieId,
+      userId,
+    ],
   });
 };
 
 export const ftsSearch = async (
   t: ITask<unknown>,
-  { username, query }: { username: string; query: string },
+  { userId, query }: { userId: string; query: string },
 ): Promise<DbMovie[]> => {
   const tokens = [...new Set(query.split(/\s+/))];
   const multipleTokens = tokens.length > 1;
@@ -202,17 +205,17 @@ export const ftsSearch = async (
                FROM movies m
                INNER JOIN user_movie_list uml USING (movie_id)
                CROSS JOIN search_query
-               WHERE document @@ search_query.query AND submitter = $1
+               WHERE document @@ search_query.query AND m.user_id = $1
                ${multipleTokens ? 'ORDER BY m.movie_id, query_index' : ''}
              ) matches
              ORDER BY query_index, search_rank DESC`,
-    values: [username, tokens],
+    values: [userId, tokens],
   });
 };
 
 export const likeSearch = async (
   t: ITask<unknown>,
-  { username, query }: { username: string; query: string },
+  { userId, query }: { userId: string; query: string },
 ): Promise<DbMovie[]> => {
   return await t.any<DbMovie>({
     text: `SELECT m.movie_id,
@@ -230,32 +233,28 @@ export const likeSearch = async (
                   uml.end_date,
                   uml.created_on
                FROM movies m INNER JOIN user_movie_list uml on m.movie_id = uml.movie_id
-               WHERE submitter = $1 AND (
+               WHERE m.user_id = $1 AND (
                 title ILIKE $2
                   OR studio ILIKE $2
                   OR director ILIKE $2
                   OR writer ILIKE $2)
                LIMIT 100;`,
-    values: [username, `%${query}%`],
+    values: [userId, `%${query}%`],
   });
 };
 
-export const getTop10MovieTitles = async (
-  t: ITask<unknown>,
-  username: string,
-): Promise<string[]> => {
+export const getTop10MovieTitles = async (t: ITask<unknown>, userId: string): Promise<string[]> => {
   return await t.map(
     {
       text: `SELECT m.title
            FROM user_movie_list uml
            INNER JOIN movies m USING (movie_id)
-           WHERE uml.username = m.submitter
-             AND uml.username = $1
+           WHERE m.user_id = $1
              AND uml.status = 'completed'
            ORDER BY uml.score DESC,
                     uml.end_date DESC
            LIMIT 10;`,
-      values: [username],
+      values: [userId],
     },
     undefined,
     (row) => row.title,

@@ -2,10 +2,10 @@ import type { NextFunction, Request } from 'express';
 import { success } from '../util/response.ts';
 import { ErrorWithStatus, SecurityErrorWithStatus } from '../util/errorhandler.ts';
 import { generateTOTP, validateEmailOTP, validateTOTP } from '../util/totp.ts';
-import { addVerification, deleteVerification, findVerification } from '../db/verification.ts';
+import { addVerification, deleteVerifications, findVerification } from '../db/verification.ts';
 import { logError } from '../util/logger.ts';
 import {
-  getUserById,
+  getUserByIdForUpdate,
   isEmailAlreadyUsed,
   isEmailVerified,
   updateEmailAddress,
@@ -29,7 +29,7 @@ export const updateEmail = async (
   const { email, twoFactorCode } = res.locals.input.body;
   try {
     const result = await db.tx('updateEmail', async (t) => {
-      const user = await getUserById(t, userId);
+      const user = await getUserByIdForUpdate(t, userId);
 
       if (user.totp_enabled_on) {
         if (!twoFactorCode) {
@@ -41,7 +41,7 @@ export const updateEmail = async (
         }
 
         const twoFactorVerification = await findVerification(t, {
-          target: user.username,
+          userId,
           type: '2fa',
         });
         if (
@@ -57,6 +57,9 @@ export const updateEmail = async (
         }
       }
 
+      // Codes sent to the previous address must not verify a new one.
+      await deleteVerifications(t, { userId, type: 'email' });
+
       if (!email) {
         await updateEmailAddress(t, { userId, email: undefined });
         await addAudit(t, {
@@ -69,7 +72,7 @@ export const updateEmail = async (
         return { name: 'email_removed', message: 'Email successfully removed' };
       }
 
-      const isEmailUsed = await isEmailAlreadyUsed(t, { username, email });
+      const isEmailUsed = await isEmailAlreadyUsed(t, { userId, email });
       if (isEmailUsed) {
         throw new ErrorWithStatus(422, 'email_already_used', 'Email is already in use');
       }
@@ -77,11 +80,6 @@ export const updateEmail = async (
       const isVerified = await isEmailVerified(t, email);
       if (isVerified) {
         return { name: 'email_already_verified', message: 'Email is already verified' };
-      }
-
-      const verification = await findVerification(t, { target: email, type: 'email' });
-      if (verification) {
-        await deleteVerification(t, { target: email, type: 'email' });
       }
 
       await updateEmailAddress(t, { userId, email });
@@ -115,7 +113,8 @@ export const sendConfirmationEmail = async (
 
   try {
     await db.tx('sendConfirmationEmail', async (t) => {
-      const user = await getUserById(t, userId);
+      // Locked so concurrent requests replace the code one after another.
+      const user = await getUserByIdForUpdate(t, userId);
 
       if (!user.email) {
         throw new ErrorWithStatus(422, 'email_error', "Couldn't send confirmation email");
@@ -131,8 +130,10 @@ export const sendConfirmationEmail = async (
         period: 60 * 15, // 15 minutes
       });
 
+      await deleteVerifications(t, { userId, type: 'email' });
       await addVerification(t, {
         ...totp,
+        user_id: userId,
         type: 'email',
         target: totp.label,
         expires_on: DateTime.now().plus({ minutes: 15 }).toJSDate(),
@@ -181,7 +182,8 @@ export const verifyEmail = async (
 
   try {
     await db.tx('verifyEmail', async (t) => {
-      const user = await getUserById(t, userId);
+      // Locked so a code can be used only once.
+      const user = await getUserByIdForUpdate(t, userId);
 
       if (!user.email) {
         throw new SecurityErrorWithStatus(
@@ -192,7 +194,11 @@ export const verifyEmail = async (
         );
       }
 
-      const verification = await findVerification(t, { target: user.email, type: 'email' });
+      const verification = await findVerification(t, {
+        userId,
+        type: 'email',
+        target: user.email,
+      });
       if (!verification) {
         throw new SecurityErrorWithStatus(
           422,
@@ -207,7 +213,7 @@ export const verifyEmail = async (
       }
 
       if (verification.expires_on && isVerificationExpired(verification.expires_on)) {
-        await deleteVerification(t, { target: user.email, type: 'email' });
+        await deleteVerifications(t, { userId, type: 'email' });
         throw new SecurityErrorWithStatus(
           422,
           'email_verification_expired',
@@ -225,7 +231,7 @@ export const verifyEmail = async (
         );
       }
 
-      await deleteVerification(t, { target: user.email, type: 'email' });
+      await deleteVerifications(t, { userId, type: 'email' });
       await updateEmailVerifiedTimestamp(t, user.email);
       await addAudit(t, {
         actor_user_id: res.locals.userId,

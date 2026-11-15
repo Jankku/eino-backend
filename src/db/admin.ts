@@ -87,8 +87,8 @@ export const getAdminOverview = async (
 
   const users = await t.any<OverviewUser>(
     `SELECT u.user_id, u.username, u.role_id, u.profile_picture_path, u.last_login_on,
-       (SELECT COUNT(*) FROM books b WHERE b.submitter = u.username) AS book_count,
-       (SELECT COUNT(*) FROM movies m WHERE m.submitter = u.username) AS movie_count
+       (SELECT COUNT(*) FROM books b WHERE b.user_id = u.user_id) AS book_count,
+       (SELECT COUNT(*) FROM movies m WHERE m.user_id = u.user_id) AS movie_count
      FROM (
        SELECT user_id, username, role_id, profile_picture_path, last_login_on
        FROM users WHERE last_login_on IS NOT NULL

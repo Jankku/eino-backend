@@ -1,8 +1,8 @@
 import type { NextFunction, Request } from 'express';
 import { db, pgp } from '../db/config.ts';
 import {
-  findProfilePictureByUsername,
-  getItemCountByUsernameForUpdate,
+  findProfilePictureByUserId,
+  getItemCountByUserIdForUpdate,
   getUserById,
   isPasswordCorrect,
   updateProfilePicturePath,
@@ -15,7 +15,7 @@ import { getAllBooks, getTop10BookTitles } from '../db/books.ts';
 import { getAllMovies, getTop10MovieTitles } from '../db/movies.ts';
 import { generateShareId, getShareItemPath, removeShareImage } from '../util/share.ts';
 import { renderShareImage } from '../util/shareimagepool.ts';
-import { createShare, getSharesByUsername } from '../db/share.ts';
+import { createShare, getSharesByUserId } from '../db/share.ts';
 import { getProfileData, getProfileDataV2 } from '../db/profile.ts';
 import type {
   deleteAccountSchema,
@@ -44,11 +44,11 @@ import {
 import sharp from 'sharp';
 
 export const getProfile = async (_: Request, res: TypedResponse, next: NextFunction) => {
-  const username = res.locals.username;
+  const { userId, username } = res.locals;
 
   try {
     const { userInfo, bookData, bookScores, movieData, movieScores } = await db.task(
-      async (t) => await getProfileData(t, username),
+      async (t) => await getProfileData(t, userId),
     );
 
     res.status(200).json({
@@ -73,10 +73,10 @@ export const getProfile = async (_: Request, res: TypedResponse, next: NextFunct
 };
 
 export const getProfileV2 = async (_req: Request, res: TypedResponse, next: NextFunction) => {
-  const username = res.locals.username;
+  const userId = res.locals.userId;
   try {
     const { userInfo, bookData, bookScores, movieData, movieScores } = await db.task(
-      async (t) => await getProfileDataV2(t, username),
+      async (t) => await getProfileDataV2(t, userId),
     );
     res.status(200).json({
       ...userInfo,
@@ -124,7 +124,7 @@ export const deleteAccount = async (
         }
 
         const twoFactorVerification = await findVerification(t, {
-          target: user.username,
+          userId: user.user_id,
           type: '2fa',
         });
         if (
@@ -184,13 +184,13 @@ export const generateShareImage = async (
   next: NextFunction,
 ) => {
   try {
-    const username = res.locals.username;
+    const { userId, username } = res.locals;
     const { bookTitles, movieTitles, profilePicturePath } = await db.task(
       'generateShareImage',
       async (t) => {
-        const bookTitles = await getTop10BookTitles(t, username);
-        const movieTitles = await getTop10MovieTitles(t, username);
-        const profilePicturePath = await findProfilePictureByUsername(t, username);
+        const bookTitles = await getTop10BookTitles(t, userId);
+        const movieTitles = await getTop10MovieTitles(t, userId);
+        const profilePicturePath = await findProfilePictureByUserId(t, userId);
         return { bookTitles, movieTitles, profilePicturePath };
       },
     );
@@ -216,15 +216,15 @@ export const generateShareImage = async (
       movieTitles,
       profilePicture,
     });
-    const shareImagePath = getShareItemPath(res.locals.userId);
+    const shareImagePath = getShareItemPath(userId);
     const shareId = generateShareId();
 
     // The database cannot roll back file writes, so the image must exist before a share
     // row references it. The image is per user and replaced by every new share.
     await fs.writeFile(shareImagePath, imageBuffer);
     await db.tx('createShare', async (t) => {
-      await createShare(t, { id: shareId, username });
-      await addAudit(t, { actor_user_id: res.locals.userId, username, action: 'profile_shared' });
+      await createShare(t, { id: shareId, userId });
+      await addAudit(t, { actor_user_id: userId, username, action: 'profile_shared' });
     });
 
     res.status(200).json(success([{ share_id: shareId }]));
@@ -261,10 +261,10 @@ export const exportProfileData = async (
           action: 'profile_data_exported',
         });
 
-        const books = await getAllBooks(t, username);
-        const movies = await getAllMovies(t, username);
-        const profile = await getProfileDataV2(t, username);
-        const shares = await getSharesByUsername(t, username);
+        const books = await getAllBooks(t, res.locals.userId);
+        const movies = await getAllMovies(t, res.locals.userId);
+        const profile = await getProfileDataV2(t, res.locals.userId);
+        const shares = await getSharesByUserId(t, res.locals.userId);
         const audits = includeAuditLog ? await getAuditsByActorUserId(t, res.locals.userId) : [];
 
         return { books, movies, profile, shares, audits };
@@ -307,11 +307,11 @@ export const importProfileData = async (
   next: NextFunction,
 ) => {
   const { body } = res.locals.input;
-  const username = res.locals.username;
+  const { userId, username } = res.locals;
 
   try {
     await db.tx('importProfileData', async (t) => {
-      const { book_count, movie_count } = await getItemCountByUsernameForUpdate(t, username);
+      const { book_count, movie_count } = await getItemCountByUserIdForUpdate(t, userId);
 
       const maxItemCount = config.USER_LIST_ITEM_MAX_COUNT;
 
@@ -333,8 +333,8 @@ export const importProfileData = async (
         body.movies.map((movie) => [calculateMovieHash(movie), movie]),
       );
 
-      const mapBooks = body.books.map((book) => ({ ...book, submitter: username }));
-      const mapMovies = body.movies.map((movie) => ({ ...movie, submitter: username }));
+      const mapBooks = body.books.map((book) => ({ ...book, user_id: userId }));
+      const mapMovies = body.movies.map((movie) => ({ ...movie, user_id: userId }));
 
       if (mapBooks.length > 0) {
         // Insert books to books table
@@ -345,7 +345,6 @@ export const importProfileData = async (
           // oxlint-disable-next-line @typescript-eslint/no-unsafe-argument
           ...bookHashMap[calculateBookHash(book)],
           book_id: book.book_id,
-          username,
         }));
 
         // Insert mapped books to user_book_list table
@@ -362,7 +361,6 @@ export const importProfileData = async (
           // oxlint-disable-next-line @typescript-eslint/no-unsafe-argument
           ...movieHashMap[calculateMovieHash(movie)],
           movie_id: movie.movie_id,
-          username,
         }));
 
         // Insert mapped movies to user_movie_list table
@@ -372,7 +370,7 @@ export const importProfileData = async (
 
       if (mapBooks.length > 0 || mapMovies.length > 0) {
         await addAudit(t, {
-          actor_user_id: res.locals.userId,
+          actor_user_id: userId,
           username,
           action: 'profile_data_imported',
         });
@@ -392,7 +390,7 @@ export const importProfileData = async (
 
 export const saveProfilePicture = async (req: Request, res: TypedResponse, next: NextFunction) => {
   const file = req.file;
-  const username = res.locals.username;
+  const { userId, username } = res.locals;
   try {
     if (!file || file.size === 0 || !file.buffer?.length) {
       next(
@@ -424,10 +422,10 @@ export const saveProfilePicture = async (req: Request, res: TypedResponse, next:
     let oldProfilePicturePath: string | null;
     try {
       oldProfilePicturePath = await db.tx('saveProfilePicture', async (t) => {
-        const oldPath = await findProfilePictureByUsername(t, username);
-        await updateProfilePicturePath(t, { username, path });
+        const oldPath = await findProfilePictureByUserId(t, userId);
+        await updateProfilePicturePath(t, { userId, path });
         await addAudit(t, {
-          actor_user_id: res.locals.userId,
+          actor_user_id: userId,
           username,
           action: 'profile_picture_updated',
           old_data: oldPath ? { path: oldPath } : undefined,
@@ -453,14 +451,14 @@ export const saveProfilePicture = async (req: Request, res: TypedResponse, next:
 };
 
 export const deleteProfilePicture = async (_: Request, res: TypedResponse, next: NextFunction) => {
-  const username = res.locals.username;
+  const { userId, username } = res.locals;
   try {
     const oldProfilePicturePath = await db.tx('deleteProfilePicture', async (t) => {
-      const oldPath = await findProfilePictureByUsername(t, username);
-      await updateProfilePicturePath(t, { username, path: undefined });
+      const oldPath = await findProfilePictureByUserId(t, userId);
+      await updateProfilePicturePath(t, { userId, path: undefined });
       if (oldPath) {
         await addAudit(t, {
-          actor_user_id: res.locals.userId,
+          actor_user_id: userId,
           username,
           action: 'profile_picture_updated',
           old_data: { path: oldPath },

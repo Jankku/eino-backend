@@ -4,11 +4,11 @@ import {
   disableTOTP,
   enableTOTP,
   findUserByCredential,
-  findUserByEmail,
+  findUserByEmailForUpdate,
   findUserById,
   findUserByIdForUpdate,
   upgradePassword,
-  getUserById,
+  getUserByIdForUpdate,
   updateLastLogin,
   updatePassword,
 } from '../db/users.ts';
@@ -34,7 +34,7 @@ import type {
   registerSchema,
   resetPasswordSchema,
 } from '../routes/auth/index.ts';
-import { addVerification, deleteVerification, findVerification } from '../db/verification.ts';
+import { addVerification, deleteVerifications, findVerification } from '../db/verification.ts';
 import {
   dummyEmailVerification,
   generateTOTP,
@@ -132,7 +132,7 @@ export const login = async (
         }
 
         const verification = await findVerification(t, {
-          target: currentUser.username,
+          userId: currentUser.user_id,
           type: '2fa',
         });
         if (!verification || !validateTOTP({ otp: twoFactorCode, ...verification })) {
@@ -327,7 +327,8 @@ export const waitForPasswordResetJobs = async () => {
 const sendPasswordResetEmail = async (email: string, req: Request, res: TypedResponse) => {
   try {
     const { user, otp } = await db.tx('forgotPassword', async (t) => {
-      const user = await findUserByEmail(t, email);
+      // Locked so concurrent requests replace the code one after another.
+      const user = await findUserByEmailForUpdate(t, email);
       if (!user || !user.email) {
         throw new SecurityErrorWithStatus(422, 'forget_password_error', 'Account not found', {
           operation: 'password_forgot',
@@ -351,16 +352,14 @@ const sendPasswordResetEmail = async (email: string, req: Request, res: TypedRes
         });
       }
 
-      const verification = await findVerification(t, { target: email, type: 'password_reset' });
-      if (verification) {
-        await deleteVerification(t, { target: email, type: 'password_reset' });
-      }
+      await deleteVerifications(t, { userId: user.user_id, type: 'password_reset' });
 
       const { otp, secret, algorithm, digits, period, created_on } = generateTOTP({
         label: email,
       });
 
       await addVerification(t, {
+        user_id: user.user_id,
         type: 'password_reset',
         target: email,
         secret,
@@ -439,8 +438,14 @@ export const resetPassword = async (
 
   try {
     await db.tx('resetPassword', async (t) => {
-      const user = await findUserByEmail(t, email);
-      const verification = await findVerification(t, { target: email, type: 'password_reset' });
+      // Locked so a code can be used only once.
+      const user = await findUserByEmailForUpdate(t, email);
+      // Queried without an account too, so unknown addresses take the same path.
+      const verification = await findVerification(t, {
+        userId: user?.user_id,
+        type: 'password_reset',
+        target: email,
+      });
       const otpMatches = validateEmailOTP({ otp, ...(verification ?? dummyEmailVerification) });
       if (
         !user ||
@@ -468,7 +473,7 @@ export const resetPassword = async (
         }
 
         const twoFactorVerification = await findVerification(t, {
-          target: user.username,
+          userId: user.user_id,
           type: '2fa',
         });
         if (
@@ -494,7 +499,7 @@ export const resetPassword = async (
       }
 
       await updatePassword(t, { email, newPassword });
-      await deleteVerification(t, { target: email, type: 'password_reset' });
+      await deleteVerifications(t, { userId: user.user_id, type: 'password_reset' });
       await addAudit(t, {
         actor_user_id: user.user_id,
         username: user.username,
@@ -526,15 +531,16 @@ export const generate2FAUrl = async (req: Request, res: TypedResponse, next: Nex
 
   try {
     const { totpUrl } = await db.tx('generate2FAUrl', async (t) => {
-      const user = await getUserById(t, userId);
+      // Locked so the secret can't be replaced while it is being confirmed.
+      const user = await getUserByIdForUpdate(t, userId);
 
       if (user.totp_enabled_on) {
         throw new ErrorWithStatus(422, '2fa_error', '2FA already enabled');
       }
 
-      const verification = await findVerification(t, { target: user.username, type: '2fa' });
+      const verification = await findVerification(t, { userId, type: '2fa' });
       if (verification) {
-        await deleteVerification(t, { target: user.username, type: '2fa' });
+        await deleteVerifications(t, { userId, type: '2fa' });
       }
 
       const { totpUrl, secret, digits, period, algorithm, label } = generateTOTP({
@@ -542,6 +548,7 @@ export const generate2FAUrl = async (req: Request, res: TypedResponse, next: Nex
       });
 
       await addVerification(t, {
+        user_id: userId,
         type: '2fa',
         target: label,
         secret,
@@ -583,13 +590,13 @@ export const enable2FA = async (
 
   try {
     await db.tx('enable2FA', async (t) => {
-      const user = await getUserById(t, userId);
+      const user = await getUserByIdForUpdate(t, userId);
 
       if (user.totp_enabled_on) {
         throw new ErrorWithStatus(422, '2fa_error', '2FA already enabled');
       }
 
-      const verification = await findVerification(t, { target: user.username, type: '2fa' });
+      const verification = await findVerification(t, { userId, type: '2fa' });
       if (!verification || !validateTOTP({ otp: twoFactorCode, ...verification })) {
         throw new SecurityErrorWithStatus(422, '2fa_error', 'Incorrect two-factor code', {
           operation: 'two_factor_enable',
@@ -627,13 +634,13 @@ export const disable2FA = async (
 
   try {
     await db.tx('disable2FA', async (t) => {
-      const user = await getUserById(t, userId);
+      const user = await getUserByIdForUpdate(t, userId);
 
       if (!user.totp_enabled_on) {
         throw new ErrorWithStatus(422, '2fa_error', '2FA not enabled');
       }
 
-      const verification = await findVerification(t, { target: user.username, type: '2fa' });
+      const verification = await findVerification(t, { userId, type: '2fa' });
       if (!verification || !validateTOTP({ otp: twoFactorCode, ...verification })) {
         throw new SecurityErrorWithStatus(422, '2fa_error', 'Incorrect two-factor code', {
           operation: 'two_factor_disable',
@@ -642,7 +649,7 @@ export const disable2FA = async (
         });
       }
 
-      await deleteVerification(t, { target: user.username, type: '2fa' });
+      await deleteVerifications(t, { userId, type: '2fa' });
       await disableTOTP(t, user.user_id);
       await addAudit(t, {
         actor_user_id: user.user_id,

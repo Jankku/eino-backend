@@ -2,6 +2,7 @@ import type { Request, NextFunction } from 'express';
 import type { TypedResponse } from '../util/zod.ts';
 import { success } from '../util/response.ts';
 import { ErrorWithStatus } from '../util/errorhandler.ts';
+import { errorMessages } from '../util/errormessages.ts';
 import { db } from '../db/config.ts';
 import { config } from '../config.ts';
 import { setDiscordAuditProcessingEnabled } from './audit.ts';
@@ -11,10 +12,12 @@ import { paginationMode } from '../db/pagination.ts';
 import { getAdminOverview } from '../db/admin.ts';
 import { logError } from '../util/logger.ts';
 import {
-  findProfilePictureByUsername,
+  findProfilePictureByUserId,
+  findUserByUsername,
   getAllUsers,
   getUsersPage,
   getUserById,
+  getUserByIdForUpdate,
   updateProfilePicturePath,
 } from '../db/users.ts';
 import type {
@@ -31,7 +34,7 @@ import type {
 } from '../routes/admin/schema.ts';
 import { removeRetiredProfilePicture } from '../util/profilepicture.ts';
 import { removeShareImage } from '../util/share.ts';
-import { deleteVerification, renameVerificationTarget } from '../db/verification.ts';
+import { deleteVerifications } from '../db/verification.ts';
 import {
   createBulletin,
   deleteBulletin,
@@ -108,7 +111,14 @@ export const editUser = async (
   const newUser = res.locals.input.body;
   try {
     const retiredPfpPath = await db.tx('editUser', async (t) => {
-      const currentUser = await getUserById(t, userId);
+      const currentUser = await getUserByIdForUpdate(t, userId);
+
+      if (newUser.username !== currentUser.username) {
+        const existingUser = await findUserByUsername(t, newUser.username);
+        if (existingUser) {
+          throw new ErrorWithStatus(422, 'admin_error', errorMessages.USER_EXISTS);
+        }
+      }
 
       // 2FA can only be enabled by the user, who must confirm a generated secret.
       // Enabling it here would require a code for which the user has no secret.
@@ -117,20 +127,13 @@ export const editUser = async (
       }
       const disables2FA = Boolean(currentUser.totp_enabled_on) && !newUser.totp_enabled_on;
       if (disables2FA) {
-        await deleteVerification(t, { target: currentUser.username, type: '2fa' });
-      } else if (newUser.username !== currentUser.username) {
-        // The secret is keyed by username, so it must follow a rename.
-        await renameVerificationTarget(t, {
-          type: '2fa',
-          oldTarget: currentUser.username,
-          newTarget: newUser.username,
-        });
+        await deleteVerifications(t, { userId, type: '2fa' });
       }
 
-      const currentPfpPath = await findProfilePictureByUsername(t, currentUser.username);
+      const currentPfpPath = await findProfilePictureByUserId(t, userId);
       let retiredPath: string | undefined;
       if (currentPfpPath && !newUser.profile_picture_path) {
-        await updateProfilePicturePath(t, { username: currentUser.username, path: undefined });
+        await updateProfilePicturePath(t, { userId, path: undefined });
         retiredPath = currentPfpPath;
       }
       await t.none(

@@ -47,23 +47,23 @@ export const booksCs = new pgp.helpers.ColumnSet(
     'pages',
     'year',
     'language_code',
-    'submitter',
+    'user_id',
   ],
   { table: 'books' },
 );
 
 export const booksListCs = new pgp.helpers.ColumnSet(
-  ['book_id', 'username', 'status', 'score', 'note', 'start_date', 'end_date'],
+  ['book_id', 'status', 'score', 'note', 'start_date', 'end_date'],
   { table: 'user_book_list' },
 );
 
 export const moviesCs = new pgp.helpers.ColumnSet(
-  ['title', 'studio', 'director', 'writer', 'image_url', 'duration', 'year', 'submitter'],
+  ['title', 'studio', 'director', 'writer', 'image_url', 'duration', 'year', 'user_id'],
   { table: 'movies' },
 );
 
 export const moviesListCs = new pgp.helpers.ColumnSet(
-  ['movie_id', 'username', 'status', 'score', 'note', 'start_date', 'end_date'],
+  ['movie_id', 'status', 'score', 'note', 'start_date', 'end_date'],
   { table: 'user_movie_list' },
 );
 

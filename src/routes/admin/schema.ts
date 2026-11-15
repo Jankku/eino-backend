@@ -8,7 +8,7 @@ import {
   usernameSchema,
 } from '../../util/zodschema.ts';
 import { db } from '../../db/config.ts';
-import { isEmailUniqueExcludeUsername } from '../../db/users.ts';
+import { isEmailUniqueExcludeUserId } from '../../db/users.ts';
 import { bulletinConditions, bulletinTypes, bulletinVisibilities } from '../../db/bulletins.ts';
 
 const overviewDateSchema = z.iso.date().refine((value) => !value.startsWith('0000'), {
@@ -56,8 +56,7 @@ export const editUserSchema = z
     async (data) => {
       return data.body.email
         ? await db.task(
-            async (t) =>
-              await isEmailUniqueExcludeUsername(t, data.body.username, data.body.email!),
+            async (t) => await isEmailUniqueExcludeUserId(t, data.params.userId, data.body.email!),
           )
         : true;
     },

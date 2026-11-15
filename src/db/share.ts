@@ -1,40 +1,36 @@
 import type { ITask } from 'pg-promise';
 import type { DbShare } from './model/dbshare.ts';
 
-export const getShare = async (
-  t: ITask<unknown>,
-  id: string,
-): Promise<DbShare & { user_id: string }> => {
+export const getShare = async (t: ITask<unknown>, id: string): Promise<DbShare> => {
   return await t.one({
-    text: `SELECT shares.*, users.user_id FROM shares
-            JOIN users ON users.username = shares.username
-            WHERE shares.share_id = $1;`,
+    text: `SELECT share_id, user_id, created_on FROM shares
+            WHERE share_id = $1;`,
     values: [id],
   });
 };
 
-export const getSharesByUsername = async (
+export const getSharesByUserId = async (
   t: ITask<unknown>,
-  username: string,
-): Promise<DbShare[]> => {
+  userId: string,
+): Promise<Omit<DbShare, 'user_id'>[]> => {
   return await t.any({
     text: `SELECT share_id, created_on FROM shares
-            WHERE username = $1;`,
-    values: [username],
+            WHERE user_id = $1;`,
+    values: [userId],
   });
 };
 
 export const createShare = async (
   t: ITask<unknown>,
-  { id, username }: { id: string; username: string },
+  { id, userId }: { id: string; userId: string },
 ): Promise<string> => {
   const result = await t.one({
-    text: `INSERT INTO shares (share_id, username)
+    text: `INSERT INTO shares (share_id, user_id)
            VALUES ($1, $2)
-           ON CONFLICT (username)
+           ON CONFLICT (user_id)
             DO UPDATE SET share_id = $1
            RETURNING share_id;`,
-    values: [id, username],
+    values: [id, userId],
   });
   return result.share_id;
 };

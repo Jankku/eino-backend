@@ -7,7 +7,7 @@ export const shareSchema = z.object({
 });
 
 const dbShareSchema = shareSchema.extend({
-  username: fixedNonEmptyStringSchema,
+  user_id: fixedNonEmptyStringSchema,
 });
 
 export type DbShare = z.infer<typeof dbShareSchema>;
