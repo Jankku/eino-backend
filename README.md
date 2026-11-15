@@ -83,7 +83,8 @@ POSTGRES_USER=<username>
 POSTGRES_PASSWORD=<password>
 POSTGRES_DB=eino
 
-# Credentials for admin user
+# Credentials for the admin account created by `npm run create-admin`
+# Can be removed after the account exists
 ADMIN_USERNAME=
 ADMIN_PASSWORD=
 
@@ -123,6 +124,11 @@ USER_LIST_ITEM_MAX_COUNT=100000
 Start database and app container.
 ```
 $ docker compose up -d
+```
+
+Create the admin account.
+```
+$ docker compose exec app npm run create-admin
 ```
 
 ## Fontconfig warnings on Linux

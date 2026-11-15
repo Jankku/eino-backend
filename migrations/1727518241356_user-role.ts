@@ -1,8 +1,9 @@
 import type { MigrationBuilder, ColumnDefinitions } from 'node-pg-migrate';
-import * as bcrypt from 'bcrypt';
 
 export const shorthands: ColumnDefinitions | undefined = undefined;
 
+// This migration used to create the admin account from ADMIN_USERNAME and ADMIN_PASSWORD,
+// and its rollback deleted that account. Accounts are now created with `npm run create-admin`.
 export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createTable('roles', {
     id: { type: 'serial', primaryKey: true },
@@ -22,20 +23,9 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.sql(
     `UPDATE users SET role_id = (SELECT id FROM roles WHERE name = 'basic'), role_modified_on = CURRENT_TIMESTAMP;`,
   );
-
-  const adminUsername = process.env.ADMIN_USERNAME;
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  if (!adminUsername || !adminPassword)
-    throw new Error('ADMIN_USERNAME and ADMIN_PASSWORD must be set in .env file');
-
-  const hashedPassword = await bcrypt.hash(adminPassword, 12);
-  pgm.sql(
-    `INSERT INTO users (username, password, role_id, role_modified_on) VALUES ('${adminUsername}', '${hashedPassword}', (SELECT id FROM roles WHERE name = 'admin'), CURRENT_TIMESTAMP);`,
-  );
 }
 
 export async function down(pgm: MigrationBuilder): Promise<void> {
   pgm.dropColumn('users', ['role_id', 'role_modified_on'], { ifExists: true });
   pgm.dropTable('roles', { ifExists: true });
-  pgm.sql(`DELETE FROM users WHERE username = '${process.env.ADMIN_USERNAME}';`);
 }
