@@ -1,3 +1,4 @@
+/* oxlint-disable unicorn/no-null -- Omitted optional bulletin fields are stored as SQL NULL. */
 import { z } from 'zod';
 import { auditAction } from '../../db/audit.ts';
 import { errorMessages } from '../../util/errormessages.ts';
@@ -78,12 +79,12 @@ const bulletinSchema = z
   .object({
     body: z.object({
       title: nonEmptyString,
-      message: z.string().nullish(),
-      name: z.string().nullish(),
+      message: z.string().nullish().default(null),
+      name: z.string().nullish().default(null),
       type: z.enum(bulletinTypes),
       visibility: z.enum(bulletinVisibilities),
       visibleToUserIds: z.array(z.uuid()).nullish(),
-      condition: z.enum(bulletinConditions).nullish(),
+      condition: z.enum(bulletinConditions).nullish().default(null),
       start_date: dateSchema,
       end_date: dateSchema,
     }),

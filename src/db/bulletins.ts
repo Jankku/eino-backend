@@ -91,7 +91,7 @@ export const getConditionBulletins = async (t: ITask<unknown>): Promise<DbBullet
 
 export const createBulletin = async (
   t: ITask<unknown>,
-  bulletin: Partial<Bulletin>,
+  bulletin: Bulletin,
 ): Promise<DbBulletin['id']> => {
   const result = await t.one(
     'INSERT INTO bulletins(title, message, name, type, visibility, condition, start_date, end_date) VALUES(${title}, ${message}, ${name}, ${type}, ${visibility}, ${condition}, ${start_date}, ${end_date}) RETURNING id',
@@ -102,7 +102,7 @@ export const createBulletin = async (
 
 export const updateBulletin = async (
   t: ITask<unknown>,
-  { bulletinId, bulletin }: { bulletinId: DbBulletin['id']; bulletin: Partial<Bulletin> },
+  { bulletinId, bulletin }: { bulletinId: DbBulletin['id']; bulletin: Bulletin },
 ) => {
   await t.none(
     'UPDATE bulletins SET title = ${title}, message = ${message}, name = ${name}, type = ${type}, visibility = ${visibility}, condition = ${condition}, start_date = ${start_date}, end_date = ${end_date}, updated_on = CURRENT_TIMESTAMP WHERE id = ${bulletinId}',
