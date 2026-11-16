@@ -18,7 +18,7 @@ const zxcvbn = new ZxcvbnFactory({
   translations: zxcvbnEn.translations,
 });
 
-export type AccessTokenPayload = {
+type AccessTokenPayload = {
   sub: string;
   userId: string;
   username: string;
@@ -44,7 +44,7 @@ export const generateAccessToken = (user: User): string =>
     },
   );
 
-export type RefreshTokenPayload = { sub: string };
+type RefreshTokenPayload = { sub: string };
 
 export const getTokenSubject = (payload: jwt.JwtPayload | string): string => {
   const subject = z.uuid().safeParse(typeof payload === 'string' ? undefined : payload.sub);

@@ -14,28 +14,22 @@ import {
   searchIsbnSchema,
 } from './schema.ts';
 
-const createBookRouter = (paginated: boolean) => {
-  const bookRouter = express.Router();
-  const pagination = paginated ? [validatePagination(bookSortSchema), books.fetchPage] : [];
+export const bookRouterV2 = express.Router();
+const pagination = [validatePagination(bookSortSchema), books.fetchPage];
 
-  bookRouter.get('/count', books.countByStatus);
-  bookRouter.get('/search', validateSchema(searchSchema), books.search);
-  bookRouter.get('/search/isbn/:isbn', validateSchema(searchIsbnSchema), books.searchIsbn);
-  bookRouter.get('/book/:bookId', validateSchema(fetchOneSchema), books.fetchOne);
-  bookRouter.post('/add', validateSchema(addOneSchema), books.addOne);
-  bookRouter.put('/update/:bookId', validateSchema(updateOneSchema), books.updateOne);
-  bookRouter.delete('/delete/:bookId', validateSchema(deleteOneSchema), books.deleteOne);
-  bookRouter.get('/images', validateSchema(fetchImagesSchema), books.fetchImages);
+bookRouterV2.get('/count', books.countByStatus);
+bookRouterV2.get('/search', validateSchema(searchSchema), books.search);
+bookRouterV2.get('/search/isbn/:isbn', validateSchema(searchIsbnSchema), books.searchIsbn);
+bookRouterV2.get('/book/:bookId', validateSchema(fetchOneSchema), books.fetchOne);
+bookRouterV2.post('/add', validateSchema(addOneSchema), books.addOne);
+bookRouterV2.put('/update/:bookId', validateSchema(updateOneSchema), books.updateOne);
+bookRouterV2.delete('/delete/:bookId', validateSchema(deleteOneSchema), books.deleteOne);
+bookRouterV2.get('/images', validateSchema(fetchImagesSchema), books.fetchImages);
 
-  bookRouter.get('/all', ...pagination, books.fetchAll);
-  bookRouter.get(
-    '/:status',
-    validateSchema(fetchByStatusSchema),
-    ...pagination,
-    books.fetchByStatus,
-  );
-  return bookRouter;
-};
-
-export const bookRouter = createBookRouter(false);
-export const bookRouterV2 = createBookRouter(true);
+bookRouterV2.get('/all', ...pagination, books.fetchAll);
+bookRouterV2.get(
+  '/:status',
+  validateSchema(fetchByStatusSchema),
+  ...pagination,
+  books.fetchByStatus,
+);

@@ -16,7 +16,7 @@ import { getAllMovies, getTop10MovieTitles } from '../db/movies.ts';
 import { generateShareId, getShareItemPath, removeShareImage } from '../util/share.ts';
 import { renderShareImage } from '../util/shareimagepool.ts';
 import { createShare, getSharesByUserId } from '../db/share.ts';
-import { getProfileData, getProfileDataV2 } from '../db/profile.ts';
+import { getProfileDataV2 } from '../db/profile.ts';
 import type {
   deleteAccountSchema,
   exportProfileSchema,
@@ -42,35 +42,6 @@ import {
   removeRetiredProfilePicture,
 } from '../util/profilepicture.ts';
 import sharp from 'sharp';
-
-export const getProfile = async (_: Request, res: TypedResponse, next: NextFunction) => {
-  const { userId, username } = res.locals;
-
-  try {
-    const { userInfo, bookData, bookScores, movieData, movieScores } = await db.task(
-      async (t) => await getProfileData(t, userId),
-    );
-
-    res.status(200).json({
-      user_id: userInfo.user_id,
-      username: username,
-      registration_date: userInfo.registration_date,
-      stats: {
-        book: {
-          ...bookData,
-          score_distribution: bookScores,
-        },
-        movie: {
-          ...movieData,
-          score_distribution: movieScores,
-        },
-      },
-    });
-  } catch (error) {
-    logError(error);
-    next(new ErrorWithStatus(500, 'profile_error', "Couldn't fetch profile"));
-  }
-};
 
 export const getProfileV2 = async (_req: Request, res: TypedResponse, next: NextFunction) => {
   const userId = res.locals.userId;

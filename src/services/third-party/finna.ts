@@ -15,7 +15,7 @@ const finnaImagesSchema = z
     message: 'Expected records when resultCount is greater than zero',
   });
 
-export type FinnaFilter = 'book' | 'video';
+type FinnaFilter = 'book' | 'video';
 
 export const fetchFinnaImages = async (
   query: string,

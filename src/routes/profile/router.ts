@@ -2,7 +2,6 @@ import express from 'express';
 import { validateSchema } from '../../middleware/validateschema.ts';
 import {
   deleteAccount,
-  getProfile,
   generateShareImage,
   exportProfileData,
   importProfileData,
@@ -17,21 +16,6 @@ import {
   importProfileSchema,
 } from './schema.ts';
 import { withProfilePictureUpload } from '../../middleware/profilepictureupload.ts';
-
-export const profileRouter = express.Router();
-
-profileRouter.get('/', getProfile);
-profileRouter.get('/share', validateSchema(generateShareImageSchema), generateShareImage);
-profileRouter.post(
-  '/export',
-  validateSchema(exportProfileSchema, 'profile_export'),
-  exportProfileData,
-);
-profileRouter.post(
-  '/deleteaccount',
-  validateSchema(deleteAccountSchema, 'account_delete'),
-  deleteAccount,
-);
 
 export const profileRouterV2 = express.Router();
 

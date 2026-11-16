@@ -7,7 +7,6 @@ import { errorHandler, ErrorWithStatus } from './util/errorhandler.ts';
 import { db } from './db/config.ts';
 import { createShareDir } from './util/share.ts';
 import { config } from './config.ts';
-import { routerV1 } from './routes/router-v1.ts';
 import { routerV2 } from './routes/router-v2.ts';
 import closeWithGrace from 'close-with-grace';
 import { initDiscordAuditProcessing, stopDiscordAuditProcessing } from './services/audit.ts';
@@ -46,7 +45,6 @@ app.use((_req, res, next) => {
 
 app.use(express.json({ limit: config.REQUEST_BODY_MAX_SIZE }));
 
-app.use('/api/v1', routerV1);
 app.use('/api/v2', routerV2);
 
 app.use(errorHandler);

@@ -21,7 +21,7 @@ export type User = {
   created_on: Date;
 };
 
-export type UserWithRoleName = Omit<User, 'password' | 'role_modified_on'> & {
+type UserWithRoleName = Omit<User, 'password' | 'role_modified_on'> & {
   role: string;
   argon2id_migrated: boolean;
 };

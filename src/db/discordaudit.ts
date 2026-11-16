@@ -2,14 +2,14 @@ import type { ITask } from 'pg-promise';
 import { auditAction, type AuditAction, type DbAudit } from './audit.ts';
 import { config } from '../config.ts';
 
-export type DiscordAuditSettings = {
+type DiscordAuditSettings = {
   enabled: boolean;
   actions: AuditAction[];
   last_success_on: Date | null;
   last_error: string | null;
 };
 
-export type DiscordAuditUpdate = {
+type DiscordAuditUpdate = {
   enabled?: boolean;
   actions?: AuditAction[];
 };

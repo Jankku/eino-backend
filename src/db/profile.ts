@@ -22,22 +22,18 @@ const getUserInfo = async (t: ITask<unknown>, userId: string): Promise<UserInfo>
 };
 
 type BookData = {
-  count: number;
+  count: Record<string, number>;
   pages_read: number;
   score_average: number;
 };
 
-type BookDataV2 = Omit<BookData, 'count'> & { count: Record<string, number> };
-
 type MovieData = {
-  count: number;
+  count: Record<string, number>;
   watch_time: number;
   score_average: number;
 };
 
-type MovieDataV2 = Omit<MovieData, 'count'> & { count: Record<string, number> };
-
-export type ItemScoreRow = {
+type ItemScoreRow = {
   score: number;
   count: number;
 };
@@ -122,15 +118,7 @@ type ProfileData = {
   movieScores: ItemScoreRow[];
 };
 
-type ProfileDataV2 = Omit<ProfileData, 'bookData' | 'movieData'> & {
-  bookData: BookDataV2;
-  movieData: MovieDataV2;
-};
-
-export const getProfileDataV2 = async (
-  t: ITask<unknown>,
-  userId: string,
-): Promise<ProfileDataV2> => {
+export const getProfileDataV2 = async (t: ITask<unknown>, userId: string): Promise<ProfileData> => {
   const userInfo = await getUserInfo(t, userId);
   const books = await getBookStats(t, userId);
   const movies = await getMovieStats(t, userId);
@@ -143,27 +131,6 @@ export const getProfileDataV2 = async (
     },
     movieData: {
       count: movies.count,
-      watch_time: movies.total.completed_total,
-      score_average: movies.total.average,
-    },
-    bookScores: books.scores,
-    movieScores: movies.scores,
-  };
-};
-
-export const getProfileData = async (t: ITask<unknown>, userId: string): Promise<ProfileData> => {
-  const userInfo = await getUserInfo(t, userId);
-  const books = await getBookStats(t, userId);
-  const movies = await getMovieStats(t, userId);
-  return {
-    userInfo,
-    bookData: {
-      count: books.total.count,
-      pages_read: books.total.completed_total,
-      score_average: books.total.average,
-    },
-    movieData: {
-      count: movies.total.count,
       watch_time: movies.total.completed_total,
       score_average: movies.total.average,
     },

@@ -105,7 +105,7 @@ export const updateEmail = async (
 };
 
 export const sendConfirmationEmail = async (
-  req: Request,
+  _req: Request,
   res: TypedResponse,
   next: NextFunction,
 ) => {

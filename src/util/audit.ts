@@ -6,7 +6,7 @@ const DISCORD_COLOR_BLUE = 3447003;
 export const wait = async (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
-export const truncate = (text: string, length: number): string =>
+const truncate = (text: string, length: number): string =>
   text.length > length ? `${text.slice(0, length - 3)}...` : text;
 
 const serializeDiscordAuditData = (data: Record<string, unknown>): string =>

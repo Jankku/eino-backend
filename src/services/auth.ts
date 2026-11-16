@@ -526,7 +526,7 @@ export const resetPassword = async (
   }
 };
 
-export const generate2FAUrl = async (req: Request, res: TypedResponse, next: NextFunction) => {
+export const generate2FAUrl = async (_req: Request, res: TypedResponse, next: NextFunction) => {
   const userId = res.locals.userId;
 
   try {

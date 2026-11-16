@@ -1,6 +1,6 @@
 const HTTP_TIMEOUT_MS = 15_000;
 
-export class HttpError extends Error {
+class HttpError extends Error {
   status: number;
   statusText: string;
 

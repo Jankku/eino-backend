@@ -332,7 +332,7 @@ export const fetchImages = async (
   }
 };
 
-export const countByStatus = async (req: Request, res: TypedResponse, next: NextFunction) => {
+export const countByStatus = async (_req: Request, res: TypedResponse, next: NextFunction) => {
   const userId = res.locals.userId;
 
   try {

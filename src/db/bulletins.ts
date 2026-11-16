@@ -4,10 +4,10 @@ import { getPage } from './pagination.ts';
 import type { Pagination } from '../util/pagination.ts';
 
 export const bulletinTypes = ['success', 'info', 'warning', 'error'] as const;
-export type BulletinType = (typeof bulletinTypes)[number];
+type BulletinType = (typeof bulletinTypes)[number];
 
 export const bulletinVisibilities = ['public', 'authenticated', 'user', 'condition'] as const;
-export type BulletinVisiblity = (typeof bulletinVisibilities)[number];
+type BulletinVisiblity = (typeof bulletinVisibilities)[number];
 
 export const bulletinConditions = [
   '2fa_not_enabled',

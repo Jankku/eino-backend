@@ -13,27 +13,21 @@ import {
   updateOneSchema,
 } from './schema.ts';
 
-const createMovieRouter = (paginated: boolean) => {
-  const movieRouter = express.Router();
-  const pagination = paginated ? [validatePagination(movieSortSchema), movies.fetchPage] : [];
+export const movieRouterV2 = express.Router();
+const pagination = [validatePagination(movieSortSchema), movies.fetchPage];
 
-  movieRouter.get('/count', movies.countByStatus);
-  movieRouter.get('/search', validateSchema(searchSchema), movies.search);
-  movieRouter.get('/movie/:movieId', validateSchema(fetchOneSchema), movies.fetchOne);
-  movieRouter.post('/add', validateSchema(addOneSchema), movies.addOne);
-  movieRouter.put('/update/:movieId', validateSchema(updateOneSchema), movies.updateOne);
-  movieRouter.delete('/delete/:movieId', validateSchema(deleteOneSchema), movies.deleteOne);
-  movieRouter.get('/images', validateSchema(fetchImagesSchema), movies.fetchImages);
+movieRouterV2.get('/count', movies.countByStatus);
+movieRouterV2.get('/search', validateSchema(searchSchema), movies.search);
+movieRouterV2.get('/movie/:movieId', validateSchema(fetchOneSchema), movies.fetchOne);
+movieRouterV2.post('/add', validateSchema(addOneSchema), movies.addOne);
+movieRouterV2.put('/update/:movieId', validateSchema(updateOneSchema), movies.updateOne);
+movieRouterV2.delete('/delete/:movieId', validateSchema(deleteOneSchema), movies.deleteOne);
+movieRouterV2.get('/images', validateSchema(fetchImagesSchema), movies.fetchImages);
 
-  movieRouter.get('/all', ...pagination, movies.fetchAll);
-  movieRouter.get(
-    '/:status',
-    validateSchema(fetchByStatusSchema),
-    ...pagination,
-    movies.fetchByStatus,
-  );
-  return movieRouter;
-};
-
-export const movieRouter = createMovieRouter(false);
-export const movieRouterV2 = createMovieRouter(true);
+movieRouterV2.get('/all', ...pagination, movies.fetchAll);
+movieRouterV2.get(
+  '/:status',
+  validateSchema(fetchByStatusSchema),
+  ...pagination,
+  movies.fetchByStatus,
+);

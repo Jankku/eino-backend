@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { dateStringSchema, fixedNonEmptyStringSchema } from '../../util/zodschema.ts';
 
-export const shareSchema = z.object({
+const shareSchema = z.object({
   share_id: fixedNonEmptyStringSchema,
   created_on: dateStringSchema,
 });
