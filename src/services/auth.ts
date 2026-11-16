@@ -270,11 +270,6 @@ export const generateNewAccessToken = async (
       }
       const accessToken = generateAccessToken(user);
       await updateLastLogin(t, user.user_id);
-      await addAudit(t, {
-        actor_user_id: user.user_id,
-        username: user.username,
-        action: 'access_token_refresh',
-      });
       return accessToken;
     });
 

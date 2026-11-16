@@ -1,7 +1,7 @@
 import type { ITask } from 'pg-promise';
 import { getPage } from './pagination.ts';
 import type { Pagination } from '../util/pagination.ts';
-import { securityEventsWhere } from './securityevents.ts';
+import { securityEventReasons, securityEventsWhere } from './securityevents.ts';
 
 export const auditAction = {
   REGISTER: 'register',
@@ -32,7 +32,6 @@ export const auditAction = {
   ACCOUNT_ENABLED: 'account_enabled',
   ACCOUNT_DISABLED: 'account_disabled',
   ACCOUNT_DELETED: 'account_deleted',
-  ACCESS_TOKEN_REFRESHED: 'access_token_refresh',
   SESSIONS_REVOKED: 'sessions_revoked',
   CREATE: 'create',
   UPDATE: 'update',
@@ -105,5 +104,26 @@ export const addAudit = async (t: ITask<unknown>, audit: Audit): Promise<void> =
   await t.none(
     'INSERT INTO audit_log(actor_user_id, username, action, table_name, record_id, old_data, new_data) VALUES(${actor_user_id}, ${username}, ${action}, ${table_name}, ${record_id}, ${old_data}, ${new_data})',
     newAudit,
+  );
+};
+
+export const redactUserAudits = async (t: ITask<unknown>, userId: string): Promise<void> => {
+  await t.none(
+    `UPDATE audit_log SET
+       username = CASE WHEN actor_user_id = $1 THEN NULL ELSE username END,
+       old_data = CASE WHEN subject THEN NULL ELSE old_data END,
+       new_data = CASE WHEN subject THEN NULL ELSE new_data END
+     FROM (
+       SELECT id AS subject_id,
+         action <> ALL($2::text[]) AND (
+           (table_name = 'users' AND record_id = $1)
+           OR (actor_user_id = $1 AND table_name IS DISTINCT FROM 'users'
+             AND table_name IS DISTINCT FROM 'bulletins')
+         ) AS subject
+       FROM audit_log
+       WHERE actor_user_id = $1 OR (table_name = 'users' AND record_id = $1)
+     ) s
+     WHERE audit_log.id = s.subject_id`,
+    [userId, Object.keys(securityEventReasons)],
   );
 };

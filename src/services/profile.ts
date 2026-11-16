@@ -35,7 +35,7 @@ import { config } from '../config.ts';
 import type { TypedResponse } from '../util/zod.ts';
 import { findVerification } from '../db/verification.ts';
 import { validateTOTP } from '../util/totp.ts';
-import { addAudit, getAuditsByActorUserId } from '../db/audit.ts';
+import { addAudit, getAuditsByActorUserId, redactUserAudits } from '../db/audit.ts';
 import {
   generateProfilePicturePath,
   profilePictureLimits,
@@ -125,8 +125,10 @@ export const deleteAccount = async (
         actor_user_id: res.locals.userId,
         username,
         action: 'account_deleted',
-        old_data: { ...user, password: undefined },
+        table_name: 'users',
+        record_id: user.user_id,
       });
+      await redactUserAudits(t, user.user_id);
       return user.profile_picture_path;
     });
 

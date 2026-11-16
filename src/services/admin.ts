@@ -7,7 +7,7 @@ import { db } from '../db/config.ts';
 import { config } from '../config.ts';
 import { setDiscordAuditProcessingEnabled } from './audit.ts';
 import { getDiscordAuditStatus, updateDiscordAuditSettings } from '../db/discordaudit.ts';
-import { addAudit, getAllAudits, getAuditsPage } from '../db/audit.ts';
+import { addAudit, getAllAudits, getAuditsPage, redactUserAudits } from '../db/audit.ts';
 import { paginationMode } from '../db/pagination.ts';
 import { getAdminOverview } from '../db/admin.ts';
 import { logError } from '../util/logger.ts';
@@ -319,8 +319,8 @@ export const deleteUser = async (
         action: 'account_deleted',
         table_name: 'users',
         record_id: user.user_id,
-        old_data: { ...user, password: undefined },
       });
+      await redactUserAudits(t, user.user_id);
       return user.profile_picture_path;
     });
     // Files are removed only after the deletion commits.

@@ -1915,7 +1915,6 @@ components:
         - account_enabled
         - account_disabled
         - account_deleted
-        - access_token_refresh
         - sessions_revoked
         - create
         - update
