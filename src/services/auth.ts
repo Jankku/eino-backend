@@ -9,6 +9,7 @@ import {
   findUserByIdForUpdate,
   upgradePassword,
   getUserByIdForUpdate,
+  incrementTokenVersion,
   updateLastLogin,
   updatePassword,
 } from '../db/users.ts';
@@ -19,7 +20,7 @@ import {
   generateAccessToken,
   generateRefreshToken,
   getPasswordStrength,
-  getTokenSubject,
+  getTokenClaims,
 } from '../util/auth.ts';
 import { ErrorWithStatus, SecurityErrorWithStatus } from '../util/errorhandler.ts';
 import { config } from '../config.ts';
@@ -236,7 +237,7 @@ export const generateNewAccessToken = async (
   const { refreshToken } = res.locals.input.body;
 
   try {
-    const userId = getTokenSubject(
+    const { userId, tokenVersion } = getTokenClaims(
       jwt.verify(refreshToken, config.REFRESH_TOKEN_SECRET, {
         algorithms: [jwtConstants.ALGORITHM],
         audience: jwtConstants.AUDIENCE,
@@ -257,6 +258,13 @@ export const generateNewAccessToken = async (
         throw new SecurityErrorWithStatus(422, 'authentication_error', 'Account disabled', {
           operation: 'refresh_token',
           reason: 'account_disabled',
+          targetUserId: user.user_id,
+        });
+      }
+      if (user.token_version !== tokenVersion) {
+        throw new SecurityErrorWithStatus(401, 'jwt_refresh_error', 'Token revoked', {
+          operation: 'refresh_token',
+          reason: 'revoked_token',
           targetUserId: user.user_id,
         });
       }
@@ -293,6 +301,25 @@ export const generateNewAccessToken = async (
         ),
       );
     }
+  }
+};
+
+export const revokeSessions = async (_: Request, res: TypedResponse, next: NextFunction) => {
+  try {
+    await db.tx('revokeSessions', async (t) => {
+      const user = await incrementTokenVersion(t, res.locals.userId);
+      await addAudit(t, {
+        actor_user_id: user.user_id,
+        username: user.username,
+        action: 'sessions_revoked',
+      });
+    });
+    res
+      .status(200)
+      .json(success([{ name: 'sessions_revoked', message: 'Signed out of all sessions' }]));
+  } catch (error) {
+    logError(error);
+    next(new ErrorWithStatus(500, 'authentication_error', 'Unknown error while signing out'));
   }
 };
 
@@ -499,6 +526,7 @@ export const resetPassword = async (
       }
 
       await updatePassword(t, { userId: user.user_id, newPassword });
+      await incrementTokenVersion(t, user.user_id);
       await deleteVerifications(t, { userId: user.user_id, type: 'password_reset' });
       await addAudit(t, {
         actor_user_id: user.user_id,
@@ -589,7 +617,7 @@ export const enable2FA = async (
   const userId = res.locals.userId;
 
   try {
-    await db.tx('enable2FA', async (t) => {
+    const updatedUser = await db.tx('enable2FA', async (t) => {
       const user = await getUserByIdForUpdate(t, userId);
 
       if (user.totp_enabled_on) {
@@ -606,14 +634,26 @@ export const enable2FA = async (
       }
 
       await enableTOTP(t, user.user_id);
+      const updatedUser = await incrementTokenVersion(t, user.user_id);
       await addAudit(t, {
         actor_user_id: user.user_id,
         username: user.username,
         action: 'two_factor_authentication_enabled',
       });
+      return updatedUser;
     });
 
-    res.status(200).json(success([{ name: '2fa_enabled', message: '2FA enabled' }]));
+    // Other sessions are revoked; the current one continues with fresh tokens.
+    res.status(200).json(
+      success([
+        {
+          name: '2fa_enabled',
+          message: '2FA enabled',
+          accessToken: generateAccessToken(updatedUser),
+          refreshToken: generateRefreshToken(updatedUser),
+        },
+      ]),
+    );
   } catch (error) {
     if (error instanceof ErrorWithStatus) {
       next(error);
@@ -633,7 +673,7 @@ export const disable2FA = async (
   const userId = res.locals.userId;
 
   try {
-    await db.tx('disable2FA', async (t) => {
+    const updatedUser = await db.tx('disable2FA', async (t) => {
       const user = await getUserByIdForUpdate(t, userId);
 
       if (!user.totp_enabled_on) {
@@ -651,14 +691,26 @@ export const disable2FA = async (
 
       await deleteVerifications(t, { userId, type: '2fa' });
       await disableTOTP(t, user.user_id);
+      const updatedUser = await incrementTokenVersion(t, user.user_id);
       await addAudit(t, {
         actor_user_id: user.user_id,
         username: user.username,
         action: 'two_factor_authentication_disabled',
       });
+      return updatedUser;
     });
 
-    res.status(200).json(success([{ name: '2fa_disabled', message: '2FA disabled' }]));
+    // Other sessions are revoked; the current one continues with fresh tokens.
+    res.status(200).json(
+      success([
+        {
+          name: '2fa_disabled',
+          message: '2FA disabled',
+          accessToken: generateAccessToken(updatedUser),
+          refreshToken: generateRefreshToken(updatedUser),
+        },
+      ]),
+    );
   } catch (error) {
     if (error instanceof ErrorWithStatus) {
       next(error);

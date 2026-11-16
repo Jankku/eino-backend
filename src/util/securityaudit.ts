@@ -40,6 +40,7 @@ export type SecurityFailure = {
     | 'email_delivery_failed'
     | 'invalid_token'
     | 'expired_token'
+    | 'revoked_token'
     | 'invalid_authorization_header'
     | 'insufficient_role'
     | 'invalid_input';

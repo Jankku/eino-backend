@@ -33,6 +33,7 @@ export const auditAction = {
   ACCOUNT_DISABLED: 'account_disabled',
   ACCOUNT_DELETED: 'account_deleted',
   ACCESS_TOKEN_REFRESHED: 'access_token_refresh',
+  SESSIONS_REVOKED: 'sessions_revoked',
   CREATE: 'create',
   UPDATE: 'update',
   DELETE: 'delete',

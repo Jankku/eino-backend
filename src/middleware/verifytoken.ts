@@ -4,7 +4,7 @@ import { z, ZodError } from 'zod';
 import { config } from '../config.ts';
 import { ErrorWithStatus, SecurityErrorWithStatus } from '../util/errorhandler.ts';
 import { formatZodErrors, type TypedResponse } from '../util/zod.ts';
-import { getTokenSubject } from '../util/auth.ts';
+import { getTokenClaims } from '../util/auth.ts';
 import { db } from '../db/config.ts';
 import { findUserById } from '../db/users.ts';
 import { roleIdToName } from '../util/role.ts';
@@ -34,7 +34,7 @@ Verifies that user's access token is valid
 export const verifyToken = async (req: Request, res: TypedResponse, next: NextFunction) => {
   try {
     const accessToken = tokenSchema.parse(req).headers.authorization;
-    const userId = getTokenSubject(
+    const { userId, tokenVersion } = getTokenClaims(
       jwt.verify(accessToken, config.ACCESS_TOKEN_SECRET, {
         algorithms: [jwtConstants.ALGORITHM],
         audience: jwtConstants.AUDIENCE,
@@ -46,6 +46,13 @@ export const verifyToken = async (req: Request, res: TypedResponse, next: NextFu
       throw new SecurityErrorWithStatus(401, 'authorization_error', 'Account no longer exists', {
         operation: 'access_token',
         reason: 'account_not_found',
+        targetUserId: userId,
+      });
+    }
+    if (user.token_version !== tokenVersion) {
+      throw new SecurityErrorWithStatus(401, 'authorization_error', 'Token revoked', {
+        operation: 'access_token',
+        reason: 'revoked_token',
         targetUserId: userId,
       });
     }

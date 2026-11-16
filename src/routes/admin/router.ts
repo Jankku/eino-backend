@@ -11,6 +11,7 @@ import {
   editUserSchema,
   enableUserSchema,
   overviewSchema,
+  revokeUserSessionsSchema,
   auditQuerySchema,
   discordAuditSettingsSchema,
 } from './schema.ts';
@@ -21,6 +22,11 @@ adminRouter.get('/overview', validateSchema(overviewSchema), admin.getOverview);
 adminRouter.get('/users', validatePagination(), admin.getUsers);
 adminRouter.post('/users/:userId/enable', validateSchema(enableUserSchema), admin.enableUser);
 adminRouter.post('/users/:userId/disable', validateSchema(disableUserSchema), admin.disableUser);
+adminRouter.post(
+  '/users/:userId/sessions/revoke',
+  validateSchema(revokeUserSessionsSchema),
+  admin.revokeUserSessions,
+);
 adminRouter.put('/users/:userId', validateSchema(editUserSchema), admin.editUser);
 adminRouter.delete('/users/:userId', validateSchema(deleteUserSchema), admin.deleteUser);
 adminRouter.get(

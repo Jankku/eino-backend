@@ -17,7 +17,9 @@ import {
   getAllUsers,
   getUsersPage,
   getUserById,
+  findUserById,
   getUserByIdForUpdate,
+  incrementTokenVersion,
   updateProfilePicturePath,
 } from '../db/users.ts';
 import type {
@@ -29,6 +31,7 @@ import type {
   enableUserSchema,
   disableUserSchema,
   overviewSchema,
+  revokeUserSessionsSchema,
   auditQuerySchema,
   discordAuditSettingsSchema,
 } from '../routes/admin/schema.ts';
@@ -150,6 +153,10 @@ export const editUser = async (
           userId,
         ],
       );
+      // Tokens carry the role and 2FA state, so earlier tokens would keep the old values.
+      if (disables2FA || newUser.role_id !== currentUser.role_id) {
+        await incrementTokenVersion(t, userId);
+      }
       await addAudit(t, {
         actor_user_id: res.locals.userId,
         username: adminUsername,
@@ -231,6 +238,8 @@ export const disableUser = async (
         throw new ErrorWithStatus(400, 'admin_error', 'You cannot disable yourself');
       }
       await t.none('UPDATE users SET disabled_on = NOW() WHERE user_id = $1', user.user_id);
+      // Re-enabling the account later must not bring back sessions from before.
+      await incrementTokenVersion(t, user.user_id);
       await addAudit(t, {
         actor_user_id: res.locals.userId,
         username: adminUsername,
@@ -248,6 +257,43 @@ export const disableUser = async (
     } else {
       logError(error);
       next(new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to disable user'));
+    }
+  }
+};
+
+export const revokeUserSessions = async (
+  _: Request,
+  res: TypedResponse<typeof revokeUserSessionsSchema>,
+  next: NextFunction,
+) => {
+  const adminUsername = res.locals.username;
+  const { userId } = res.locals.input.params;
+  try {
+    await db.tx('revokeUserSessions', async (t) => {
+      const user = await findUserById(t, userId);
+      if (!user) {
+        throw new ErrorWithStatus(404, 'admin_error', 'User not found');
+      }
+      await incrementTokenVersion(t, user.user_id);
+      await addAudit(t, {
+        actor_user_id: res.locals.userId,
+        username: adminUsername,
+        action: 'sessions_revoked',
+        table_name: 'users',
+        record_id: user.user_id,
+      });
+    });
+    res
+      .status(200)
+      .json(success([{ name: 'sessions_revoked', message: 'User sessions revoked successfully' }]));
+  } catch (error) {
+    if (error instanceof ErrorWithStatus) {
+      next(error);
+    } else {
+      logError(error);
+      next(
+        new ErrorWithStatus(500, 'admin_error', 'Unknown error while trying to revoke sessions'),
+      );
     }
   }
 };

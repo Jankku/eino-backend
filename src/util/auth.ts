@@ -24,6 +24,7 @@ type AccessTokenPayload = {
   username: string;
   role: string;
   is2FAEnabled: boolean;
+  ver: number;
 };
 
 export const generateAccessToken = (user: User): string =>
@@ -34,6 +35,7 @@ export const generateAccessToken = (user: User): string =>
       username: user.username,
       role: roleIdToName(user.role_id),
       is2FAEnabled: !!user.totp_enabled_on,
+      ver: user.token_version,
     } satisfies AccessTokenPayload,
     ACCESS_TOKEN_SECRET,
     {
@@ -44,23 +46,35 @@ export const generateAccessToken = (user: User): string =>
     },
   );
 
-type RefreshTokenPayload = { sub: string };
+type RefreshTokenPayload = { sub: string; ver: number };
 
-export const getTokenSubject = (payload: jwt.JwtPayload | string): string => {
-  const subject = z.uuid().safeParse(typeof payload === 'string' ? undefined : payload.sub);
-  if (!subject.success) {
-    throw new jwt.JsonWebTokenError('Invalid token subject');
+const tokenClaimsSchema = z.object({ sub: z.uuid(), ver: z.int().nonnegative() });
+
+/**
+Reads the user id and the token version the token was issued with.
+The version must match the user's current `token_version`, or the token is revoked.
+*/
+export const getTokenClaims = (
+  payload: jwt.JwtPayload | string,
+): { userId: string; tokenVersion: number } => {
+  const claims = tokenClaimsSchema.safeParse(typeof payload === 'string' ? undefined : payload);
+  if (!claims.success) {
+    throw new jwt.JsonWebTokenError('Invalid token claims');
   }
-  return subject.data;
+  return { userId: claims.data.sub, tokenVersion: claims.data.ver };
 };
 
 export const generateRefreshToken = (user: User): string =>
-  jwt.sign({ sub: user.user_id } satisfies RefreshTokenPayload, REFRESH_TOKEN_SECRET, {
-    algorithm: jwtConstants.ALGORITHM,
-    expiresIn: REFRESH_TOKEN_VALIDITY,
-    audience: jwtConstants.AUDIENCE,
-    issuer: jwtConstants.ISSUER,
-  });
+  jwt.sign(
+    { sub: user.user_id, ver: user.token_version } satisfies RefreshTokenPayload,
+    REFRESH_TOKEN_SECRET,
+    {
+      algorithm: jwtConstants.ALGORITHM,
+      expiresIn: REFRESH_TOKEN_VALIDITY,
+      audience: jwtConstants.AUDIENCE,
+      issuer: jwtConstants.ISSUER,
+    },
+  );
 
 type PasswordStrengthScore = 0 | 1 | 2 | 3 | 4;
 

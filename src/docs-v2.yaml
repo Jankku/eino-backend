@@ -275,6 +275,42 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/ValidationError'
+  /admin/users/{id}/sessions/revoke:
+    post:
+      summary: Revoke all sessions of a user account
+      description: Revokes every access and refresh token issued to the user.
+      security:
+        - BearerAuth: []
+      tags:
+        - admin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
   /admin/users/{id}:
     put:
       summary: Edit user information
@@ -606,6 +642,25 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/ValidationError'
+  /auth/logout/all:
+    post:
+      tags:
+        - auth
+      summary: Sign out of all sessions
+      description: Revokes every access and refresh token issued to the user, including the ones used for this request.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: All sessions revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /auth/2fa/enable:
     post:
       tags:
@@ -626,11 +681,11 @@ paths:
                 - twoFactorCode
       responses:
         '200':
-          description: Two-factor authentication enabled
+          description: Two-factor authentication enabled. Earlier tokens are revoked; continue with the returned tokens.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResult'
+                $ref: '#/components/schemas/ApiResultWithTokens'
         '500':
           description: Failed to enable Two-factor authentication
           content:
@@ -663,11 +718,11 @@ paths:
                 - twoFactorCode
       responses:
         '200':
-          description: Two-factor authentication disabled
+          description: Two-factor authentication disabled. Earlier tokens are revoked; continue with the returned tokens.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResult'
+                $ref: '#/components/schemas/ApiResultWithTokens'
         '500':
           description: Failed to disable two-factor authentication
           content:
@@ -1861,6 +1916,7 @@ components:
         - account_disabled
         - account_deleted
         - access_token_refresh
+        - sessions_revoked
         - create
         - update
         - delete
@@ -2449,6 +2505,29 @@ components:
             required:
               - name
               - message
+    ApiResultWithTokens:
+      type: object
+      required:
+        - results
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              message:
+                type: string
+              accessToken:
+                type: string
+              refreshToken:
+                type: string
+            required:
+              - name
+              - message
+              - accessToken
+              - refreshToken
     ApiError:
       type: object
       required:

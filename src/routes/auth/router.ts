@@ -39,6 +39,7 @@ authRouter.post(
   validateSchema(resetPasswordSchema, 'password_reset'),
   auth.resetPassword,
 );
+authRouter.post('/logout/all', verifyToken, auth.revokeSessions);
 
 authRouter.post('/2fa/generate', verifyToken, userEnabled, auth.generate2FAUrl);
 authRouter.post(

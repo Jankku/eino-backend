@@ -19,9 +19,10 @@ export type User = {
   totp_enabled_on: Date;
   last_login_on: Date;
   created_on: Date;
+  token_version: number;
 };
 
-type UserWithRoleName = Omit<User, 'password' | 'role_modified_on'> & {
+type UserWithRoleName = Omit<User, 'password' | 'role_modified_on' | 'token_version'> & {
   role: string;
   argon2id_migrated: boolean;
 };
@@ -282,6 +283,17 @@ export const isEmailUniqueExcludeUserId = async (
     logError(error);
     return false;
   }
+};
+
+/**
+Revokes every access and refresh token issued to the user so far.
+Returns the updated user, so new tokens can be issued for the current session.
+*/
+export const incrementTokenVersion = async (t: ITask<unknown>, userId: string): Promise<User> => {
+  return await t.one({
+    text: 'UPDATE users SET token_version = token_version + 1 WHERE user_id = $1 RETURNING *',
+    values: [userId],
+  });
 };
 
 export const updateLastLogin = async (t: ITask<unknown>, userId: string): Promise<void> => {

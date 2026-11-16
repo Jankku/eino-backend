@@ -78,6 +78,12 @@ export const disableUserSchema = z.object({
   }),
 });
 
+export const revokeUserSessionsSchema = z.object({
+  params: z.object({
+    userId: z.uuid(errorMessages.UUID_INVALID),
+  }),
+});
+
 export const deleteUserSchema = z.object({
   params: z.object({
     userId: z.uuid(errorMessages.UUID_INVALID),
