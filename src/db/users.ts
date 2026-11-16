@@ -1,5 +1,4 @@
 import type { ITask } from 'pg-promise';
-import { generatePasswordHash, verifyPassword } from '../util/password.ts';
 import { getProfilePicturePathByFileName } from '../util/profilepicture.ts';
 import { roleIdToName } from '../util/role.ts';
 import { getPage } from './pagination.ts';
@@ -112,6 +111,16 @@ export const upgradePassword = async (
   if (result.rowCount !== 1) throw new Error('Password upgrade could not be saved');
 };
 
+export const findUserByEmail = async (
+  t: ITask<unknown>,
+  email: string,
+): Promise<User | null | undefined> => {
+  return await t.oneOrNone({
+    text: 'SELECT * FROM users WHERE email = $1',
+    values: [email],
+  });
+};
+
 export const findUserByEmailForUpdate = async (
   t: ITask<unknown>,
   email: string,
@@ -199,28 +208,18 @@ export const updatePassword = async (
   t: ITask<unknown>,
   {
     userId,
-    newPassword,
+    hashedPassword,
   }: {
     userId: string;
-    newPassword: string;
+    hashedPassword: string;
   },
 ): Promise<void> => {
-  const hashedPassword = await generatePasswordHash(newPassword);
   await t.none({
     text: `UPDATE users
              SET password = $1
              WHERE user_id = $2`,
     values: [hashedPassword, userId],
   });
-};
-
-export const isPasswordCorrect = async (
-  t: ITask<unknown>,
-  { userId, password }: { userId: string; password: string },
-): Promise<boolean> => {
-  const user = await getUserById(t, userId);
-  const isCorrect = await verifyPassword(password, user.password);
-  return isCorrect;
 };
 
 export const isUserUnique = async (t: ITask<unknown>, username: string): Promise<boolean> => {

@@ -7,7 +7,6 @@ import { Logger } from './logger.ts';
 
 const failureActions = {
   login: 'login_failed',
-  login_config: 'login_failed',
   password_forgot: 'password_reset_failed',
   password_reset: 'password_reset_failed',
   email_verify: 'email_verification_failed',

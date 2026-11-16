@@ -1,8 +1,11 @@
 import type { Request } from 'express';
+import type { ITask } from 'pg-promise';
+import type { z } from 'zod';
 import {
   disableTOTP,
   enableTOTP,
   findUserByCredential,
+  findUserByEmail,
   findUserByEmailForUpdate,
   findUserById,
   findUserByIdForUpdate,
@@ -11,7 +14,9 @@ import {
   incrementTokenVersion,
   updateLastLogin,
   updatePassword,
+  type User,
 } from '../db/users.ts';
+import { errorMessages } from '../util/errormessages.ts';
 import { db } from '../db/config.ts';
 import { success } from '../util/response.ts';
 import { logError } from '../util/logger.ts';
@@ -27,7 +32,6 @@ import type { TypedResponse } from '../util/zod.ts';
 import type {
   enable2FASchema,
   forgotPasswordSchema,
-  loginConfigSchema,
   loginSchema,
   passwordStrengthSchema,
   refreshTokenSchema,
@@ -54,8 +58,9 @@ import { generatePasswordHash, shouldUpgradePassword, verifyPassword } from '../
 export const register = async (_: Request, res: TypedResponse<typeof registerSchema>) => {
   const { username, password, email } = res.locals.input.body;
 
+  // Hashed before the transaction so no connection is held during the KDF.
+  const hashedPassword = await generatePasswordHash(password);
   await db.tx('register', async (t) => {
-    const hashedPassword = await generatePasswordHash(password);
     const defaultRoleId = getDefaultRoleId();
     const user = await t.one<{ user_id: string }>({
       text: `INSERT INTO users (username, password, email, role_id)
@@ -102,12 +107,8 @@ export const login = async (_: Request, res: TypedResponse<typeof loginSchema>) 
 
     if (currentUser.totp_enabled_on) {
       if (!twoFactorCode) {
-        throw new SecurityErrorWithStatus(
-          422,
-          'authentication_error',
-          'One-time password required',
-          { operation: 'login', reason: 'otp_required', targetUserId: currentUser.user_id },
-        );
+        // Not a security failure: this is the normal first step of a 2FA login.
+        throw new ErrorWithStatus(422, 'otp_required', errorMessages.OTP_REQUIRED);
       }
 
       const verification = await findVerification(t, {
@@ -124,27 +125,6 @@ export const login = async (_: Request, res: TypedResponse<typeof loginSchema>) 
       }
     }
 
-    const newHash = shouldUpgradePassword(password, verifiedUser.password)
-      ? await generatePasswordHash(password)
-      : undefined;
-
-    if (newHash) {
-      await upgradePassword(t, {
-        userId: currentUser.user_id,
-        originalHash: currentUser.password,
-        newHash,
-      });
-      await addAudit(t, {
-        actor_user_id: currentUser.user_id,
-        username: currentUser.username,
-        action: 'password_hash_upgraded',
-        table_name: 'users',
-        record_id: currentUser.user_id,
-        old_data: { algorithm: 'bcrypt' },
-        new_data: { algorithm: 'argon2id' },
-      });
-    }
-
     await updateLastLogin(t, currentUser.user_id);
     await addAudit(t, {
       actor_user_id: currentUser.user_id,
@@ -155,35 +135,30 @@ export const login = async (_: Request, res: TypedResponse<typeof loginSchema>) 
     return currentUser;
   });
 
+  if (shouldUpgradePassword(password, user.password)) {
+    await upgradeLegacyPasswordHash(user, password).catch(logError);
+  }
+
   const accessToken = generateAccessToken(user);
   const refreshToken = generateRefreshToken(user);
 
   res.status(200).json({ accessToken, refreshToken });
 };
 
-export const loginConfig = async (_: Request, res: TypedResponse<typeof loginConfigSchema>) => {
-  const { username: usernameOrEmail, password } = res.locals.input.body;
-
-  const { user } = await db.tx('loginConfig', async (t) => {
-    const foundUser = await findUserByCredential(t, usernameOrEmail);
-    const isCorrect = await verifyPassword(password, foundUser?.password);
-    if (!foundUser || !isCorrect || foundUser.disabled_on) {
-      throw new SecurityErrorWithStatus(
-        422,
-        'authentication_error',
-        'Incorrect username or password',
-        {
-          operation: 'login_config',
-          reason: 'invalid_credentials',
-          targetUserId: foundUser?.user_id,
-        },
-      );
-    }
-
-    return { user: foundUser };
+const upgradeLegacyPasswordHash = async (user: User, password: string) => {
+  const newHash = await generatePasswordHash(password);
+  await db.tx('upgradePassword', async (t) => {
+    await upgradePassword(t, { userId: user.user_id, originalHash: user.password, newHash });
+    await addAudit(t, {
+      actor_user_id: user.user_id,
+      username: user.username,
+      action: 'password_hash_upgraded',
+      table_name: 'users',
+      record_id: user.user_id,
+      old_data: { algorithm: 'bcrypt' },
+      new_data: { algorithm: 'argon2id' },
+    });
   });
-
-  res.status(200).json({ is2FAEnabled: !!user.totp_enabled_on });
 };
 
 export const generateNewAccessToken = async (
@@ -364,70 +339,92 @@ export const forgotPassword = (req: Request, res: TypedResponse<typeof forgotPas
   );
 };
 
-export const resetPassword = async (_: Request, res: TypedResponse<typeof resetPasswordSchema>) => {
-  const { email, newPassword, otp, twoFactorCode } = res.locals.input.body;
+type ResetPasswordInput = z.output<typeof resetPasswordSchema>['body'];
 
-  await db.tx('resetPassword', async (t) => {
-    // Locked so a code can be used only once.
-    const user = await findUserByEmailForUpdate(t, email);
-    // Queried without an account too, so unknown addresses take the same path.
-    const verification = await findVerification(t, {
-      userId: user?.user_id,
-      type: 'password_reset',
-      target: email,
-    });
-    const otpMatches = validateEmailOTP({ otp, ...(verification ?? dummyEmailVerification) });
-    if (
-      !user ||
-      user.disabled_on ||
-      !verification ||
-      !otpMatches ||
-      (verification.expires_on && isVerificationExpired(verification.expires_on))
-    ) {
-      throw new SecurityErrorWithStatus(
-        422,
-        'reset_password_error',
-        'Invalid or expired one-time password',
-        { operation: 'password_reset', reason: 'invalid_otp' },
-      );
-    }
+/**
+Checks the reset code, the two-factor code, and the new password.
+Runs before hashing without a lock, then again under the row lock before the password is saved.
+*/
+const validatePasswordReset = async (
+  t: ITask<unknown>,
+  user: User | null | undefined,
+  { email, newPassword, otp, twoFactorCode }: ResetPasswordInput,
+): Promise<User> => {
+  // Queried without an account too, so unknown addresses take the same path.
+  const verification = await findVerification(t, {
+    userId: user?.user_id,
+    type: 'password_reset',
+    target: email,
+  });
+  const otpMatches = validateEmailOTP({ otp, ...(verification ?? dummyEmailVerification) });
+  if (
+    !user ||
+    user.disabled_on ||
+    !verification ||
+    !otpMatches ||
+    (verification.expires_on && isVerificationExpired(verification.expires_on))
+  ) {
+    throw new SecurityErrorWithStatus(
+      422,
+      'reset_password_error',
+      'Invalid or expired one-time password',
+      { operation: 'password_reset', reason: 'invalid_otp' },
+    );
+  }
 
-    if (user.totp_enabled_on) {
-      if (!twoFactorCode) {
-        throw new SecurityErrorWithStatus(422, 'reset_password_error', 'Two-factor code required', {
-          operation: 'password_reset',
-          reason: 'otp_required',
-          targetUserId: user.user_id,
-        });
-      }
-
-      const twoFactorVerification = await findVerification(t, {
-        userId: user.user_id,
-        type: '2fa',
-      });
-      if (
-        !twoFactorVerification ||
-        !validateTOTP({ otp: twoFactorCode, ...twoFactorVerification })
-      ) {
-        throw new SecurityErrorWithStatus(
-          422,
-          'reset_password_error',
-          'Incorrect two-factor code',
-          { operation: 'password_reset', reason: 'invalid_otp', targetUserId: user.user_id },
-        );
-      }
-    }
-
-    const { isStrong, error } = getPasswordStrength({ password: newPassword });
-    if (!isStrong) {
-      throw new SecurityErrorWithStatus(422, 'reset_password_error', error, {
+  if (user.totp_enabled_on) {
+    if (!twoFactorCode) {
+      throw new SecurityErrorWithStatus(422, 'reset_password_error', 'Two-factor code required', {
         operation: 'password_reset',
-        reason: 'password_policy_rejected',
+        reason: 'otp_required',
         targetUserId: user.user_id,
       });
     }
 
-    await updatePassword(t, { userId: user.user_id, newPassword });
+    const twoFactorVerification = await findVerification(t, {
+      userId: user.user_id,
+      type: '2fa',
+    });
+    if (!twoFactorVerification || !validateTOTP({ otp: twoFactorCode, ...twoFactorVerification })) {
+      throw new SecurityErrorWithStatus(422, 'reset_password_error', 'Incorrect two-factor code', {
+        operation: 'password_reset',
+        reason: 'invalid_otp',
+        targetUserId: user.user_id,
+      });
+    }
+  }
+
+  const { isStrong, error } = getPasswordStrength({ password: newPassword });
+  if (!isStrong) {
+    throw new SecurityErrorWithStatus(422, 'reset_password_error', error, {
+      operation: 'password_reset',
+      reason: 'password_policy_rejected',
+      targetUserId: user.user_id,
+    });
+  }
+
+  return user;
+};
+
+export const resetPassword = async (_: Request, res: TypedResponse<typeof resetPasswordSchema>) => {
+  const input = res.locals.input.body;
+
+  // Validated first so invalid codes never cost a hash.
+  await db.task('resetPassword', async (t) =>
+    validatePasswordReset(t, await findUserByEmail(t, input.email), input),
+  );
+  // Hashed outside any transaction so no connection or row lock is held during the KDF.
+  const hashedPassword = await generatePasswordHash(input.newPassword);
+
+  await db.tx('resetPassword', async (t) => {
+    // Locked and validated again so a code can be used only once.
+    const user = await validatePasswordReset(
+      t,
+      await findUserByEmailForUpdate(t, input.email),
+      input,
+    );
+
+    await updatePassword(t, { userId: user.user_id, hashedPassword });
     await incrementTokenVersion(t, user.user_id);
     await deleteVerifications(t, { userId: user.user_id, type: 'password_reset' });
     await addAudit(t, {

@@ -92,7 +92,7 @@ export const updateEmail = async (_: Request, res: TypedResponse<typeof updateEm
 export const sendConfirmationEmail = async (_req: Request, res: TypedResponse) => {
   const { userId, username } = res.locals;
 
-  await db.tx('sendConfirmationEmail', async (t) => {
+  const { email, otp } = await db.tx('sendConfirmationEmail', async (t) => {
     // Locked so concurrent requests replace the code one after another.
     const user = await getUserByIdForUpdate(t, userId);
 
@@ -119,21 +119,25 @@ export const sendConfirmationEmail = async (_req: Request, res: TypedResponse) =
       expires_on: DateTime.now().plus({ minutes: 15 }).toJSDate(),
     });
 
-    const emailResponse = await sendEmail({
-      recipient: user.email,
-      template: confirmEmailTemplate(totp.otp),
-    });
+    return { email: user.email, otp: totp.otp };
+  });
 
-    if (!emailResponse.success) {
-      throw new ErrorWithStatus(424, 'email_error', "Couldn't send confirmation email");
-    }
+  const emailResponse = await sendEmail({
+    recipient: email,
+    template: confirmEmailTemplate(otp),
+  });
 
-    await addAudit(t, {
-      actor_user_id: res.locals.userId,
+  if (!emailResponse.success) {
+    throw new ErrorWithStatus(424, 'email_error', "Couldn't send confirmation email");
+  }
+
+  await db.task('sendConfirmationEmail', (t) =>
+    addAudit(t, {
+      actor_user_id: userId,
       username,
       action: 'email_verification_email_sent',
-    });
-  });
+    }),
+  );
 
   res
     .status(200)

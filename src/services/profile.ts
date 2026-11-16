@@ -4,7 +4,7 @@ import {
   findProfilePictureByUserId,
   getItemCountByUserIdForUpdate,
   getUserById,
-  isPasswordCorrect,
+  getUserByIdForUpdate,
   updateProfilePicturePath,
 } from '../db/users.ts';
 import { ErrorWithStatus, SecurityErrorWithStatus } from '../util/errorhandler.ts';
@@ -42,6 +42,27 @@ import {
   removeRetiredProfilePicture,
 } from '../util/profilepicture.ts';
 import sharp from 'sharp';
+import { verifyPassword } from '../util/password.ts';
+
+/**
+Verifies the user's password without holding a database connection during the KDF.
+Returns the verified hash, so a transaction can confirm it hasn't changed since.
+*/
+const verifyUserPassword = async (
+  userId: string,
+  password: string,
+  error: { name: string; operation: 'account_delete' | 'profile_export' },
+): Promise<string> => {
+  const { password: hash } = await db.task('verifyUserPassword', (t) => getUserById(t, userId));
+  if (!(await verifyPassword(password, hash))) {
+    throw new SecurityErrorWithStatus(422, error.name, 'Incorrect password', {
+      operation: error.operation,
+      reason: 'invalid_credentials',
+      targetUserId: userId,
+    });
+  }
+  return hash;
+};
 
 export const getProfileV2 = async (_req: Request, res: TypedResponse) => {
   const userId = res.locals.userId;
@@ -67,8 +88,22 @@ export const deleteAccount = async (_: Request, res: TypedResponse<typeof delete
   const username = res.locals.username;
   const { password, twoFactorCode } = res.locals.input.body;
 
+  const verifiedHash = await verifyUserPassword(res.locals.userId, password, {
+    name: 'delete_account_error',
+    operation: 'account_delete',
+  });
+
   const profilePicturePath = await db.tx('deleteAccount', async (t) => {
-    const user = await getUserById(t, res.locals.userId);
+    const user = await getUserByIdForUpdate(t, res.locals.userId);
+
+    // The password may have changed while it was being verified.
+    if (user.password !== verifiedHash) {
+      throw new SecurityErrorWithStatus(422, 'delete_account_error', 'Incorrect password', {
+        operation: 'account_delete',
+        reason: 'invalid_credentials',
+        targetUserId: res.locals.userId,
+      });
+    }
 
     if (user.totp_enabled_on) {
       if (!twoFactorCode) {
@@ -94,15 +129,6 @@ export const deleteAccount = async (_: Request, res: TypedResponse<typeof delete
           { operation: 'account_delete', reason: 'invalid_otp', targetUserId: res.locals.userId },
         );
       }
-    }
-
-    const isCorrect = await isPasswordCorrect(t, { userId: res.locals.userId, password });
-    if (!isCorrect) {
-      throw new SecurityErrorWithStatus(422, 'delete_account_error', 'Incorrect password', {
-        operation: 'account_delete',
-        reason: 'invalid_credentials',
-        targetUserId: res.locals.userId,
-      });
     }
 
     await t.none('DELETE FROM users WHERE user_id = $1', user.user_id);
@@ -184,18 +210,14 @@ export const exportProfileData = async (
   const username = res.locals.username;
   const { password, includeAuditLog } = res.locals.input.body;
 
+  await verifyUserPassword(res.locals.userId, password, {
+    name: 'profile_export_error',
+    operation: 'profile_export',
+  });
+
   const { books, movies, profile, shares, audits } = await db.task(
     'exportProfileData',
     async (t) => {
-      const isCorrect = await isPasswordCorrect(t, { userId: res.locals.userId, password });
-      if (!isCorrect) {
-        throw new SecurityErrorWithStatus(422, 'profile_export_error', 'Incorrect password', {
-          operation: 'profile_export',
-          reason: 'invalid_credentials',
-          targetUserId: res.locals.userId,
-        });
-      }
-
       await addAudit(t, {
         actor_user_id: res.locals.userId,
         username,

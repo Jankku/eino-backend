@@ -6,7 +6,6 @@ import {
   loginSchema,
   refreshTokenSchema,
   passwordStrengthSchema,
-  loginConfigSchema,
   enable2FASchema,
   forgotPasswordSchema,
   resetPasswordSchema,
@@ -18,11 +17,6 @@ export const authRouter = express.Router();
 
 authRouter.post('/register', validateSchema(registerSchema), auth.register);
 authRouter.post('/login', validateSchema(loginSchema, 'login'), auth.login);
-authRouter.post(
-  '/login/config',
-  validateSchema(loginConfigSchema, 'login_config'),
-  auth.loginConfig,
-);
 authRouter.post(
   '/refreshtoken',
   validateSchema(refreshTokenSchema, 'refresh_token'),
