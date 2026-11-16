@@ -21,9 +21,7 @@ const numberSort = (a: number, b: number, order: SortOrder) => {
 };
 
 const dateSort = (a: Date, b: Date, order: SortOrder) => {
-  const startDate = DateTime.fromJSDate(a).toMillis();
-  const endDate = DateTime.fromJSDate(b).toMillis();
-  return order === 'ascending' ? startDate - endDate : endDate - startDate;
+  return order === 'ascending' ? a.getTime() - b.getTime() : b.getTime() - a.getTime();
 };
 
 const compareItems = ({

@@ -1,4 +1,4 @@
-import type { z } from 'zod';
+import { z } from 'zod';
 import type { ZodError } from 'zod/v4';
 import type { $ZodIssue } from 'zod/v4/core';
 import type { Response } from 'express';
@@ -32,4 +32,17 @@ export const formatZodErrors = (error: ZodError) => {
   });
 
   return formattedErrors;
+};
+
+export const configureZod = () => {
+  z.config({
+    customError: (issue) => {
+      if (issue.code !== 'custom') {
+        return;
+      }
+      const field = issue.path?.at(-1);
+      // oxlint-disable-next-line typescript/consistent-return
+      return { message: `${String(field)}: ${issue.message}` };
+    },
+  });
 };

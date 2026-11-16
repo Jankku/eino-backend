@@ -8,17 +8,6 @@ import {
   type SecurityOperation,
 } from '../util/securityaudit.ts';
 
-z.config({
-  customError: (issue) => {
-    if (issue.code !== 'custom') {
-      return;
-    }
-    const field = issue.path?.at(-1);
-    // oxlint-disable-next-line typescript/consistent-return
-    return { message: `${String(field)}: ${issue.message}` };
-  },
-});
-
 export const validateSchema =
   <T extends ZodType>(schema: T, operation?: SecurityOperation) =>
   async (req: Request, res: Response<unknown, { input: z.output<T> }>, next: NextFunction) => {

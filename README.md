@@ -66,56 +66,9 @@ Navigate to the folder.
 $ cd eino-backend/
 ```
 
-Create `.env` file.
+Create `.env` file from the example and fill in the values. See the comments in [`.env.example`](.env.example) for what each variable does.
 ```
-$ touch .env
-```
-
-Fill `.env` file with these env variables:
-
-```
-# Database connection 
-DATABASE_URL=postgresql://<username>:<password>@database:5432/eino
-
-# Credentials for docker postgres
-# Make sure the credentials are the same as in DATABASE_URL
-POSTGRES_USER=<username>
-POSTGRES_PASSWORD=<password>
-POSTGRES_DB=eino
-
-# Credentials for the admin account created by `npm run create-admin`
-# Can be removed after the account exists
-ADMIN_USERNAME=
-ADMIN_PASSWORD=
-
-# 5000 is default app port
-PORT=5000
-
-# Optional, used for searching movie posters
-TMDB_API_KEY=
-
-# All three options are optional as by default emails are logged to console
-# Sender and Mailtrap token are required if you want to send emails in production
-EMAIL_SENDER=no-reply@example.com
-EMAIL_MAILTRAP_TOKEN=
-EMAIL_MAILTRAP_TEST_INBOX_ID=
-
-# Optional, send audit logs to Discord channel
-DISCORD_AUDIT_LOG_WEBHOOK_URL=https://discord.com/api/webhooks/...
-
-# Use jwtsecret.sh to generate two distinct secrets
-ACCESS_TOKEN_SECRET=
-REFRESH_TOKEN_SECRET=
-
-# Positive whole seconds (3600) or a whole-number duration using s, m, h, d, or w
-ACCESS_TOKEN_VALIDITY=1h
-REFRESH_TOKEN_VALIDITY=1d
-
-# Maximum size for JSON request bodies
-REQUEST_BODY_MAX_SIZE=10mb
-
-# Books and movies have max count to prevent abuse
-USER_LIST_ITEM_MAX_COUNT=100000
+$ cp .env.example .env
 ```
 
 > [!NOTE]

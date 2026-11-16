@@ -240,10 +240,10 @@ export const isEmailVerified = async (t: ITask<unknown>, email: string): Promise
 export const updatePassword = async (
   t: ITask<unknown>,
   {
-    email,
+    userId,
     newPassword,
   }: {
-    email: string;
+    userId: string;
     newPassword: string;
   },
 ): Promise<void> => {
@@ -251,8 +251,8 @@ export const updatePassword = async (
   await t.none({
     text: `UPDATE users
              SET password = $1
-             WHERE email = $2`,
-    values: [hashedPassword, email],
+             WHERE user_id = $2`,
+    values: [hashedPassword, userId],
   });
 };
 

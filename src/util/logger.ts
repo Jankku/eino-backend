@@ -21,7 +21,10 @@ export const Logger = createLogger({
   transports: [new transports.Console()],
 });
 
-Logger.on('error', () => {});
+// Winston throws on unhandled transport errors; report them without crashing.
+Logger.on('error', (error) => {
+  process.stderr.write(`Logger transport error: ${inspect(error)}\n`);
+});
 
 export const logError = (error: unknown): void => {
   Logger.error(error instanceof Error ? (error.stack ?? error.message) : inspect(error));

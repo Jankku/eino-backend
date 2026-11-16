@@ -15,6 +15,9 @@ import { createProfilePictureDir } from './util/profilepicture.ts';
 import { initRoleMap } from './db/role.ts';
 import { closeShareImagePool } from './util/shareimagepool.ts';
 import { createServer } from 'node:http';
+import { configureZod } from './util/zod.ts';
+
+configureZod();
 
 type ApplicationState = 'starting' | 'ready' | 'draining';
 

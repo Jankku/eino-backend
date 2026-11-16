@@ -498,7 +498,7 @@ export const resetPassword = async (
         });
       }
 
-      await updatePassword(t, { email, newPassword });
+      await updatePassword(t, { userId: user.user_id, newPassword });
       await deleteVerifications(t, { userId: user.user_id, type: 'password_reset' });
       await addAudit(t, {
         actor_user_id: user.user_id,
