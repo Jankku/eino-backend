@@ -8,6 +8,7 @@ import * as zxcvbnFi from '@zxcvbn-ts/language-fi';
 import type { User } from '../db/users.ts';
 import { roleIdToName } from './role.ts';
 import { jwtConstants } from './jwtconstants.ts';
+import { SecurityErrorWithStatus } from './errorhandler.ts';
 
 const { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, ACCESS_TOKEN_VALIDITY, REFRESH_TOKEN_VALIDITY } =
   config;
@@ -50,11 +51,7 @@ type RefreshTokenPayload = { sub: string; ver: number };
 
 const tokenClaimsSchema = z.object({ sub: z.uuid(), ver: z.int().nonnegative() });
 
-/**
-Reads the user id and the token version the token was issued with.
-The version must match the user's current `token_version`, or the token is revoked.
-*/
-export const getTokenClaims = (
+const getTokenClaims = (
   payload: jwt.JwtPayload | string,
 ): { userId: string; tokenVersion: number } => {
   const claims = tokenClaimsSchema.safeParse(typeof payload === 'string' ? undefined : payload);
@@ -62,6 +59,33 @@ export const getTokenClaims = (
     throw new jwt.JsonWebTokenError('Invalid token claims');
   }
   return { userId: claims.data.sub, tokenVersion: claims.data.ver };
+};
+
+/**
+Verifies the token and reads the user id and the token version it was issued with.
+The version must match the user's current `token_version`, or the token is revoked.
+An invalid or expired token throws a 401 error.
+*/
+export const verifyTokenClaims = (
+  token: string,
+  secret: string,
+  { name, operation }: { name: string; operation: 'access_token' | 'refresh_token' },
+): { userId: string; tokenVersion: number } => {
+  try {
+    return getTokenClaims(
+      jwt.verify(token, secret, {
+        algorithms: [jwtConstants.ALGORITHM],
+        audience: jwtConstants.AUDIENCE,
+        issuer: jwtConstants.ISSUER,
+      }),
+    );
+  } catch (error) {
+    if (!(error instanceof jwt.JsonWebTokenError)) throw error;
+    throw new SecurityErrorWithStatus(401, name, error.message, {
+      operation,
+      reason: error instanceof jwt.TokenExpiredError ? 'expired_token' : 'invalid_token',
+    });
+  }
 };
 
 export const generateRefreshToken = (user: User): string =>

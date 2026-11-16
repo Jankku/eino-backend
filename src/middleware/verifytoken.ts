@@ -1,15 +1,12 @@
 import type { NextFunction, Request } from 'express';
-import jwt from 'jsonwebtoken';
-import { z, ZodError } from 'zod';
+import { z } from 'zod';
 import { config } from '../config.ts';
-import { ErrorWithStatus, SecurityErrorWithStatus } from '../util/errorhandler.ts';
+import { SecurityErrorWithStatus } from '../util/errorhandler.ts';
 import { formatZodErrors, type TypedResponse } from '../util/zod.ts';
-import { getTokenClaims } from '../util/auth.ts';
+import { verifyTokenClaims } from '../util/auth.ts';
 import { db } from '../db/config.ts';
 import { findUserById } from '../db/users.ts';
 import { roleIdToName } from '../util/role.ts';
-import { jwtConstants } from '../util/jwtconstants.ts';
-import { logError } from '../util/logger.ts';
 import { auditSecurityFailureAfterResponse } from '../util/securityaudit.ts';
 
 const tokenSchema = z.object({
@@ -32,61 +29,40 @@ const tokenSchema = z.object({
 Verifies that user's access token is valid
 */
 export const verifyToken = async (req: Request, res: TypedResponse, next: NextFunction) => {
-  try {
-    const accessToken = tokenSchema.parse(req).headers.authorization;
-    const { userId, tokenVersion } = getTokenClaims(
-      jwt.verify(accessToken, config.ACCESS_TOKEN_SECRET, {
-        algorithms: [jwtConstants.ALGORITHM],
-        audience: jwtConstants.AUDIENCE,
-        issuer: jwtConstants.ISSUER,
-      }),
-    );
-    const user = await db.task((t) => findUserById(t, userId));
-    if (!user) {
-      throw new SecurityErrorWithStatus(401, 'authorization_error', 'Account no longer exists', {
-        operation: 'access_token',
-        reason: 'account_not_found',
-        targetUserId: userId,
-      });
-    }
-    if (user.token_version !== tokenVersion) {
-      throw new SecurityErrorWithStatus(401, 'authorization_error', 'Token revoked', {
-        operation: 'access_token',
-        reason: 'revoked_token',
-        targetUserId: userId,
-      });
-    }
-
-    res.locals.userId = user.user_id;
-    res.locals.username = user.username;
-    res.locals.role = roleIdToName(user.role_id);
-    res.locals.isDisabled = !!user.disabled_on;
-    next();
-  } catch (error) {
-    if (error instanceof ZodError) {
-      auditSecurityFailureAfterResponse(req, res, {
-        operation: 'access_token',
-        reason: 'invalid_authorization_header',
-      });
-      next(formatZodErrors(error));
-    } else if (error instanceof ErrorWithStatus) {
-      next(error);
-    } else if (error instanceof jwt.JsonWebTokenError) {
-      next(
-        new SecurityErrorWithStatus(401, 'authorization_error', error.message, {
-          operation: 'access_token',
-          reason: error instanceof jwt.TokenExpiredError ? 'expired_token' : 'invalid_token',
-        }),
-      );
-    } else {
-      logError(error);
-      next(
-        new ErrorWithStatus(
-          500,
-          'authorization_error',
-          'Unknown error while trying to verify user status',
-        ),
-      );
-    }
+  const header = tokenSchema.safeParse(req);
+  if (!header.success) {
+    auditSecurityFailureAfterResponse(req, res, {
+      operation: 'access_token',
+      reason: 'invalid_authorization_header',
+    });
+    next(formatZodErrors(header.error));
+    return;
   }
+
+  const { userId, tokenVersion } = verifyTokenClaims(
+    header.data.headers.authorization,
+    config.ACCESS_TOKEN_SECRET,
+    { name: 'authorization_error', operation: 'access_token' },
+  );
+  const user = await db.task((t) => findUserById(t, userId));
+  if (!user) {
+    throw new SecurityErrorWithStatus(401, 'authorization_error', 'Account no longer exists', {
+      operation: 'access_token',
+      reason: 'account_not_found',
+      targetUserId: userId,
+    });
+  }
+  if (user.token_version !== tokenVersion) {
+    throw new SecurityErrorWithStatus(401, 'authorization_error', 'Token revoked', {
+      operation: 'access_token',
+      reason: 'revoked_token',
+      targetUserId: userId,
+    });
+  }
+
+  res.locals.userId = user.user_id;
+  res.locals.username = user.username;
+  res.locals.role = roleIdToName(user.role_id);
+  res.locals.isDisabled = !!user.disabled_on;
+  next();
 };

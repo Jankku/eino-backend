@@ -1,6 +1,5 @@
 import type { ITask } from 'pg-promise';
 import { generatePasswordHash, verifyPassword } from '../util/password.ts';
-import { logError } from '../util/logger.ts';
 import { getProfilePicturePathByFileName } from '../util/profilepicture.ts';
 import { roleIdToName } from '../util/role.ts';
 import { getPage } from './pagination.ts';
@@ -111,18 +110,6 @@ export const upgradePassword = async (
     values: [newHash, userId, originalHash],
   });
   if (result.rowCount !== 1) throw new Error('Password upgrade could not be saved');
-};
-
-export const findUserByUsername = async (
-  t: ITask<unknown>,
-  username: string,
-): Promise<User | null | undefined> => {
-  return await t.oneOrNone({
-    text: `SELECT *
-           FROM users
-           WHERE username = $1`,
-    values: [username],
-  });
 };
 
 export const findUserByEmailForUpdate = async (
@@ -237,52 +224,11 @@ export const isPasswordCorrect = async (
 };
 
 export const isUserUnique = async (t: ITask<unknown>, username: string): Promise<boolean> => {
-  try {
-    const result = await t.result({
-      text: `SELECT username
-           FROM users
-           WHERE username = $1`,
-      values: [username],
-    });
-    return result.rowCount === 0;
-  } catch (error) {
-    logError(error);
-    return false;
-  }
-};
-
-export const isEmailUnique = async (t: ITask<unknown>, email: string): Promise<boolean> => {
-  try {
-    const result = await t.result({
-      text: `SELECT email
-           FROM users
-           WHERE email = $1`,
-      values: [email],
-    });
-    return result.rowCount === 0;
-  } catch (error) {
-    logError(error);
-    return false;
-  }
-};
-
-export const isEmailUniqueExcludeUserId = async (
-  t: ITask<unknown>,
-  userId: string,
-  email: string,
-): Promise<boolean> => {
-  try {
-    const result = await t.result<{ username: string; email: string }>({
-      text: `SELECT username, email
-           FROM users
-           WHERE email = $1 AND user_id != $2`,
-      values: [email, userId],
-    });
-    return result.rowCount === 0;
-  } catch (error) {
-    logError(error);
-    return false;
-  }
+  const result = await t.result({
+    text: 'SELECT 1 FROM users WHERE username = $1',
+    values: [username],
+  });
+  return result.rowCount === 0;
 };
 
 /**

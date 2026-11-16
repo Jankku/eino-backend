@@ -7,8 +7,6 @@ import {
   optionalEmailSchema,
   usernameSchema,
 } from '../../util/zodschema.ts';
-import { db } from '../../db/config.ts';
-import { isEmailUniqueExcludeUserId } from '../../db/users.ts';
 import { bulletinConditions, bulletinTypes, bulletinVisibilities } from '../../db/bulletins.ts';
 
 const overviewDateSchema = z.iso.date().refine((value) => !value.startsWith('0000'), {
@@ -38,33 +36,19 @@ export const overviewSchema = z.object({
     }),
 });
 
-export const editUserSchema = z
-  .object({
-    params: z.object({
-      userId: z.uuid(errorMessages.UUID_INVALID),
-    }),
-    body: z.object({
-      username: usernameSchema,
-      email: optionalEmailSchema,
-      email_verified_on: dateSchema.nullable(),
-      role_id: z.int().positive(),
-      profile_picture_path: z.string().nullable(),
-      totp_enabled_on: dateSchema.nullable(),
-    }),
-  })
-  .refine(
-    async (data) => {
-      return data.body.email
-        ? await db.task(
-            async (t) => await isEmailUniqueExcludeUserId(t, data.params.userId, data.body.email!),
-          )
-        : true;
-    },
-    {
-      params: { name: 'admin_error' },
-      error: errorMessages.EMAIL_ALREADY_USED,
-    },
-  );
+export const editUserSchema = z.object({
+  params: z.object({
+    userId: z.uuid(errorMessages.UUID_INVALID),
+  }),
+  body: z.object({
+    username: usernameSchema,
+    email: optionalEmailSchema,
+    email_verified_on: dateSchema.nullable(),
+    role_id: z.int32().positive(),
+    profile_picture_path: z.string().nullable(),
+    totp_enabled_on: dateSchema.nullable(),
+  }),
+});
 
 export const enableUserSchema = z.object({
   params: z.object({

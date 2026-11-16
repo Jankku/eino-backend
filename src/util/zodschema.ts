@@ -19,14 +19,15 @@ export const fixedStringSchema = z.string().min(0).max(255);
 
 export const fixedNonEmptyStringSchema = z.string().min(1).max(255);
 
-export const nonnegativeNumberSchema = z.number().nonnegative();
+// Stored in Postgres INTEGER columns.
+export const nonnegativeIntegerSchema = z.int32().nonnegative();
 
-export const listIdSchema = z.string({
+export const listIdSchema = z.uuid({
   error: (issue) =>
-    issue.input === undefined ? errorMessages.LIST_ID_REQUIRED : errorMessages.LIST_ID_TYPE_ERROR,
+    issue.input === undefined ? errorMessages.LIST_ID_REQUIRED : errorMessages.UUID_INVALID,
 });
 
-export const scoreSchema = z.number().min(0).max(10);
+export const scoreSchema = z.int().min(0).max(10);
 
 export const coverUrlSchema = z.union([
   z.url({

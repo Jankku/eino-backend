@@ -241,6 +241,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /admin/users/{id}/disable:
     post:
       summary: Disable user account
@@ -275,6 +277,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /admin/users/{id}/sessions/revoke:
     post:
       summary: Revoke all sessions of a user account
@@ -346,6 +350,11 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
     delete:
       summary: Delete user account
       security:
@@ -379,6 +388,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /auth/register:
     post:
       tags:
@@ -418,6 +429,8 @@ paths:
                 $ref: '#/components/schemas/ApiError'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /auth/login:
     post:
       tags:
@@ -772,6 +785,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '409':
+          $ref: '#/components/responses/Conflict'
   /email/sendconfirmation:
     post:
       tags:
@@ -1186,6 +1201,7 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
       tags:
         - books
       summary: Get book by ID
@@ -1206,6 +1222,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /list/books/search:
     get:
       tags:
@@ -1307,6 +1325,7 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
       requestBody:
         required: true
         content:
@@ -1328,6 +1347,8 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /list/books/delete/{id}:
     delete:
       tags:
@@ -1341,6 +1362,7 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
       responses:
         '200':
           description: Book deleted successfully
@@ -1356,6 +1378,8 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /list/movies/count:
     get:
       tags:
@@ -1453,6 +1477,7 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
       tags:
         - movies
       summary: Get movie by ID
@@ -1473,6 +1498,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /list/movies/search:
     get:
       tags:
@@ -1574,6 +1601,7 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
       requestBody:
         required: true
         content:
@@ -1595,6 +1623,8 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /list/movies/delete/{id}:
     delete:
       tags:
@@ -1608,6 +1638,7 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
       responses:
         '200':
           description: Movie deleted successfully
@@ -1623,6 +1654,8 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /share/{id}:
     get:
       parameters:
@@ -1644,12 +1677,8 @@ paths:
                 format: binary
         '500':
           $ref: '#/components/responses/InternalServerError'
-        '422':
-          description: Invalid share ID or share image not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /profilepicture/{fileName}.avif:
     get:
       parameters:
@@ -1670,13 +1699,15 @@ paths:
                 type: string
                 format: binary
         '422':
-          description: Couldn't get profile picture
+          description: Invalid file extension
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /bulletins/public:
     get:
       tags:
@@ -1805,6 +1836,9 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
     delete:
       tags:
         - admin
@@ -1833,6 +1867,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '422':
           $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /list/books/search/isbn/{isbn}:
     get:
       tags:
@@ -2064,16 +2100,18 @@ components:
         image_url:
           $ref: '#/components/schemas/CoverUrl'
         pages:
-          type: number
+          type: integer
           minimum: 0
+          maximum: 2147483647
         year:
-          type: number
+          type: integer
           minimum: 0
+          maximum: 2147483647
         status:
           type: string
           enum: [completed, reading, on-hold, dropped, planned]
         score:
-          type: number
+          type: integer
           minimum: 0
           maximum: 10
         start_date:
@@ -2116,16 +2154,18 @@ components:
         image_url:
           $ref: '#/components/schemas/CoverUrl'
         duration:
-          type: number
+          type: integer
           minimum: 0
+          maximum: 2147483647
         year:
-          type: number
+          type: integer
           minimum: 0
+          maximum: 2147483647
         status:
           type: string
           enum: [completed, watching, on-hold, dropped, planned]
         score:
-          type: number
+          type: integer
           minimum: 0
           maximum: 10
         start_date:
@@ -3386,6 +3426,18 @@ components:
       description:
         Invalid body, path, query, or Authorization header, or an operation-specific validation
         failure. Errors contain required name and message fields.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    NotFound:
+      description: The requested resource doesn't exist.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Conflict:
+      description: The request conflicts with an existing resource, such as a taken username or email.
       content:
         application/json:
           schema:

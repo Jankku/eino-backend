@@ -10,7 +10,6 @@ export const errorMessages = {
   REFRESHTOKEN_REQUIRED: 'refreshToken required',
   LIST_STATUS_INVALID: 'Invalid status',
   LIST_ID_REQUIRED: 'Id required',
-  LIST_ID_TYPE_ERROR: 'Id must be a string',
   SEARCH_QUERY_TYPE_ERROR: 'Query must be a string',
   EMAIL_REQUIRED: 'Email required',
   EMAIL_INVALID: 'Invalid email',

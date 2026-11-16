@@ -1,9 +1,8 @@
-import type { Request, NextFunction } from 'express';
+import type { Request } from 'express';
 import type { TypedResponse } from '../util/zod.ts';
 import { success } from '../util/response.ts';
-import { ErrorWithStatus } from '../util/errorhandler.ts';
 import { db } from '../db/config.ts';
-import { Logger, logError } from '../util/logger.ts';
+import { Logger } from '../util/logger.ts';
 import {
   type BulletinCondition,
   getAuthenticatedBulletins,
@@ -14,61 +13,51 @@ import {
 import { getUserById } from '../db/users.ts';
 import { DateTime } from 'luxon';
 
-export const publicBulletins = async (_: Request, res: TypedResponse, next: NextFunction) => {
-  try {
-    const bulletins = await db.task('publicBulletins', async (t) => await getPublicBulletins(t));
-    res.status(200).json(success(bulletins));
-  } catch (error) {
-    logError(error);
-    next(new ErrorWithStatus(500, 'bulletin_error', 'Unknown error while trying to get bulletins'));
-  }
+export const publicBulletins = async (_: Request, res: TypedResponse) => {
+  const bulletins = await db.task('publicBulletins', async (t) => await getPublicBulletins(t));
+  res.status(200).json(success(bulletins));
 };
 
-export const userBulletins = async (_: Request, res: TypedResponse, next: NextFunction) => {
+export const userBulletins = async (_: Request, res: TypedResponse) => {
   const userId = res.locals.userId;
-  try {
-    const bulletins = await db.task('userBulletins', async (t) => {
-      let bulletins = await getPublicBulletins(t);
+  const bulletins = await db.task('userBulletins', async (t) => {
+    let bulletins = await getPublicBulletins(t);
 
-      const authenticatedBulletins = await getAuthenticatedBulletins(t);
-      const userBulletins = await getUserBulletins(t, userId);
-      bulletins = [...bulletins, ...authenticatedBulletins, ...userBulletins];
+    const authenticatedBulletins = await getAuthenticatedBulletins(t);
+    const userBulletins = await getUserBulletins(t, userId);
+    bulletins = [...bulletins, ...authenticatedBulletins, ...userBulletins];
 
-      const conditionBulletins = await getConditionBulletins(t);
-      if (conditionBulletins.length === 0) return bulletins;
+    const conditionBulletins = await getConditionBulletins(t);
+    if (conditionBulletins.length === 0) return bulletins;
 
-      const user = await getUserById(t, userId);
+    const user = await getUserById(t, userId);
 
-      const isConditionMet = (condition: BulletinCondition | null): boolean => {
-        switch (condition) {
-          case '2fa_not_enabled': {
-            return !user.totp_enabled_on;
-          }
-          case 'email_not_verified': {
-            return Boolean(user.email && !user.email_verified_on);
-          }
-          case 'account_anniversary': {
-            const diff = DateTime.now().diff(DateTime.fromJSDate(user.created_on), 'days');
-            return Math.trunc(diff.days) % 365 === 0;
-          }
-          default: {
-            Logger.warn(`Unknown bulletin condition: ${condition}`);
-            return false;
-          }
+    const isConditionMet = (condition: BulletinCondition | null): boolean => {
+      switch (condition) {
+        case '2fa_not_enabled': {
+          return !user.totp_enabled_on;
         }
-      };
+        case 'email_not_verified': {
+          return Boolean(user.email && !user.email_verified_on);
+        }
+        case 'account_anniversary': {
+          const diff = DateTime.now().diff(DateTime.fromJSDate(user.created_on), 'days');
+          return Math.trunc(diff.days) % 365 === 0;
+        }
+        default: {
+          Logger.warn(`Unknown bulletin condition: ${condition}`);
+          return false;
+        }
+      }
+    };
 
-      const applicableConditionBulletins = conditionBulletins.filter(({ condition }) =>
-        isConditionMet(condition),
-      );
-      bulletins = [...bulletins, ...applicableConditionBulletins];
+    const applicableConditionBulletins = conditionBulletins.filter(({ condition }) =>
+      isConditionMet(condition),
+    );
+    bulletins = [...bulletins, ...applicableConditionBulletins];
 
-      return bulletins;
-    });
+    return bulletins;
+  });
 
-    res.status(200).json(success(bulletins));
-  } catch (error) {
-    logError(error);
-    next(new ErrorWithStatus(500, 'bulletin_error', 'Unknown error while trying to get bulletins'));
-  }
+  res.status(200).json(success(bulletins));
 };

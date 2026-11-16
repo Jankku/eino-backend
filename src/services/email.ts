@@ -1,9 +1,8 @@
-import type { NextFunction, Request } from 'express';
+import type { Request } from 'express';
 import { success } from '../util/response.ts';
 import { ErrorWithStatus, SecurityErrorWithStatus } from '../util/errorhandler.ts';
 import { generateTOTP, validateEmailOTP, validateTOTP } from '../util/totp.ts';
 import { addVerification, deleteVerifications, findVerification } from '../db/verification.ts';
-import { logError } from '../util/logger.ts';
 import {
   getUserByIdForUpdate,
   isEmailAlreadyUsed,
@@ -20,236 +19,192 @@ import { confirmEmailTemplate } from '../util/emailtemplates.ts';
 import { db } from '../db/config.ts';
 import { addAudit } from '../db/audit.ts';
 
-export const updateEmail = async (
-  _: Request,
-  res: TypedResponse<typeof updateEmailSchema>,
-  next: NextFunction,
-) => {
+export const updateEmail = async (_: Request, res: TypedResponse<typeof updateEmailSchema>) => {
   const { userId, username } = res.locals;
   const { email, twoFactorCode } = res.locals.input.body;
-  try {
-    const result = await db.tx('updateEmail', async (t) => {
-      const user = await getUserByIdForUpdate(t, userId);
+  const result = await db.tx('updateEmail', async (t) => {
+    const user = await getUserByIdForUpdate(t, userId);
 
-      if (user.totp_enabled_on) {
-        if (!twoFactorCode) {
-          throw new SecurityErrorWithStatus(422, 'update_email_error', 'Two-factor code required', {
-            operation: 'email_update',
-            reason: 'otp_required',
-            targetUserId: userId,
-          });
-        }
-
-        const twoFactorVerification = await findVerification(t, {
-          userId,
-          type: '2fa',
+    if (user.totp_enabled_on) {
+      if (!twoFactorCode) {
+        throw new SecurityErrorWithStatus(422, 'update_email_error', 'Two-factor code required', {
+          operation: 'email_update',
+          reason: 'otp_required',
+          targetUserId: userId,
         });
-        if (
-          !twoFactorVerification ||
-          !validateTOTP({ otp: twoFactorCode, ...twoFactorVerification })
-        ) {
-          throw new SecurityErrorWithStatus(
-            422,
-            'update_email_error',
-            'Incorrect two-factor code',
-            { operation: 'email_update', reason: 'invalid_otp', targetUserId: userId },
-          );
-        }
       }
 
-      // Codes sent to the previous address must not verify a new one.
-      await deleteVerifications(t, { userId, type: 'email' });
-
-      if (!email) {
-        await updateEmailAddress(t, { userId, email: undefined });
-        await addAudit(t, {
-          actor_user_id: res.locals.userId,
-          username,
-          action: 'email_updated',
-          old_data: { email: user.email },
-          new_data: { email: undefined },
+      const twoFactorVerification = await findVerification(t, {
+        userId,
+        type: '2fa',
+      });
+      if (
+        !twoFactorVerification ||
+        !validateTOTP({ otp: twoFactorCode, ...twoFactorVerification })
+      ) {
+        throw new SecurityErrorWithStatus(422, 'update_email_error', 'Incorrect two-factor code', {
+          operation: 'email_update',
+          reason: 'invalid_otp',
+          targetUserId: userId,
         });
-        return { name: 'email_removed', message: 'Email successfully removed' };
       }
+    }
 
-      const isEmailUsed = await isEmailAlreadyUsed(t, { userId, email });
-      if (isEmailUsed) {
-        throw new ErrorWithStatus(422, 'email_already_used', 'Email is already in use');
-      }
+    // Codes sent to the previous address must not verify a new one.
+    await deleteVerifications(t, { userId, type: 'email' });
 
-      const isVerified = await isEmailVerified(t, email);
-      if (isVerified) {
-        return { name: 'email_already_verified', message: 'Email is already verified' };
-      }
-
-      await updateEmailAddress(t, { userId, email });
+    if (!email) {
+      await updateEmailAddress(t, { userId, email: undefined });
       await addAudit(t, {
         actor_user_id: res.locals.userId,
         username,
         action: 'email_updated',
         old_data: { email: user.email },
-        new_data: { email },
+        new_data: { email: undefined },
       });
-      return { name: 'email_updated', message: 'Email updated' };
-    });
-
-    res.status(200).json(success([result]));
-  } catch (error) {
-    if (error instanceof ErrorWithStatus) {
-      next(error);
-    } else {
-      logError(error);
-      next(new ErrorWithStatus(500, 'update_email_error', "Couldn't update email"));
+      return { name: 'email_removed', message: 'Email successfully removed' };
     }
-  }
+
+    const isEmailUsed = await isEmailAlreadyUsed(t, { userId, email });
+    if (isEmailUsed) {
+      throw new ErrorWithStatus(409, 'email_already_used', 'Email is already in use');
+    }
+
+    const isVerified = await isEmailVerified(t, email);
+    if (isVerified) {
+      return { name: 'email_already_verified', message: 'Email is already verified' };
+    }
+
+    await updateEmailAddress(t, { userId, email });
+    await addAudit(t, {
+      actor_user_id: res.locals.userId,
+      username,
+      action: 'email_updated',
+      old_data: { email: user.email },
+      new_data: { email },
+    });
+    return { name: 'email_updated', message: 'Email updated' };
+  });
+
+  res.status(200).json(success([result]));
 };
 
-export const sendConfirmationEmail = async (
-  _req: Request,
-  res: TypedResponse,
-  next: NextFunction,
-) => {
+export const sendConfirmationEmail = async (_req: Request, res: TypedResponse) => {
   const { userId, username } = res.locals;
 
-  try {
-    await db.tx('sendConfirmationEmail', async (t) => {
-      // Locked so concurrent requests replace the code one after another.
-      const user = await getUserByIdForUpdate(t, userId);
+  await db.tx('sendConfirmationEmail', async (t) => {
+    // Locked so concurrent requests replace the code one after another.
+    const user = await getUserByIdForUpdate(t, userId);
 
-      if (!user.email) {
-        throw new ErrorWithStatus(422, 'email_error', "Couldn't send confirmation email");
-      }
+    if (!user.email) {
+      throw new ErrorWithStatus(422, 'email_error', "Couldn't send confirmation email");
+    }
 
-      const isVerified = await isEmailVerified(t, user.email);
-      if (isVerified) {
-        throw new ErrorWithStatus(422, 'email_already_verified', 'Email already verified');
-      }
+    const isVerified = await isEmailVerified(t, user.email);
+    if (isVerified) {
+      throw new ErrorWithStatus(422, 'email_already_verified', 'Email already verified');
+    }
 
-      const totp = generateTOTP({
-        label: user.email,
-        period: 60 * 15, // 15 minutes
-      });
-
-      await deleteVerifications(t, { userId, type: 'email' });
-      await addVerification(t, {
-        ...totp,
-        user_id: userId,
-        type: 'email',
-        target: totp.label,
-        expires_on: DateTime.now().plus({ minutes: 15 }).toJSDate(),
-      });
-
-      const emailResponse = await sendEmail({
-        recipient: user.email,
-        template: confirmEmailTemplate(totp.otp),
-      });
-
-      if (!emailResponse.success) {
-        throw new ErrorWithStatus(424, 'email_error', "Couldn't send confirmation email");
-      }
-
-      await addAudit(t, {
-        actor_user_id: res.locals.userId,
-        username,
-        action: 'email_verification_email_sent',
-      });
+    const totp = generateTOTP({
+      label: user.email,
+      period: 60 * 15, // 15 minutes
     });
 
-    res
-      .status(200)
-      .json(
-        success([
-          { name: 'email_pending_verification', message: 'Verification code sent to email' },
-        ]),
-      );
-  } catch (error) {
-    if (error instanceof ErrorWithStatus) {
-      next(error);
-    } else {
-      logError(error);
-      next(new ErrorWithStatus(500, 'email_error', "Couldn't send confirmation email"));
+    await deleteVerifications(t, { userId, type: 'email' });
+    await addVerification(t, {
+      ...totp,
+      user_id: userId,
+      type: 'email',
+      target: totp.label,
+      expires_on: DateTime.now().plus({ minutes: 15 }).toJSDate(),
+    });
+
+    const emailResponse = await sendEmail({
+      recipient: user.email,
+      template: confirmEmailTemplate(totp.otp),
+    });
+
+    if (!emailResponse.success) {
+      throw new ErrorWithStatus(424, 'email_error', "Couldn't send confirmation email");
     }
-  }
+
+    await addAudit(t, {
+      actor_user_id: res.locals.userId,
+      username,
+      action: 'email_verification_email_sent',
+    });
+  });
+
+  res
+    .status(200)
+    .json(
+      success([{ name: 'email_pending_verification', message: 'Verification code sent to email' }]),
+    );
 };
 
-export const verifyEmail = async (
-  _: Request,
-  res: TypedResponse<typeof verifyEmailSchema>,
-  next: NextFunction,
-) => {
+export const verifyEmail = async (_: Request, res: TypedResponse<typeof verifyEmailSchema>) => {
   const { userId, username } = res.locals;
   const { otp } = res.locals.input.body;
 
-  try {
-    await db.tx('verifyEmail', async (t) => {
-      // Locked so a code can be used only once.
-      const user = await getUserByIdForUpdate(t, userId);
+  await db.tx('verifyEmail', async (t) => {
+    // Locked so a code can be used only once.
+    const user = await getUserByIdForUpdate(t, userId);
 
-      if (!user.email) {
-        throw new SecurityErrorWithStatus(
-          422,
-          'email_verification_error',
-          "Couldn't verify email",
-          { operation: 'email_verify', reason: 'email_missing', targetUserId: userId },
-        );
-      }
-
-      const verification = await findVerification(t, {
-        userId,
-        type: 'email',
-        target: user.email,
+    if (!user.email) {
+      throw new SecurityErrorWithStatus(422, 'email_verification_error', "Couldn't verify email", {
+        operation: 'email_verify',
+        reason: 'email_missing',
+        targetUserId: userId,
       });
-      if (!verification) {
-        throw new SecurityErrorWithStatus(
-          422,
-          'email_verification_error',
-          'Invalid one-time password',
-          {
-            operation: 'email_verify',
-            reason: 'verification_missing',
-            targetUserId: userId,
-          },
-        );
-      }
-
-      if (verification.expires_on && isVerificationExpired(verification.expires_on)) {
-        await deleteVerifications(t, { userId, type: 'email' });
-        throw new SecurityErrorWithStatus(
-          422,
-          'email_verification_expired',
-          'Verification expired',
-          { operation: 'email_verify', reason: 'verification_expired', targetUserId: userId },
-        );
-      }
-
-      if (!validateEmailOTP({ otp, ...verification })) {
-        throw new SecurityErrorWithStatus(
-          422,
-          'email_verification_error',
-          'Invalid one-time password',
-          { operation: 'email_verify', reason: 'invalid_otp', targetUserId: userId },
-        );
-      }
-
-      await deleteVerifications(t, { userId, type: 'email' });
-      await updateEmailVerifiedTimestamp(t, user.email);
-      await addAudit(t, {
-        actor_user_id: res.locals.userId,
-        username,
-        action: 'email_verified',
-        old_data: { email: user.email },
-      });
-    });
-
-    res
-      .status(200)
-      .json(success([{ name: 'email_verified', message: 'Email successfully verified' }]));
-  } catch (error) {
-    if (error instanceof ErrorWithStatus) {
-      next(error);
-    } else {
-      logError(error);
-      next(new ErrorWithStatus(500, 'email_verification_error', "Couldn't verify email"));
     }
-  }
+
+    const verification = await findVerification(t, {
+      userId,
+      type: 'email',
+      target: user.email,
+    });
+    if (!verification) {
+      throw new SecurityErrorWithStatus(
+        422,
+        'email_verification_error',
+        'Invalid one-time password',
+        {
+          operation: 'email_verify',
+          reason: 'verification_missing',
+          targetUserId: userId,
+        },
+      );
+    }
+
+    if (verification.expires_on && isVerificationExpired(verification.expires_on)) {
+      await deleteVerifications(t, { userId, type: 'email' });
+      throw new SecurityErrorWithStatus(422, 'email_verification_expired', 'Verification expired', {
+        operation: 'email_verify',
+        reason: 'verification_expired',
+        targetUserId: userId,
+      });
+    }
+
+    if (!validateEmailOTP({ otp, ...verification })) {
+      throw new SecurityErrorWithStatus(
+        422,
+        'email_verification_error',
+        'Invalid one-time password',
+        { operation: 'email_verify', reason: 'invalid_otp', targetUserId: userId },
+      );
+    }
+
+    await deleteVerifications(t, { userId, type: 'email' });
+    await updateEmailVerifiedTimestamp(t, user.email);
+    await addAudit(t, {
+      actor_user_id: res.locals.userId,
+      username,
+      action: 'email_verified',
+      old_data: { email: user.email },
+    });
+  });
+
+  res
+    .status(200)
+    .json(success([{ name: 'email_verified', message: 'Email successfully verified' }]));
 };

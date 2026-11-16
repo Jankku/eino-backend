@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { isEmailUnique, isUserUnique } from '../../db/users.ts';
 import {
   emailSchema,
   optionalEmailSchema,
@@ -12,7 +11,6 @@ import {
 } from '../../util/zodschema.ts';
 import { errorMessages } from '../../util/errormessages.ts';
 import { getPasswordStrength } from '../../util/auth.ts';
-import { db } from '../../db/config.ts';
 
 export const registerSchema = z
   .object({
@@ -27,25 +25,10 @@ export const registerSchema = z
     params: { name: 'authentication_error' },
     error: errorMessages.PASSWORDS_NO_MATCH,
   })
-  .refine(async (data) => await db.task(async (t) => await isUserUnique(t, data.body.username)), {
-    params: { name: 'authentication_error' },
-    error: errorMessages.USER_EXISTS,
-  })
   .refine((data) => !data.body.email || data.body.email?.includes('@'), {
     params: { name: 'authentication_error' },
     error: errorMessages.EMAIL_SHOULD_CONTAIN_AT_SIGN,
   })
-  .refine(
-    async (data) => {
-      return data.body.email
-        ? await db.task(async (t) => await isEmailUnique(t, data.body.email!))
-        : true;
-    },
-    {
-      params: { name: 'authentication_error' },
-      error: errorMessages.EMAIL_ALREADY_USED,
-    },
-  )
   .superRefine(({ body }, ctx) => {
     const { isStrong, error } = getPasswordStrength({
       username: body.username,

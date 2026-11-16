@@ -1,5 +1,4 @@
 import type { NextFunction, Request } from 'express';
-import { logError } from '../util/logger.ts';
 import {
   ftsSearch,
   getAllMovies,
@@ -49,291 +48,205 @@ export const fetchPage = async (
     next();
     return;
   }
-  try {
-    const page = await db.tx({ mode: paginationMode }, async (t) =>
-      getMoviesPage(t, {
-        userId,
-        pagination,
-        listQuery,
-        status: req.params.status ? res.locals.input.params.status : undefined,
-      }),
-    );
-    res.status(200).json(page);
-  } catch (error) {
-    logError(error);
-    next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't find movies"));
-  }
+  const page = await db.tx({ mode: paginationMode }, (t) =>
+    getMoviesPage(t, {
+      userId,
+      pagination,
+      listQuery,
+      status: req.params.status ? res.locals.input.params.status : undefined,
+    }),
+  );
+  res.status(200).json(page);
 };
 
-export const fetchOne = async (
-  _: Request,
-  res: TypedResponse<typeof fetchOneSchema>,
-  next: NextFunction,
-) => {
+export const fetchOne = async (_: Request, res: TypedResponse<typeof fetchOneSchema>) => {
   const { movieId } = res.locals.input.params;
   const userId = res.locals.userId;
 
-  try {
-    const movie = await db.task(
-      'fetchOne',
-      async (t) => await getMovieById(t, { movieId, userId }),
-    );
-    res.status(200).json(success([movie]));
-  } catch (error) {
-    logError(error);
-    next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't find movie"));
-  }
+  const movie = await db.task('fetchOne', async (t) => await getMovieById(t, { movieId, userId }));
+  res.status(200).json(success([movie]));
 };
 
-export const fetchAll = async (req: Request, res: TypedResponse, next: NextFunction) => {
+export const fetchAll = async (req: Request, res: TypedResponse) => {
   const userId = res.locals.userId;
 
-  try {
-    let movies = await db.task('fetchAll', async (t) => await getAllMovies(t, userId));
+  let movies = await db.task('fetchAll', async (t) => await getAllMovies(t, userId));
 
-    const queryParams = movieSortSchema.safeParse(req.query);
-    if (queryParams.success) {
-      const { sort, order, filter } = queryParams.data;
+  const queryParams = movieSortSchema.safeParse(req.query);
+  if (queryParams.success) {
+    const { sort, order, filter } = queryParams.data;
 
-      if (filter) {
-        const itemFilter = getItemFilter({
-          key: filter[0],
-          stringSchema: movieStringKeySchema,
-          numberSchema: movieNumberKeySchema,
-          dateSchema: movieDateKeySchema,
-        });
-        if (itemFilter) {
-          movies = movies.filter((movie) => itemFilter(movie, filter));
-        }
+    if (filter) {
+      const itemFilter = getItemFilter({
+        key: filter[0],
+        stringSchema: movieStringKeySchema,
+        numberSchema: movieNumberKeySchema,
+        dateSchema: movieDateKeySchema,
+      });
+      if (itemFilter) {
+        movies = movies.filter((movie) => itemFilter(movie, filter));
       }
-
-      movies = movies.toSorted((a, b) => itemSorter({ a, b, sort, order }));
     }
 
-    res.status(200).json(success(movies));
-  } catch (error) {
-    logError(error);
-    next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't find movies"));
+    movies = movies.toSorted((a, b) => itemSorter({ a, b, sort, order }));
   }
+
+  res.status(200).json(success(movies));
 };
 
-export const fetchByStatus = async (
-  _: Request,
-  res: TypedResponse<typeof fetchByStatusSchema>,
-  next: NextFunction,
-) => {
+export const fetchByStatus = async (_: Request, res: TypedResponse<typeof fetchByStatusSchema>) => {
   const userId = res.locals.userId;
   const status = res.locals.input.params.status;
 
-  try {
-    let movies = await db.task(
-      'fetchByStatus',
-      async (t) => await getMoviesByStatus(t, { userId, status }),
-    );
+  let movies = await db.task(
+    'fetchByStatus',
+    async (t) => await getMoviesByStatus(t, { userId, status }),
+  );
 
-    const queryParams = res.locals.input.query;
-    if (queryParams) {
-      const { sort, order, filter } = queryParams;
+  const queryParams = res.locals.input.query;
+  if (queryParams) {
+    const { sort, order, filter } = queryParams;
 
-      if (filter) {
-        const itemFilter = getItemFilter({
-          key: filter[0],
-          stringSchema: movieStringKeySchema,
-          numberSchema: movieNumberKeySchema,
-          dateSchema: movieDateKeySchema,
-        });
-        if (itemFilter) {
-          movies = movies.filter((movie) => itemFilter(movie, filter));
-        }
+    if (filter) {
+      const itemFilter = getItemFilter({
+        key: filter[0],
+        stringSchema: movieStringKeySchema,
+        numberSchema: movieNumberKeySchema,
+        dateSchema: movieDateKeySchema,
+      });
+      if (itemFilter) {
+        movies = movies.filter((movie) => itemFilter(movie, filter));
       }
-
-      movies = movies.toSorted((a, b) => itemSorter({ a, b, sort, order }));
     }
 
-    res.status(200).json(success(movies));
-  } catch (error) {
-    logError(error);
-    next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't find movies"));
+    movies = movies.toSorted((a, b) => itemSorter({ a, b, sort, order }));
   }
+
+  res.status(200).json(success(movies));
 };
 
-export const addOne = async (
-  _: Request,
-  res: TypedResponse<typeof addOneSchema>,
-  next: NextFunction,
-) => {
+export const addOne = async (_: Request, res: TypedResponse<typeof addOneSchema>) => {
   const { userId, username } = res.locals;
   const movie = res.locals.input.body;
 
-  try {
-    await db.tx('addOne', async (t) => {
-      const { movie_count } = await getItemCountByUserIdForUpdate(t, userId);
-      const maxItemCount = config.USER_LIST_ITEM_MAX_COUNT;
-      if (movie_count + 1 > maxItemCount) {
-        throw new ErrorWithStatus(422, 'movie_list_error', 'Item count exceeds the maximum count');
-      }
-
-      const movieId = await postMovie(t, movie, userId);
-      await postMovieToUserList(t, movieId, movie);
-      await addAudit(t, {
-        actor_user_id: res.locals.userId,
-        username,
-        action: 'create',
-        table_name: 'movies',
-        record_id: movieId,
-        new_data: movie,
-      });
-    });
-
-    res
-      .status(201)
-      .json(success([{ name: 'movie_added_to_list', message: 'Movie added to list' }]));
-  } catch (error) {
-    if (error instanceof ErrorWithStatus) {
-      next(error);
-      return;
+  await db.tx('addOne', async (t) => {
+    const { movie_count } = await getItemCountByUserIdForUpdate(t, userId);
+    const maxItemCount = config.USER_LIST_ITEM_MAX_COUNT;
+    if (movie_count + 1 > maxItemCount) {
+      throw new ErrorWithStatus(422, 'movie_list_error', 'Item count exceeds the maximum count');
     }
-    logError(error);
-    next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't create movie"));
-  }
+
+    const movieId = await postMovie(t, movie, userId);
+    await postMovieToUserList(t, movieId, movie);
+    await addAudit(t, {
+      actor_user_id: res.locals.userId,
+      username,
+      action: 'create',
+      table_name: 'movies',
+      record_id: movieId,
+      new_data: movie,
+    });
+  });
+
+  res.status(201).json(success([{ name: 'movie_added_to_list', message: 'Movie added to list' }]));
 };
 
-export const updateOne = async (
-  _: Request,
-  res: TypedResponse<typeof updateOneSchema>,
-  next: NextFunction,
-) => {
-  const { movieId } = res.locals.input.params;
+export const updateOne = async (_: Request, res: TypedResponse<typeof updateOneSchema>) => {
   const { userId, username } = res.locals;
+  const { movieId } = res.locals.input.params;
   const movie = res.locals.input.body;
 
-  try {
-    const { updatedMovie } = await db.tx('updateOne', async (t) => {
-      const oldMovie = await getMovieById(t, { movieId, userId });
-      await updateMovie(t, { movie, movieId, userId });
-      const updatedMovie = await getMovieById(t, { movieId, userId });
-      await addAudit(t, {
-        actor_user_id: res.locals.userId,
-        username,
-        action: 'update',
-        table_name: 'movies',
-        record_id: movieId,
-        old_data: oldMovie,
-        new_data: updatedMovie,
-      });
-      return { updatedMovie };
+  const updatedMovie = await db.tx('updateOne', async (t) => {
+    const oldMovie = await getMovieById(t, { movieId, userId });
+    await updateMovie(t, { movie, movieId, userId });
+    const updatedMovie = await getMovieById(t, { movieId, userId });
+    await addAudit(t, {
+      actor_user_id: res.locals.userId,
+      username,
+      action: 'update',
+      table_name: 'movies',
+      record_id: movieId,
+      old_data: oldMovie,
+      new_data: updatedMovie,
     });
-    res.status(200).json(success([updatedMovie]));
-  } catch (error) {
-    logError(error);
-    next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't update movie"));
-  }
+    return updatedMovie;
+  });
+
+  res.status(200).json(success([updatedMovie]));
 };
 
-export const deleteOne = async (
-  _: Request,
-  res: TypedResponse<typeof deleteOneSchema>,
-  next: NextFunction,
-) => {
+export const deleteOne = async (_: Request, res: TypedResponse<typeof deleteOneSchema>) => {
   const { movieId } = res.locals.input.params;
   const { userId, username } = res.locals;
 
-  try {
-    await db.tx('deleteOne', async (t) => {
-      const movie = await getMovieById(t, { movieId, userId });
-      await t.none({
-        text: `DELETE
-           FROM movies
-           WHERE movie_id = $1
-             AND user_id = $2`,
-        values: [movieId, userId],
-      });
-      await addAudit(t, {
-        actor_user_id: res.locals.userId,
-        username,
-        action: 'delete',
-        table_name: 'movies',
-        record_id: movieId,
-        old_data: movie,
-      });
+  await db.tx('deleteOne', async (t) => {
+    const movie = await getMovieById(t, { movieId, userId });
+    await t.none({
+      text: `DELETE
+         FROM movies
+         WHERE movie_id = $1
+           AND user_id = $2`,
+      values: [movieId, userId],
     });
-
-    res.status(200).json(success([{ name: 'movie_deleted', message: 'Movie deleted' }]));
-  } catch (error) {
-    logError(error);
-    next(new ErrorWithStatus(422, 'movie_list_error', "Couldn't delete movie"));
-  }
-};
-
-export const search = async (
-  _: Request,
-  res: TypedResponse<typeof searchSchema>,
-  next: NextFunction,
-) => {
-  try {
-    const queryString = res.locals.input.query.query.trim();
-    if (!queryString) {
-      res.status(200).json(success([]));
-      return;
-    }
-    const userId = res.locals.userId;
-
-    const results = await db.task('search', async (t) => {
-      const matches = await ftsSearch(t, { userId, query: queryString });
-      return matches.length > 0 ? matches : await likeSearch(t, { userId, query: queryString });
+    await addAudit(t, {
+      actor_user_id: res.locals.userId,
+      username,
+      action: 'delete',
+      table_name: 'movies',
+      record_id: movieId,
+      old_data: movie,
     });
+  });
 
-    res.status(200).json(success(results));
-  } catch (error) {
-    logError(error);
-    next(new ErrorWithStatus(500, 'movie_list_error', 'Search failed'));
-  }
+  res.status(200).json(success([{ name: 'movie_deleted', message: 'Movie deleted' }]));
 };
 
-export const fetchImages = async (
-  _: Request,
-  res: TypedResponse<typeof fetchImagesSchema>,
-  next: NextFunction,
-) => {
-  const query = res.locals.input.query.query;
-
-  try {
-    const responses = await Promise.allSettled([
-      fetchTmdbImages(query),
-      fetchFinnaImages(query, 'video'),
-    ]);
-
-    const images: string[] = responses
-      .filter((response) => response.status === 'fulfilled')
-      .flatMap((response) => response.value);
-
-    res.status(200).json(success(images));
-  } catch (error) {
-    logError(error);
-    next(new ErrorWithStatus(500, 'movie_list_error', 'Failed to fetch images'));
+export const search = async (_: Request, res: TypedResponse<typeof searchSchema>) => {
+  const queryString = res.locals.input.query.query.trim();
+  if (!queryString) {
+    res.status(200).json(success([]));
+    return;
   }
-};
-
-export const countByStatus = async (_req: Request, res: TypedResponse, next: NextFunction) => {
   const userId = res.locals.userId;
 
-  try {
-    const rows = await db.any<StatusCountRow>(
-      `SELECT uml.status, COUNT(*) AS count
-        FROM user_movie_list uml
-        INNER JOIN movies m USING (movie_id)
-        WHERE m.user_id = $1
-        GROUP BY uml.status`,
-      [userId],
-    );
+  const results = await db.task('search', async (t) => {
+    const matches = await ftsSearch(t, { userId, query: queryString });
+    return matches.length > 0 ? matches : await likeSearch(t, { userId, query: queryString });
+  });
 
-    const total = rows.reduce((acc, curr) => acc + curr.count, 0);
-    const statuses = [...fillMovieStatuses(rows), { status: 'all', count: total }];
-    const result = Object.fromEntries(statuses.map(({ status, count }) => [status, count]));
+  res.status(200).json(success(results));
+};
 
-    res.status(200).json(result);
-  } catch (error) {
-    logError(error);
-    next(new ErrorWithStatus(500, 'movie_list_error', "Couldn't count books"));
-  }
+export const fetchImages = async (_: Request, res: TypedResponse<typeof fetchImagesSchema>) => {
+  const query = res.locals.input.query.query;
+
+  const responses = await Promise.allSettled([
+    fetchTmdbImages(query),
+    fetchFinnaImages(query, 'video'),
+  ]);
+
+  const images: string[] = responses
+    .filter((response) => response.status === 'fulfilled')
+    .flatMap((response) => response.value);
+
+  res.status(200).json(success(images));
+};
+
+export const countByStatus = async (_req: Request, res: TypedResponse) => {
+  const userId = res.locals.userId;
+
+  const rows = await db.any<StatusCountRow>(
+    `SELECT uml.status, COUNT(*) AS count
+      FROM user_movie_list uml
+      INNER JOIN movies m USING (movie_id)
+      WHERE m.user_id = $1
+      GROUP BY uml.status`,
+    [userId],
+  );
+
+  const total = rows.reduce((acc, curr) => acc + curr.count, 0);
+  const statuses = [...fillMovieStatuses(rows), { status: 'all', count: total }];
+  const result = Object.fromEntries(statuses.map(({ status, count }) => [status, count]));
+
+  res.status(200).json(result);
 };

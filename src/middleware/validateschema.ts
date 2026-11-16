@@ -1,6 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
 import { type ZodType, ZodError } from 'zod/v4';
-import { ErrorWithStatus } from '../util/errorhandler.ts';
 import { formatZodErrors } from '../util/zod.ts';
 import { z } from 'zod';
 import {
@@ -17,21 +16,13 @@ export const validateSchema =
         query: req.query,
         params: req.params,
       });
-      next();
     } catch (error) {
-      if (operation && error instanceof ZodError) {
+      if (!(error instanceof ZodError)) throw error;
+      if (operation) {
         auditSecurityFailureAfterResponse(req, res, { operation, reason: 'invalid_input' });
       }
-      next(
-        error instanceof ZodError
-          ? formatZodErrors(error)
-          : new ErrorWithStatus(
-              500,
-              'schema_validation_error',
-              error instanceof Error
-                ? error.message
-                : 'Unknown error while trying to validate input',
-            ),
-      );
+      next(formatZodErrors(error));
+      return;
     }
+    next();
   };
