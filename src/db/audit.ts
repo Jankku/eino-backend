@@ -13,7 +13,6 @@ export const auditAction = {
   BULLETIN_UPDATED: 'bulletin_updated',
   BULLETIN_DELETED: 'bulletin_deleted',
   PASSWORD_FORGOT: 'password_forgot',
-  PASSWORD_RESET_EMAIL_SENT: 'password_reset_email_sent',
   PASSWORD_RESETED: 'password_reseted',
   PASSWORD_RESET_FAILED: 'password_reset_failed',
   PASSWORD_HASH_UPGRADED: 'password_hash_upgraded',
@@ -91,16 +90,6 @@ export const getAuditsByActorUserId = async (
   return await t.any(
     'SELECT * FROM audit_log WHERE actor_user_id = $1 ORDER BY created_on ASC',
     actorUserId,
-  );
-};
-
-export const getAuditsByActionNewerThan = async (
-  t: ITask<unknown>,
-  { actions, date }: { actions: AuditAction[]; date: Date },
-): Promise<DbAudit[]> => {
-  return await t.any(
-    'SELECT * FROM audit_log WHERE action IN ($1:list) AND created_on > $2 ORDER BY created_on ASC',
-    [actions, date],
   );
 };
 

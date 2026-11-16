@@ -112,15 +112,6 @@ export const upgradePassword = async (
   if (result.rowCount !== 1) throw new Error('Password upgrade could not be saved');
 };
 
-export const getUserByUsername = async (t: ITask<unknown>, username: string): Promise<User> => {
-  return await t.one({
-    text: `SELECT *
-           FROM users
-           WHERE username = $1`,
-    values: [username],
-  });
-};
-
 export const findUserByUsername = async (
   t: ITask<unknown>,
   username: string,
@@ -130,27 +121,6 @@ export const findUserByUsername = async (
            FROM users
            WHERE username = $1`,
     values: [username],
-  });
-};
-
-export const getUserByEmail = async (t: ITask<unknown>, email: string): Promise<User> => {
-  return await t.one({
-    text: `SELECT *
-           FROM users
-           WHERE email = $1`,
-    values: [email],
-  });
-};
-
-export const findUserByEmail = async (
-  t: ITask<unknown>,
-  email: string,
-): Promise<User | null | undefined> => {
-  return await t.oneOrNone({
-    text: `SELECT *
-           FROM users
-           WHERE email = $1`,
-    values: [email],
   });
 };
 

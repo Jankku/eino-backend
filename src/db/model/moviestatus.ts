@@ -8,7 +8,3 @@ export type MovieStatus = (typeof movieStatuses)[number];
 export const movieStatusEnum = z.enum(movieStatuses, {
   error: errorMessages.LIST_STATUS_INVALID,
 });
-
-export const isMovieStatus = (status: string): status is MovieStatus => {
-  return movieStatuses.some((s) => s === status);
-};

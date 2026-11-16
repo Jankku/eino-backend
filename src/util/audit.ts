@@ -1,30 +1,7 @@
-/* oxlint-disable unicorn/no-array-reduce */
 /* oxlint-disable unicorn/numeric-separators-style */
 import type { DbAudit } from '../db/audit.ts';
 
 const DISCORD_COLOR_BLUE = 3447003;
-
-export const chunkArray = <T>(array: T[], size: number): T[][] => {
-  const result: T[][] = [];
-  for (let i = 0; i < array.length; i += size) {
-    const chunk = array.slice(i, i + size);
-    result.push(chunk);
-  }
-  return result;
-};
-
-export const sequentially = async <T, P>(
-  elements: T[],
-  toPromise: (element: T) => Promise<P>,
-): Promise<P[]> => {
-  const results: P[] = [];
-  await elements.reduce(async (sequence, element) => {
-    await sequence;
-    results.push(await toPromise(element));
-  }, Promise.resolve());
-
-  return results;
-};
 
 export const wait = async (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
