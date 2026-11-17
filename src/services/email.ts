@@ -64,11 +64,8 @@ export const updateEmail = async (_: Request, res: TypedResponse<typeof updateEm
       return { name: 'email_removed', message: 'Email successfully removed' };
     }
 
-    const isEmailUsed = await isEmailAlreadyUsed(t, { userId, email });
-    if (isEmailUsed) {
-      throw new ErrorWithStatus(409, 'email_already_used', 'Email is already in use');
-    }
-
+    // Not checked against other accounts so the response doesn't reveal whether the address
+    // belongs to one. An address another account has verified can't be verified here.
     if (user.email === email && user.email_verified_on) {
       return { name: 'email_already_verified', message: 'Email is already verified' };
     }
@@ -90,7 +87,7 @@ export const updateEmail = async (_: Request, res: TypedResponse<typeof updateEm
 export const sendConfirmationEmail = async (_req: Request, res: TypedResponse) => {
   const { userId, username } = res.locals;
 
-  const { email, otp } = await db.tx('sendConfirmationEmail', async (t) => {
+  const pending = await db.tx('sendConfirmationEmail', async (t) => {
     // Locked so concurrent requests replace the code one after another.
     const user = await getUserByIdForUpdate(t, userId);
 
@@ -101,8 +98,11 @@ export const sendConfirmationEmail = async (_req: Request, res: TypedResponse) =
     if (user.email_verified_on) {
       throw new ErrorWithStatus(422, 'email_already_verified', 'Email already verified');
     }
+    // Answered like a sent code so the response doesn't reveal that another account
+    // owns the address. Without a code the address can't be verified.
     if (await isEmailAlreadyUsed(t, { userId, email: user.email })) {
-      throw new ErrorWithStatus(409, 'email_already_used', 'Email is already in use');
+      await deleteVerifications(t, { userId, type: 'email' });
+      return { send: false } as const;
     }
 
     const totp = generateTOTP({
@@ -119,8 +119,20 @@ export const sendConfirmationEmail = async (_req: Request, res: TypedResponse) =
       expires_on: DateTime.now().plus({ minutes: 15 }).toJSDate(),
     });
 
-    return { email: user.email, otp: totp.otp };
+    return { send: true, email: user.email, otp: totp.otp } as const;
   });
+
+  if (!pending.send) {
+    res
+      .status(200)
+      .json(
+        success([
+          { name: 'email_pending_verification', message: 'Verification code sent to email' },
+        ]),
+      );
+    return;
+  }
+  const { email, otp } = pending;
 
   const emailResponse = await sendEmail({
     recipient: email,

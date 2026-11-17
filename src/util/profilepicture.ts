@@ -17,7 +17,7 @@ export const createProfilePictureDir = async () => {
 };
 
 export const generateProfilePicturePath = () =>
-  path.join(PROFILE_PICTURE_PATH, `${crypto.randomBytes(4).toString('hex')}${IMAGE_EXTENSION}`);
+  path.join(PROFILE_PICTURE_PATH, `${crypto.randomBytes(16).toString('hex')}${IMAGE_EXTENSION}`);
 
 export const getProfilePicturePathByFileName = (fileName: string) =>
   path.join(PROFILE_PICTURE_PATH, fileName);

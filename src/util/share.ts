@@ -29,6 +29,6 @@ export const removeShareImage = async (userId: string) => {
   }
 };
 
-export const generateShareId = () => crypto.randomBytes(4).toString('hex');
+export const generateShareId = () => crypto.randomBytes(16).toString('hex');
 
 export const getFontPath = (name: string) => path.join('./src', 'fonts', name);
