@@ -14,7 +14,6 @@ export const errorMessages = {
   SEARCH_QUERY_TYPE_ERROR: 'Query must be a string',
   EMAIL_REQUIRED: 'Email required',
   EMAIL_INVALID: 'Invalid email',
-  EMAIL_SHOULD_CONTAIN_AT_SIGN: 'Email should contain @',
   EMAIL_ALREADY_USED: 'Email is already in use',
   OTP_REQUIRED: 'One-time password required',
   OTP_INVALID: 'Invalid one-time password',

@@ -25,10 +25,6 @@ export const registerSchema = z
     params: { name: 'authentication_error' },
     error: errorMessages.PASSWORDS_NO_MATCH,
   })
-  .refine((data) => !data.body.email || data.body.email?.includes('@'), {
-    params: { name: 'authentication_error' },
-    error: errorMessages.EMAIL_SHOULD_CONTAIN_AT_SIGN,
-  })
   .superRefine(({ body }, ctx) => {
     const { isStrong, error } = getPasswordStrength({
       username: body.username,

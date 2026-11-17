@@ -84,29 +84,27 @@ export const passwordStrengthInputSchema = passwordStringSchema.superRefine((pas
   for (const issue of issues) ctx.addIssue({ ...issue });
 });
 
+// Trimmed before the format check, like optionalEmailSchema, so surrounding spaces are accepted.
 export const emailSchema = z
-  .email({
+  .string({
     error: (issue) => (issue.input === undefined ? errorMessages.EMAIL_REQUIRED : undefined),
   })
   .trim()
   .toLowerCase()
   .max(255, {
     error: errorMessages.EMAIL_INVALID,
-  });
+  })
+  .pipe(z.email());
 
 export const optionalEmailSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .min(0)
   .max(255, { error: errorMessages.EMAIL_INVALID })
-  .nullish()
-  .refine(
-    (value) => {
-      return value ? value.includes('@') : true;
-    },
-    { error: errorMessages.EMAIL_INVALID },
-  );
+  .refine((value) => value === '' || z.regexes.email.test(value), {
+    error: errorMessages.EMAIL_INVALID,
+  })
+  .nullish();
 
 export const usernameOrEmailSchema = z.union([usernameSchema, emailSchema]);
 
