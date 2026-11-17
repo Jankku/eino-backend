@@ -5,7 +5,7 @@ import { Logger } from './logger.ts';
 
 export const profilePictureLimits = {
   fileSize: 10 * 1024 * 1024,
-  inputPixels: 16_000_000,
+  inputPixels: 50_000_000,
   concurrentUploads: 2,
 } as const;
 

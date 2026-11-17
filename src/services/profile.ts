@@ -350,7 +350,14 @@ export const saveProfilePicture = async (req: Request, res: TypedResponse) => {
       .resize({ width: 300, height: 300, fit: 'cover' })
       .avif()
       .toBuffer();
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('pixel limit')) {
+      throw new ErrorWithStatus(
+        422,
+        'profile_picture_error',
+        `Image exceeds ${profilePictureLimits.inputPixels / 1_000_000} megapixels`,
+      );
+    }
     throw new ErrorWithStatus(422, 'profile_picture_error', 'Invalid image');
   }
 
