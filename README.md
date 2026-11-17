@@ -84,6 +84,19 @@ Create the admin account.
 $ docker compose exec app npm run create-admin
 ```
 
+## Development seed data
+
+Fill a development database with varied data that reaches every field's limits, for testing performance and how clients render it.
+
+```sh
+npm run seed                       # replace seed data
+npm run seed -- --heavy 100000     # more items for seed_heavy
+npm run seed -- --clean            # remove seed data
+npm run seed -- --help             # all options
+```
+
+Seeded users are named `seed_*` and share one password, which the script prints. Existing data is left untouched.
+
 ## Fontconfig warnings on Linux
 
 When running locally, the prebuilt `canvas` binary can bundle an older Fontconfig library than the system configuration in `/etc/fonts/conf.d`. This can cause warnings about `xsi:nil` or invalid constants.

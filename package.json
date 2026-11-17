@@ -23,6 +23,7 @@
     "migrate": "node --env-file-if-exists=.env ./node_modules/node-pg-migrate/bin/node-pg-migrate.js",
     "migrate:dev": "npm run migrate -- -m dist/migrations",
     "create-admin": "node ./dist/src/scripts/createadmin.js",
+    "seed": "node src/scripts/seed.ts",
     "prepare": "husky"
   },
   "dependencies": {
