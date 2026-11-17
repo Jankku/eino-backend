@@ -7,6 +7,7 @@ import {
   fixedStringSchema,
   languageCodeSchema,
   nonnegativeIntegerSchema,
+  noteSchema,
   scoreSchema,
   sortOrderSchema,
 } from '../../util/zodschema.ts';
@@ -18,7 +19,7 @@ export const bookSchema = z.object({
   author: fixedStringSchema,
   publisher: fixedStringSchema,
   image_url: coverUrlSchema,
-  note: z.string().nullish(),
+  note: noteSchema.nullish(),
   language_code: languageCodeSchema.nullish(),
   pages: nonnegativeIntegerSchema,
   year: nonnegativeIntegerSchema,

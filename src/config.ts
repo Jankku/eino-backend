@@ -75,7 +75,8 @@ const configSchema = z
     ACCESS_TOKEN_VALIDITY: tokenValiditySchema,
     REFRESH_TOKEN_SECRET: tokenSecretSchema,
     REFRESH_TOKEN_VALIDITY: tokenValiditySchema,
-    REQUEST_BODY_MAX_SIZE: z.optional(nonEmptyString).default('10mb'),
+    REQUEST_BODY_MAX_SIZE: z.optional(nonEmptyString).default('100kb'),
+    PROFILE_IMPORT_MAX_SIZE: z.optional(nonEmptyString).default('10mb'),
     USER_LIST_ITEM_MAX_COUNT: z.coerce.number().positive().default(100_000),
   })
   .refine((value) => value.ACCESS_TOKEN_SECRET !== value.REFRESH_TOKEN_SECRET, {

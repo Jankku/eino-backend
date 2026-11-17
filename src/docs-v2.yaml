@@ -2086,6 +2086,7 @@ components:
         note:
           type: string
           nullable: true
+          maxLength: 10000
         language_code:
           $ref: '#/components/schemas/LanguageCode'
     AddMovieRequest:
@@ -2140,6 +2141,7 @@ components:
         note:
           type: string
           nullable: true
+          maxLength: 10000
     Book:
       type: object
       properties:
@@ -2176,6 +2178,7 @@ components:
         note:
           type: string
           nullable: true
+          maxLength: 10000
         language_code:
           $ref: '#/components/schemas/LanguageCode'
         start_date:
@@ -2241,6 +2244,7 @@ components:
         note:
           type: string
           nullable: true
+          maxLength: 10000
         start_date:
           type: string
           format: date-time

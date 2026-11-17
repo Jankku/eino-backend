@@ -43,7 +43,17 @@ app.use((_req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: config.REQUEST_BODY_MAX_SIZE }));
+// Profile import takes large bodies, so its route parses them itself after
+// authentication. Everything else, including the public routes, stays small.
+const PROFILE_IMPORT_PATH = /^\/api\/v2\/profile\/import\/?$/i;
+const parseJson = express.json({ limit: config.REQUEST_BODY_MAX_SIZE });
+app.use((req, res, next) => {
+  if (PROFILE_IMPORT_PATH.test(req.path)) {
+    next();
+    return;
+  }
+  parseJson(req, res, next);
+});
 
 app.use('/api/v2', routerV2);
 

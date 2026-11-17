@@ -16,6 +16,7 @@ import {
   importProfileSchema,
 } from './schema.ts';
 import { withProfilePictureUpload } from '../../middleware/profilepictureupload.ts';
+import { config } from '../../config.ts';
 
 export const profileRouterV2 = express.Router();
 
@@ -28,7 +29,12 @@ profileRouterV2.post(
   validateSchema(exportProfileSchema, 'profile_export'),
   exportProfileData,
 );
-profileRouterV2.post('/import', validateSchema(importProfileSchema), importProfileData);
+profileRouterV2.post(
+  '/import',
+  express.json({ limit: config.PROFILE_IMPORT_MAX_SIZE }),
+  validateSchema(importProfileSchema),
+  importProfileData,
+);
 profileRouterV2.post(
   '/deleteaccount',
   validateSchema(deleteAccountSchema, 'account_delete'),

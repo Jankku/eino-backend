@@ -19,6 +19,8 @@ export const fixedStringSchema = z.string().min(0).max(255);
 
 export const fixedNonEmptyStringSchema = z.string().min(1).max(255);
 
+export const noteSchema = z.string().max(10_000);
+
 // Stored in Postgres INTEGER columns.
 export const nonnegativeIntegerSchema = z.int32().nonnegative();
 

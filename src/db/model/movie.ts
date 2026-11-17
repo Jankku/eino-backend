@@ -5,6 +5,7 @@ import {
   dateStringSchema,
   fixedStringSchema,
   nonnegativeIntegerSchema,
+  noteSchema,
   scoreSchema,
   sortOrderSchema,
 } from '../../util/zodschema.ts';
@@ -20,7 +21,7 @@ export const movieSchema = z.object({
   duration: nonnegativeIntegerSchema,
   year: nonnegativeIntegerSchema,
   status: movieStatusEnum,
-  note: z.string().nullish(),
+  note: noteSchema.nullish(),
   score: scoreSchema,
   start_date: dateSchema,
   end_date: dateSchema,
