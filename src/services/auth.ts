@@ -49,6 +49,7 @@ import QRCode from 'qrcode';
 import { DateTime } from 'luxon';
 import { isVerificationExpired } from '../util/verification.ts';
 import { sendEmail } from '../util/email.ts';
+import { reserveEmailSend } from '../util/emailthrottle.ts';
 import { resetPasswordTemplate } from '../util/emailtemplates.ts';
 import { addAudit } from '../db/audit.ts';
 import { getDefaultRoleId } from '../db/role.ts';
@@ -260,6 +261,15 @@ const sendPasswordResetEmail = async (email: string, req: Request, res: TypedRes
         throw new SecurityErrorWithStatus(422, 'forget_password_error', 'Email not verified', {
           operation: 'password_forgot',
           reason: 'email_unverified',
+          targetUserId: user.user_id,
+        });
+      }
+
+      // The generic response was already sent, so a throttled request is only audited.
+      if (reserveEmailSend('password_reset', user.user_id) > 0) {
+        throw new SecurityErrorWithStatus(429, 'forget_password_error', 'Too many requests', {
+          operation: 'password_forgot',
+          reason: 'rate_limited',
           targetUserId: user.user_id,
         });
       }

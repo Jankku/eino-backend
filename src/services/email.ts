@@ -17,6 +17,7 @@ import { sendEmail } from '../util/email.ts';
 import { confirmEmailTemplate } from '../util/emailtemplates.ts';
 import { db } from '../db/config.ts';
 import { addAudit } from '../db/audit.ts';
+import { reserveEmailSend } from '../util/emailthrottle.ts';
 
 export const updateEmail = async (_: Request, res: TypedResponse<typeof updateEmailSchema>) => {
   const { userId, username } = res.locals;
@@ -98,6 +99,13 @@ export const sendConfirmationEmail = async (_req: Request, res: TypedResponse) =
     if (user.email_verified_on) {
       throw new ErrorWithStatus(422, 'email_already_verified', 'Email already verified');
     }
+
+    // Counted per account, so changing the address doesn't reset the limit. Checked before
+    // the ownership check below so an address owned by another account counts the same.
+    const retryAfter = reserveEmailSend('email_confirmation', userId);
+    if (retryAfter > 0) {
+      return { send: false, retryAfter } as const;
+    }
     // Answered like a sent code so the response doesn't reveal that another account
     // owns the address. Without a code the address can't be verified.
     if (await isEmailAlreadyUsed(t, { userId, email: user.email })) {
@@ -123,6 +131,14 @@ export const sendConfirmationEmail = async (_req: Request, res: TypedResponse) =
   });
 
   if (!pending.send) {
+    if (pending.retryAfter) {
+      res.set('Retry-After', String(pending.retryAfter));
+      throw new ErrorWithStatus(
+        429,
+        'email_rate_limited',
+        `Too many confirmation emails requested. Try again in ${pending.retryAfter} seconds`,
+      );
+    }
     res
       .status(200)
       .json(

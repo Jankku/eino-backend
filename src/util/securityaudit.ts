@@ -42,7 +42,8 @@ export type SecurityFailure = {
     | 'revoked_token'
     | 'invalid_authorization_header'
     | 'insufficient_role'
-    | 'invalid_input';
+    | 'invalid_input'
+    | 'rate_limited';
   targetUserId?: string;
 };
 

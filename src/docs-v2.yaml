@@ -541,6 +541,9 @@ paths:
       tags:
         - auth
       summary: Send reset password email
+      description: >-
+        At most one email is sent per minute and five per hour for each account. Requests over
+        the limit get the same response but send nothing.
       requestBody:
         required: true
         content:
@@ -774,6 +777,19 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '424':
           description: Email delivery failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '429':
+          description: >-
+            Confirmation emails were requested too often. At most one is sent per minute and
+            five per hour for each account.
+          headers:
+            Retry-After:
+              description: Seconds until another confirmation email can be requested
+              schema:
+                type: integer
           content:
             application/json:
               schema:
