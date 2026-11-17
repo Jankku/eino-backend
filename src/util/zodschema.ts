@@ -52,7 +52,9 @@ export const usernameSchema = z
   })
   .trim()
   .min(3, { error: errorMessages.USERNAME_LENGTH_INVALID })
-  .max(255, { error: errorMessages.USERNAME_LENGTH_INVALID });
+  .max(255, { error: errorMessages.USERNAME_LENGTH_INVALID })
+  // An @ would let a username shadow someone's email at login.
+  .refine((value) => !value.includes('@'), { error: errorMessages.USERNAME_CONTAINS_AT_SIGN });
 
 const passwordStringSchema = z.string({
   error: (issue) =>
@@ -85,6 +87,7 @@ export const emailSchema = z
     error: (issue) => (issue.input === undefined ? errorMessages.EMAIL_REQUIRED : undefined),
   })
   .trim()
+  .toLowerCase()
   .max(255, {
     error: errorMessages.EMAIL_INVALID,
   });
@@ -92,6 +95,7 @@ export const emailSchema = z
 export const optionalEmailSchema = z
   .string()
   .trim()
+  .toLowerCase()
   .min(0)
   .max(255, { error: errorMessages.EMAIL_INVALID })
   .nullish()

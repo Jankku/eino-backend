@@ -6,6 +6,7 @@ export const errorMessages = {
   PASSWORD_TYPE_ERROR: 'Password should be a string',
   PASSWORDS_NO_MATCH: "Passwords don't match",
   USERNAME_LENGTH_INVALID: 'Username length should be between 3-255 characters',
+  USERNAME_CONTAINS_AT_SIGN: 'Username must not contain @',
   PASSWORD_LENGTH_INVALID: 'Password length should be between 8-255 characters',
   REFRESHTOKEN_REQUIRED: 'refreshToken required',
   LIST_STATUS_INVALID: 'Invalid status',

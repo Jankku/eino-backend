@@ -30,7 +30,8 @@ const FOREIGN_KEY_VIOLATION = '23503';
 
 const uniqueConstraintMessages: Record<string, string> = {
   users_username_key: errorMessages.USER_EXISTS,
-  users_email_key: errorMessages.EMAIL_ALREADY_USED,
+  users_username_lower_key: errorMessages.USER_EXISTS,
+  users_email_verified_key: errorMessages.EMAIL_ALREADY_USED,
 };
 
 // Only references that come from request input. Any other violation is a server bug.

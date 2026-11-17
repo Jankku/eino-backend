@@ -12,6 +12,7 @@ import {
   upgradePassword,
   getUserByIdForUpdate,
   incrementTokenVersion,
+  isEmailAlreadyUsed,
   updateLastLogin,
   updatePassword,
   type User,
@@ -61,6 +62,9 @@ export const register = async (_: Request, res: TypedResponse<typeof registerSch
   // Hashed before the transaction so no connection is held during the KDF.
   const hashedPassword = await generatePasswordHash(password);
   await db.tx('register', async (t) => {
+    if (email && (await isEmailAlreadyUsed(t, { email }))) {
+      throw new ErrorWithStatus(409, 'email_already_used', errorMessages.EMAIL_ALREADY_USED);
+    }
     const defaultRoleId = getDefaultRoleId();
     const user = await t.one<{ user_id: string }>({
       text: `INSERT INTO users (username, password, email, role_id)

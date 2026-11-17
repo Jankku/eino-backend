@@ -6,7 +6,6 @@ import { addVerification, deleteVerifications, findVerification } from '../db/ve
 import {
   getUserByIdForUpdate,
   isEmailAlreadyUsed,
-  isEmailVerified,
   updateEmailAddress,
   updateEmailVerifiedTimestamp,
 } from '../db/users.ts';
@@ -70,8 +69,7 @@ export const updateEmail = async (_: Request, res: TypedResponse<typeof updateEm
       throw new ErrorWithStatus(409, 'email_already_used', 'Email is already in use');
     }
 
-    const isVerified = await isEmailVerified(t, email);
-    if (isVerified) {
+    if (user.email === email && user.email_verified_on) {
       return { name: 'email_already_verified', message: 'Email is already verified' };
     }
 
@@ -100,9 +98,11 @@ export const sendConfirmationEmail = async (_req: Request, res: TypedResponse) =
       throw new ErrorWithStatus(422, 'email_error', "Couldn't send confirmation email");
     }
 
-    const isVerified = await isEmailVerified(t, user.email);
-    if (isVerified) {
+    if (user.email_verified_on) {
       throw new ErrorWithStatus(422, 'email_already_verified', 'Email already verified');
+    }
+    if (await isEmailAlreadyUsed(t, { userId, email: user.email })) {
+      throw new ErrorWithStatus(409, 'email_already_used', 'Email is already in use');
     }
 
     const totp = generateTOTP({
@@ -199,7 +199,7 @@ export const verifyEmail = async (_: Request, res: TypedResponse<typeof verifyEm
     }
 
     await deleteVerifications(t, { userId, type: 'email' });
-    await updateEmailVerifiedTimestamp(t, user.email);
+    await updateEmailVerifiedTimestamp(t, { userId, email: user.email });
     await addAudit(t, {
       actor_user_id: res.locals.userId,
       username,

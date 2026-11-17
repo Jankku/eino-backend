@@ -58,8 +58,9 @@ export const findUserByCredential = async (
   return await t.oneOrNone({
     text: `SELECT *
            FROM users
-           WHERE username = $1 OR (email = $1 AND email_verified_on IS NOT NULL)
-           ORDER BY (username = $1) DESC
+           WHERE lower(username) = lower($1)
+              OR (email = lower($1) AND email_verified_on IS NOT NULL)
+           ORDER BY (lower(username) = lower($1)) DESC
            LIMIT 1`,
     values: [usernameOrEmail],
   });
@@ -111,12 +112,15 @@ export const upgradePassword = async (
   if (result.rowCount !== 1) throw new Error('Password upgrade could not be saved');
 };
 
+// Unverified addresses aren't unique, so the verified owner is preferred.
 export const findUserByEmail = async (
   t: ITask<unknown>,
   email: string,
 ): Promise<User | null | undefined> => {
   return await t.oneOrNone({
-    text: 'SELECT * FROM users WHERE email = $1',
+    text: `SELECT * FROM users WHERE email = $1
+           ORDER BY (email_verified_on IS NOT NULL) DESC
+           LIMIT 1`,
     values: [email],
   });
 };
@@ -126,7 +130,10 @@ export const findUserByEmailForUpdate = async (
   email: string,
 ): Promise<User | null | undefined> => {
   return await t.oneOrNone({
-    text: 'SELECT * FROM users WHERE email = $1 FOR UPDATE',
+    text: `SELECT * FROM users WHERE email = $1
+           ORDER BY (email_verified_on IS NOT NULL) DESC
+           LIMIT 1
+           FOR UPDATE`,
     values: [email],
   });
 };
@@ -149,15 +156,25 @@ export const updateEmailAddress = async (
   });
 };
 
+/**
+Verifies the user's email and removes the address from other accounts that hold it unverified.
+Throws a unique violation if another account already verified the address.
+*/
 export const updateEmailVerifiedTimestamp = async (
   t: ITask<unknown>,
-  email: string,
+  { userId, email }: { userId: string; email: string },
 ): Promise<void> => {
   await t.none({
     text: `UPDATE users
              SET email_verified_on = CURRENT_TIMESTAMP(0)
-             WHERE email = $1`,
-    values: [email],
+             WHERE user_id = $1`,
+    values: [userId],
+  });
+  await t.none({
+    text: `UPDATE users
+             SET email = NULL
+             WHERE email = $1 AND user_id != $2 AND email_verified_on IS NULL`,
+    values: [email, userId],
   });
 };
 
@@ -175,33 +192,27 @@ export const disableTOTP = async (t: ITask<unknown>, userId: string): Promise<vo
   });
 };
 
+/**
+An address is taken only once another account has verified it.
+Unverified addresses can be held by several accounts until one of them verifies it.
+*/
 export const isEmailAlreadyUsed = async (
   t: ITask<unknown>,
   {
     userId,
     email,
   }: {
-    userId: string;
+    userId?: string;
     email: string;
   },
 ): Promise<boolean> => {
   const result = await t.oneOrNone({
-    text: `SELECT email
+    text: `SELECT 1
            FROM users
-           WHERE email = $1 AND user_id != $2`,
+           WHERE email = $1 AND email_verified_on IS NOT NULL AND user_id IS DISTINCT FROM $2`,
     values: [email, userId],
   });
   return result !== null;
-};
-
-export const isEmailVerified = async (t: ITask<unknown>, email: string): Promise<boolean> => {
-  const result = await t.oneOrNone({
-    text: `SELECT email_verified_on
-           FROM users
-           WHERE email = $1`,
-    values: [email],
-  });
-  return !!result && result.email_verified_on !== null;
 };
 
 export const updatePassword = async (
@@ -224,7 +235,7 @@ export const updatePassword = async (
 
 export const isUserUnique = async (t: ITask<unknown>, username: string): Promise<boolean> => {
   const result = await t.result({
-    text: 'SELECT 1 FROM users WHERE username = $1',
+    text: 'SELECT 1 FROM users WHERE lower(username) = lower($1)',
     values: [username],
   });
   return result.rowCount === 0;
